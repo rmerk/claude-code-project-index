@@ -55,6 +55,21 @@
         "Strategic Recommendations"
       ],
       "architecture_hints": []
+    },
+    "PLAN_ADAPTIVE_COMPRESSION.md": {
+      "sections": [
+        "Adaptive Compression Strategy for PROJECT_INDEX",
+        "Overview",
+        "Current Issues",
+        "Planned Improvements",
+        "Phase 1: Critical Bug Fixes",
+        "Phase 2: Adaptive Compression Strategy",
+        "Phase 3: Three-Tier Index System",
+        "Phase 4: DSL Format",
+        "From 100 bytes per function (JSON)",
+        "To 30-50 bytes per function (DSL)"
+      ],
+      "architecture_hints": []
     }
   },
   "directory_purposes": {
@@ -71,7 +86,7 @@
       "shell": 4,
       "json": 1
     },
-    "markdown_files": 3
+    "markdown_files": 4
   },
   "files": {
     "install.sh": {
