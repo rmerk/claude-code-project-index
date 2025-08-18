@@ -279,14 +279,50 @@ Focus on providing actionable file locations and insights."""
 """
         
         # Try to copy to clipboard
+        clipboard_success = False
+        
+        # First try xclip directly (most reliable for Linux)
         try:
-            import pyperclip
-            pyperclip.copy(clipboard_content)
-            print(f"✅ Copied to clipboard: {len(clipboard_content)} chars", file=sys.stderr)
-            print(f"📋 Ready to paste into Gemini, Claude.ai, ChatGPT, or other AI", file=sys.stderr)
-            return ('clipboard', len(clipboard_content))
-        except (ImportError, Exception) as e:
-            # Fallback for systems without pyperclip
+            result = subprocess.run(['which', 'xclip'], capture_output=True)
+            if result.returncode == 0:
+                # Use xclip with a virtual display if needed
+                env = os.environ.copy()
+                if not env.get('DISPLAY'):
+                    # Check if Xvfb is running on :99
+                    xvfb_check = subprocess.run(['pgrep', '-f', 'Xvfb.*:99'], capture_output=True)
+                    if xvfb_check.returncode != 0:
+                        # Start Xvfb if not running
+                        subprocess.Popen(['Xvfb', ':99', '-screen', '0', '1024x768x24'],
+                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        time.sleep(0.5)
+                    env['DISPLAY'] = ':99'
+                
+                # Copy to clipboard using xclip
+                proc = subprocess.Popen(['xclip', '-selection', 'clipboard'],
+                                      stdin=subprocess.PIPE, env=env,
+                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                proc.communicate(clipboard_content.encode('utf-8'))
+                if proc.returncode == 0:
+                    clipboard_success = True
+                    print(f"✅ Copied to clipboard via xclip: {len(clipboard_content)} chars", file=sys.stderr)
+                    print(f"📋 Ready to paste into Gemini, Claude.ai, ChatGPT, or other AI", file=sys.stderr)
+                    return ('clipboard', len(clipboard_content))
+        except:
+            pass
+        
+        # Fallback to pyperclip if xclip didn't work
+        if not clipboard_success:
+            try:
+                import pyperclip
+                pyperclip.copy(clipboard_content)
+                print(f"✅ Copied to clipboard via pyperclip: {len(clipboard_content)} chars", file=sys.stderr)
+                print(f"📋 Ready to paste into Gemini, Claude.ai, ChatGPT, or other AI", file=sys.stderr)
+                return ('clipboard', len(clipboard_content))
+            except (ImportError, Exception) as e:
+                pass
+        
+        # Final fallback to file if clipboard methods failed
+        if not clipboard_success:
             fallback_path = Path.cwd() / '.clipboard_content.txt'
             with open(fallback_path, 'w') as f:
                 f.write(clipboard_content)
