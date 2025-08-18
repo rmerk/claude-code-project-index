@@ -1,5 +1,5 @@
 {
-  "indexed_at": "2025-08-18T11:06:21.609576",
+  "indexed_at": "2025-08-18T11:20:43.438912",
   "root": ".",
   "project_structure": {
     "type": "tree",
@@ -66,8 +66,8 @@
         "Ask architectural questions",
         "Or auto-load in every session by adding to CLAUDE.md:",
         "Add @PROJECT_INDEX.json to your CLAUDE.md file",
-        "\ud83d\udce6 Updating",
-        "\ud83d\udd27 Highly Recommended: Claude Code Docs"
+        "\ud83d\ude80 Advanced: Index-Aware Mode with -i Flag",
+        "Default 50k token index with intelligent analysis"
       ],
       "architecture_hints": []
     }
@@ -522,12 +522,12 @@
       "index_utils"
     ]
   },
-  "staleness_check": 1754928381.631652,
+  "staleness_check": 1754929243.4612,
   "_meta": {
     "target_size_k": 1,
-    "generated_at": 1755533181.6372597,
+    "generated_at": 1755534043.4671283,
     "actual_size_k": 3,
-    "files_hash": "c205e5b04f7fd01a",
+    "files_hash": "53a4476931b71ed2",
     "compression_ratio": "300.0%"
   }
 }

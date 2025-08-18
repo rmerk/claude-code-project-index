@@ -41,6 +41,50 @@ Once created, reference it when you need architectural awareness:
 # Add @PROJECT_INDEX.json to your CLAUDE.md file
 ```
 
+### 🚀 Advanced: Index-Aware Mode with -i Flag
+
+Use the `-i` flag to automatically analyze your codebase structure before tasks:
+
+```bash
+# Default 50k token index with intelligent analysis
+claude "refactor the auth system -i"
+
+# Specify custom size (1k-100k tokens)
+claude "find performance issues -i75"
+
+# Clipboard mode for external AI (up to 800k)
+claude "analyze architecture -ic400"
+```
+
+#### How It Works
+
+**Standard Mode (`-i`)**: 
+- Generates PROJECT_INDEX.json at requested size
+- Invokes intelligent subagent to analyze structure
+- Provides strategic code locations and insights
+- Claude proceeds with your task using the analysis
+
+**Clipboard Mode (`-ic`)**: 
+- Generates index and copies to clipboard
+- Paste into external AI (Gemini, ChatGPT, Claude.ai)
+- Copy their analysis back to Claude
+- Useful for leveraging models with larger context windows
+
+#### Requirements for Clipboard Mode
+
+For clipboard mode (`-ic`) to work with actual clipboard (not file fallback):
+```bash
+# Install pyperclip
+pip install --break-system-packages pyperclip
+
+# Linux also needs xclip
+sudo apt-get install xclip  # Ubuntu/Debian
+# or
+sudo yum install xclip      # RedHat/Fedora
+```
+
+Without pyperclip, content saves to `.clipboard_content.txt` for manual copying.
+
 ## 📦 Updating
 
 To update to the latest version, simply run the installer again:

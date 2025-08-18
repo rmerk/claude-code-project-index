@@ -221,40 +221,61 @@ def generate_index_at_size(project_root, target_size_k):
 def copy_to_clipboard(prompt, index_path):
     """Copy prompt, instructions, and index to clipboard for external AI."""
     try:
-        # Load subagent instructions
-        agents_dir = Path(__file__).parent.parent / '.claude' / 'agents'
-        if not agents_dir.exists():
-            agents_dir = Path.home() / '.claude-code-project-index' / '.claude' / 'agents'
-        
-        analyzer_path = agents_dir / 'index-analyzer.md'
-        if analyzer_path.exists():
-            with open(analyzer_path, 'r') as f:
-                instructions = f.read()
-        else:
-            instructions = "Analyze the PROJECT_INDEX.json to identify relevant code sections."
+        # Create clipboard-specific instructions (no tools, no subagent references)
+        clipboard_instructions = """You are analyzing a codebase index to help identify relevant files and code sections.
+
+## YOUR TASK
+Analyze the PROJECT_INDEX.json below to identify the most relevant code sections for the user's request.
+The index contains file structures, function signatures, call graphs, and dependencies.
+
+## WHAT TO LOOK FOR
+- Identify specific files and functions related to the request
+- Trace call graphs to understand code flow
+- Note dependencies and relationships
+- Consider architectural patterns
+
+## IMPORTANT: RESPONSE FORMAT
+Your response will be copied and pasted to Claude Code. Format your response as:
+
+### 📍 RELEVANT CODE LOCATIONS
+
+**Primary Files to Examine:**
+- `path/to/file.py` - [Why relevant]
+  - `function_name()` (line X) - [What it does]
+  - Called by: [list any callers]
+  - Calls: [list what it calls]
+
+**Related Files:**
+- `path/to/related.py` - [Connection to task]
+
+### 🔍 KEY INSIGHTS
+- [Architectural patterns observed]
+- [Dependencies to consider]
+- [Potential challenges or gotchas]
+
+### 💡 RECOMMENDATIONS
+- Start by examining: [specific file]
+- Focus on: [specific functions/classes]
+- Consider: [any special considerations]
+
+Do NOT include the original user prompt in your response.
+Focus on providing actionable file locations and insights."""
         
         # Load index
         with open(index_path, 'r') as f:
             index = json.load(f)
         
         # Build clipboard content
-        clipboard_content = f"""# Index-Aware Analysis Request
+        clipboard_content = f"""# Codebase Analysis Request
 
-## User Prompt
+## Task for You
 {prompt}
 
-## Analysis Instructions
-{instructions}
+## Instructions
+{clipboard_instructions}
 
 ## PROJECT_INDEX.json
 {json.dumps(index, indent=2)}
-
-## Expected Response Format
-Provide code intelligence analysis including:
-- Essential code paths and files
-- Call graphs and dependencies
-- Architectural insights
-- Strategic recommendations for the task
 """
         
         # Try to copy to clipboard
@@ -264,7 +285,7 @@ Provide code intelligence analysis including:
             print(f"✅ Copied to clipboard: {len(clipboard_content)} chars", file=sys.stderr)
             print(f"📋 Ready to paste into Gemini, Claude.ai, ChatGPT, or other AI", file=sys.stderr)
             return ('clipboard', len(clipboard_content))
-        except ImportError:
+        except (ImportError, Exception) as e:
             # Fallback for systems without pyperclip
             fallback_path = Path.cwd() / '.clipboard_content.txt'
             with open(fallback_path, 'w') as f:
