@@ -1,7 +1,7 @@
 # Codebase Analysis Request
 
 ## Task for You
-test ssh
+test tmux clipboard
 
 ## Instructions
 You are analyzing a codebase index to help identify relevant files and code sections.
@@ -45,7 +45,7 @@ Focus on providing actionable file locations and insights.
 
 ## PROJECT_INDEX.json
 {
-  "indexed_at": "2025-08-18T11:41:59.571791",
+  "indexed_at": "2025-08-18T14:05:21.743264",
   "root": ".",
   "project_structure": {
     "type": "tree",
@@ -568,12 +568,12 @@ Focus on providing actionable file locations and insights.
       "index_utils"
     ]
   },
-  "staleness_check": 1754930519.593832,
+  "staleness_check": 1754939121.765699,
   "_meta": {
     "target_size_k": 1,
-    "generated_at": 1755535319.5991066,
+    "generated_at": 1755543921.7734134,
     "actual_size_k": 3,
-    "files_hash": "39fa824fcb9a4897",
+    "files_hash": "41f59a008ebc0c8c",
     "compression_ratio": "300.0%"
   }
 }

@@ -284,15 +284,45 @@ Focus on providing actionable file locations and insights."""
         # Check if we're in an SSH session (clipboard won't work across SSH)
         is_ssh = os.environ.get('SSH_CONNECTION') or os.environ.get('SSH_CLIENT')
         
-        # For SSH sessions, skip clipboard attempts and go straight to file
+        # For SSH sessions, try to copy to Mac's clipboard via pbcopy
         if is_ssh:
             fallback_path = Path.cwd() / '.clipboard_content.txt'
             with open(fallback_path, 'w') as f:
                 f.write(clipboard_content)
+            
+            # Try to copy to Mac clipboard through SSH
+            try:
+                # First try pbcopy (works if SSH has clipboard forwarding)
+                proc = subprocess.Popen(['pbcopy'], stdin=subprocess.PIPE, 
+                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                proc.communicate(clipboard_content.encode('utf-8'))
+                if proc.returncode == 0:
+                    print(f"✅ Copied to Mac clipboard via pbcopy!", file=sys.stderr)
+                    print(f"📋 Also saved to {fallback_path} as backup", file=sys.stderr)
+                    
+                    # Verify it worked
+                    verify = subprocess.run(['pbpaste'], capture_output=True, text=True, timeout=1)
+                    if verify.returncode == 0 and "PROJECT_INDEX.json" in verify.stdout:
+                        print(f"✅ Verified: Clipboard contains PROJECT_INDEX ({len(verify.stdout)} chars)", file=sys.stderr)
+                    
+                    return ('ssh_clipboard', str(fallback_path))
+            except:
+                pass
+            
+            # Try tmux if available
+            try:
+                proc = subprocess.Popen(['tmux', 'load-buffer', '-'], stdin=subprocess.PIPE,
+                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                proc.communicate(clipboard_content.encode('utf-8'))
+                if proc.returncode == 0:
+                    print(f"✅ Loaded into tmux buffer", file=sys.stderr)
+                    print(f"📋 Use 'prefix + ]' to paste in tmux", file=sys.stderr)
+            except:
+                pass
+            
             print(f"✅ Saved to {fallback_path}", file=sys.stderr)
-            print(f"📋 SSH detected - file saved for easy copying", file=sys.stderr)
+            print(f"📋 SSH detected - file saved for manual copying", file=sys.stderr)
             print(f"\nTo copy on Mac: cat .clipboard_content.txt | pbcopy", file=sys.stderr)
-            print(f"Or in tmux: cat .clipboard_content.txt | tmux load-buffer -", file=sys.stderr)
             return ('ssh_file', str(fallback_path))
         
         # First try xclip directly (most reliable for Linux)
@@ -390,6 +420,22 @@ Index and instructions copied to clipboard ({size_k}k tokens, {copy_result[1]} c
 Paste into external AI (Gemini, Claude.ai, ChatGPT) for analysis.
 
 No subagent will be invoked - the clipboard contains everything needed.
+Original request: {cleaned_prompt}
+"""
+                    }
+                }
+            elif copy_result[0] == 'ssh_clipboard':
+                # SSH session with successful clipboard copy
+                output = {
+                    "hookSpecificOutput": {
+                        "hookEventName": "UserPromptSubmit",
+                        "additionalContext": f"""
+📋 Clipboard Mode - Mac Clipboard Success!
+
+✅ Index copied to your Mac's clipboard via pbcopy ({size_k}k tokens).
+📁 Also saved to: {copy_result[1]}
+
+Paste directly into external AI (Gemini, Claude.ai, ChatGPT) for analysis.
 Original request: {cleaned_prompt}
 """
                     }
