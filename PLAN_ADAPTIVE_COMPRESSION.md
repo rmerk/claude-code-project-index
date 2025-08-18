@@ -17,6 +17,9 @@ This document outlines the planned improvements to the PROJECT_INDEX system, foc
 - Smart caching to avoid unnecessary regeneration
 - Support for external AI models via clipboard mode
 
+### Purpose
+The subagent reads the entire index and uses ultrathinking to identify exactly which files need editing. Focus is on **accuracy**, not speed - Claude reasoning takes seconds anyway, so optimization should prioritize returning the right files over fast heuristics.
+
 ### Flag Syntax
 ```bash
 # Standard mode (for Claude)
@@ -38,28 +41,32 @@ This document outlines the planned improvements to the PROJECT_INDEX system, foc
 
 ### Smart Regeneration
 Index regenerates only when:
-1. Files have changed (detected via hash)
+1. Non-ignored files have changed (detected via hash of file paths + mtimes)
 2. Different size requested than last time
 3. Index doesn't exist
+
+Regeneration happens in the UserPromptSubmit hook when -i flag is detected.
 
 ### Metadata Tracking
 ```json
 {
   "_meta": {
     "generated_at": 1701234567.89,
-    "target_size_k": 75,
-    "actual_size_k": 72,
-    "full_size_k": 234,
-    "files_hash": "a3b4c5d6e7f8",
+    "target_size_k": 75,      // What user requested
+    "actual_size_k": 72,       // What was achieved after compression
+    "full_size_k": 234,        // Uncompressed size
+    "files_hash": "a3b4c5d6", // Hash of non-ignored file paths + mtimes
     "compression_ratio": "30.8%"
   }
 }
 ```
 
+Note: actual_size_k may differ from target_size_k due to compression granularity.
+
 ## Phase 1: Critical Bug Fix
 ```python
 def compress_index_if_needed(index, target_size):
-    MAX_ITERATIONS = 10
+    MAX_ITERATIONS = 10  # Prevents infinite loop (Issue #1)
     iteration = 0
     
     while measure_size(index) > target_size and iteration < MAX_ITERATIONS:
@@ -68,7 +75,7 @@ def compress_index_if_needed(index, target_size):
         if remove_unparsed_files(index): continue
         if simplify_signatures(index): continue
         if remove_low_utility(index): continue
-        # Emergency truncation
+        # Emergency truncation as last resort
         truncate_to_size(index, target_size)
         break
 ```
@@ -100,6 +107,7 @@ def calculate_utility_score(element):
 - Use `git ls-files --cached --others --exclude-standard`
 - Perfect gitignore handling
 - Faster than manual filtering
+- Used for both file discovery and hash calculation
 
 ### Multi-Language Support (via ast-grep)
 - Support 20+ languages
@@ -109,11 +117,13 @@ def calculate_utility_score(element):
 ### Clipboard Mode
 For external AI models with larger contexts:
 ```python
-# Copies to clipboard:
-# - User prompt
-# - Subagent instructions
-# - PROJECT_INDEX.json
-# Ready to paste into Gemini, Claude.ai, etc.
+# Copies to clipboard (using pyperclip):
+# - User prompt (cleaned, without -ic flag)
+# - Subagent instructions from index-analyzer.md
+# - PROJECT_INDEX.json at requested size
+# Ready to paste into Gemini, Claude.ai, ChatGPT, etc.
+
+# Falls back to .clipboard_content.txt if pyperclip unavailable
 ```
 
 ## Context Allocation (Claude)
@@ -137,13 +147,13 @@ Total: 200k tokens
 | External AI Support | No | Yes |
 
 ## Implementation Priority
-1. **Fix compression bug** (Critical)
+1. **Fix compression bug** (Critical - prevents data loss)
 2. **Implement -i[size] syntax** (Core feature)
-3. **Add smart caching** (Performance)
-4. **DSL format** (60-70% reduction)
-5. **Clipboard mode** (External AI)
-6. **Git ls-files** (Better filtering)
-7. **ast-grep integration** (Multi-language)
+3. **Add smart caching** (Avoid unnecessary regeneration)
+4. **DSL format** (60-70% size reduction)
+5. **Clipboard mode** (Enable external AI models)
+6. **Git ls-files** (Proper gitignore handling)
+7. **ast-grep integration** (Multi-language support)
 
 ## Success Criteria
 1. No infinite loops on large projects

@@ -33,11 +33,11 @@
         "Current Issues",
         "Final Design: Single Dynamic Index",
         "Core Concept",
+        "Purpose",
         "Flag Syntax",
         "Standard mode (for Claude)",
         "Clipboard mode (for external AI)",
-        "Size Limits",
-        "Smart Regeneration"
+        "Size Limits"
       ],
       "architecture_hints": []
     },
@@ -86,7 +86,7 @@
       "shell": 5,
       "json": 2
     },
-    "markdown_files": 5
+    "markdown_files": 12
   },
   "files": {
     "install.sh": {
