@@ -290,24 +290,24 @@ Focus on providing actionable file locations and insights."""
             with open(fallback_path, 'w') as f:
                 f.write(clipboard_content)
             
-            # Try to copy to Mac clipboard through SSH
+            # Try OSC 52 for clipboard over SSH (works with iTerm2 and modern terminals)
             try:
-                # First try pbcopy (works if SSH has clipboard forwarding)
-                proc = subprocess.Popen(['pbcopy'], stdin=subprocess.PIPE, 
-                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-                proc.communicate(clipboard_content.encode('utf-8'))
-                if proc.returncode == 0:
-                    print(f"✅ Copied to Mac clipboard via pbcopy!", file=sys.stderr)
+                import base64
+                # OSC 52 clipboard sequence
+                b64_content = base64.b64encode(clipboard_content.encode('utf-8')).decode('ascii')
+                # Limit to 100k for OSC 52 (some terminals have limits)
+                if len(b64_content) < 100000:
+                    osc52 = f"\033]52;c;{b64_content}\a"
+                    # Write to stderr which goes to terminal
+                    sys.stderr.write(osc52)
+                    sys.stderr.flush()
+                    print(f"✅ Sent to Mac clipboard via OSC 52 (iTerm2)", file=sys.stderr)
                     print(f"📋 Also saved to {fallback_path} as backup", file=sys.stderr)
-                    
-                    # Verify it worked
-                    verify = subprocess.run(['pbpaste'], capture_output=True, text=True, timeout=1)
-                    if verify.returncode == 0 and "PROJECT_INDEX.json" in verify.stdout:
-                        print(f"✅ Verified: Clipboard contains PROJECT_INDEX ({len(verify.stdout)} chars)", file=sys.stderr)
-                    
+                    print(f"ℹ️  If clipboard is empty, enable OSC 52 in iTerm2:", file=sys.stderr)
+                    print(f"   Preferences → General → Selection → Applications in terminal may access clipboard", file=sys.stderr)
                     return ('ssh_clipboard', str(fallback_path))
-            except:
-                pass
+            except Exception as e:
+                print(f"⚠️ OSC 52 failed: {e}", file=sys.stderr)
             
             # Try tmux if available
             try:

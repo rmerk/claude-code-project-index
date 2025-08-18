@@ -1,5 +1,5 @@
 {
-  "indexed_at": "2025-08-18T14:05:21.743264",
+  "indexed_at": "2025-08-18T14:07:02.484152",
   "root": ".",
   "project_structure": {
     "type": "tree",
@@ -139,6 +139,7 @@
         "time",
         "pathlib",
         "datetime",
+        "base64",
         "pyperclip"
       ],
       "functions": {
@@ -485,6 +486,7 @@
       "time",
       "pathlib",
       "datetime",
+      "base64",
       "pyperclip"
     ],
     "scripts/index_utils.py": [
@@ -522,12 +524,12 @@
       "index_utils"
     ]
   },
-  "staleness_check": 1754939121.765699,
+  "staleness_check": 1754939222.507733,
   "_meta": {
     "target_size_k": 1,
-    "generated_at": 1755543921.7734134,
+    "generated_at": 1755544022.513608,
     "actual_size_k": 3,
-    "files_hash": "41f59a008ebc0c8c",
+    "files_hash": "15ba5cd4d9bb3962",
     "compression_ratio": "300.0%"
   }
 }
