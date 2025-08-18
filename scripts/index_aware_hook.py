@@ -16,7 +16,7 @@ from datetime import datetime
 
 # Constants
 DEFAULT_SIZE_K = 50  # Default 50k tokens
-MIN_SIZE_K = 5       # Minimum 5k tokens
+MIN_SIZE_K = 1       # Minimum 1k tokens
 CLAUDE_MAX_K = 100   # Max 100k for Claude (leaves room for reasoning)
 EXTERNAL_MAX_K = 800 # Max 800k for external AI
 
@@ -263,17 +263,17 @@ Provide code intelligence analysis including:
             pyperclip.copy(clipboard_content)
             print(f"✅ Copied to clipboard: {len(clipboard_content)} chars", file=sys.stderr)
             print(f"📋 Ready to paste into Gemini, Claude.ai, ChatGPT, or other AI", file=sys.stderr)
+            return ('clipboard', len(clipboard_content))
         except ImportError:
             # Fallback for systems without pyperclip
             fallback_path = Path.cwd() / '.clipboard_content.txt'
             with open(fallback_path, 'w') as f:
                 f.write(clipboard_content)
             print(f"✅ Saved to {fallback_path} (copy manually)", file=sys.stderr)
-        
-        return True
+            return ('file', str(fallback_path))
     except Exception as e:
         print(f"⚠️ Error preparing clipboard content: {e}", file=sys.stderr)
-        return False
+        return ('error', str(e))
 
 def main():
     """Process UserPromptSubmit hook for -i and -ic flag detection."""
@@ -306,15 +306,16 @@ def main():
         
         # Handle clipboard mode
         if clipboard_mode:
-            if copy_to_clipboard(cleaned_prompt, index_path):
-                # Tell user it's ready, no subagent needed
+            copy_result = copy_to_clipboard(cleaned_prompt, index_path)
+            if copy_result[0] == 'clipboard':
+                # Successfully copied to clipboard
                 output = {
                     "hookSpecificOutput": {
                         "hookEventName": "UserPromptSubmit",
                         "additionalContext": f"""
 📋 Clipboard Mode Activated
 
-Index and instructions copied to clipboard ({size_k}k tokens).
+Index and instructions copied to clipboard ({size_k}k tokens, {copy_result[1]} chars).
 Paste into external AI (Gemini, Claude.ai, ChatGPT) for analysis.
 
 No subagent will be invoked - the clipboard contains everything needed.
@@ -322,8 +323,40 @@ Original request: {cleaned_prompt}
 """
                     }
                 }
+            elif copy_result[0] == 'file':
+                # Saved to file fallback
+                output = {
+                    "hookSpecificOutput": {
+                        "hookEventName": "UserPromptSubmit",
+                        "additionalContext": f"""
+📁 Clipboard Mode (File Fallback)
+
+Index and instructions saved to: {copy_result[1]} ({size_k}k tokens).
+⚠️ pyperclip not installed - content saved to file instead.
+
+To copy: cat {copy_result[1]} | pbcopy  # macOS
+         cat {copy_result[1]} | xclip   # Linux
+
+Then paste into external AI (Gemini, Claude.ai, ChatGPT) for analysis.
+Original request: {cleaned_prompt}
+"""
+                    }
+                }
             else:
-                sys.exit(0)
+                # Error case
+                output = {
+                    "hookSpecificOutput": {
+                        "hookEventName": "UserPromptSubmit",
+                        "additionalContext": f"""
+❌ Clipboard Mode Failed
+
+Error: {copy_result[1]}
+
+Please check the error and try again.
+Original request: {cleaned_prompt}
+"""
+                    }
+                }
         else:
             # Standard mode - prepare for subagent
             output = {
