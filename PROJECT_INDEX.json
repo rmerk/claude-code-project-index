@@ -1,12 +1,12 @@
 {
-  "indexed_at": "2025-08-17T12:02:47.576009",
+  "indexed_at": "2025-08-17T14:45:50.453256",
   "root": ".",
   "project_structure": {
     "type": "tree",
     "root": ".",
     "tree": [
       ".",
-      "\u251c\u2500\u2500 scripts/ (8 files)",
+      "\u251c\u2500\u2500 scripts/ (9 files)",
       "\u2514\u2500\u2500 README.md"
     ]
   },
@@ -26,18 +26,18 @@
       ],
       "architecture_hints": []
     },
-    ".claude/agents/index-analyzer.md": {
+    "PLAN_ADAPTIVE_COMPRESSION.md": {
       "sections": [
-        "YOUR PRIMARY DIRECTIVE",
-        "ULTRATHINKING FRAMEWORK",
-        "Understanding Intent",
-        "Code Relationship Analysis",
-        "Strategic Recommendations",
-        "OUTPUT FORMAT",
-        "\ud83e\udde0 Code Intelligence Analysis",
-        "UNDERSTANDING YOUR REQUEST",
-        "ESSENTIAL CODE PATHS",
-        "ARCHITECTURAL INSIGHTS"
+        "Adaptive Compression Strategy for PROJECT_INDEX",
+        "Overview",
+        "Current Issues",
+        "Final Design: Single Dynamic Index",
+        "Core Concept",
+        "Flag Syntax",
+        "Standard mode (for Claude)",
+        "Clipboard mode (for external AI)",
+        "Size Limits",
+        "Smart Regeneration"
       ],
       "architecture_hints": []
     },
@@ -56,18 +56,18 @@
       ],
       "architecture_hints": []
     },
-    "PLAN_ADAPTIVE_COMPRESSION.md": {
+    ".claude/agents/index-analyzer.md": {
       "sections": [
-        "Adaptive Compression Strategy for PROJECT_INDEX",
-        "Overview",
-        "Current Issues",
-        "Planned Improvements",
-        "Phase 1: Critical Bug Fixes",
-        "Phase 2: Adaptive Compression Strategy",
-        "Phase 3: Three-Tier Index System",
-        "Phase 4: DSL Format",
-        "From 100 bytes per function (JSON)",
-        "To 30-50 bytes per function (DSL)"
+        "YOUR PRIMARY DIRECTIVE",
+        "ULTRATHINKING FRAMEWORK",
+        "Understanding Intent",
+        "Code Relationship Analysis",
+        "Strategic Recommendations",
+        "OUTPUT FORMAT",
+        "\ud83e\udde0 Code Intelligence Analysis",
+        "UNDERSTANDING YOUR REQUEST",
+        "ESSENTIAL CODE PATHS",
+        "ARCHITECTURAL INSIGHTS"
       ],
       "architecture_hints": []
     }
@@ -76,17 +76,17 @@
     "scripts": "Build and utility scripts"
   },
   "stats": {
-    "total_files": 11,
-    "total_directories": 2,
+    "total_files": 14,
+    "total_directories": 3,
     "fully_parsed": {
-      "python": 5,
+      "python": 6,
       "shell": 1
     },
     "listed_only": {
-      "shell": 4,
-      "json": 1
+      "shell": 5,
+      "json": 2
     },
-    "markdown_files": 4
+    "markdown_files": 5
   },
   "files": {
     "install.sh": {
@@ -96,6 +96,11 @@
     "uninstall.sh": {
       "language": "shell",
       "parsed": false
+    },
+    "test_index_creation.sh": {
+      "language": "shell",
+      "parsed": false,
+      "purpose": "Test file"
     },
     "scripts/reindex_if_needed.py": {
       "language": "python",
@@ -120,6 +125,7 @@
           "doc": "Check if index is older than threshold.",
           "signature": "(index_path, threshold_hours=24)",
           "called_by": [
+            "main",
             "main"
           ]
         },
@@ -401,6 +407,54 @@
       },
       "call_graph": {}
     },
+    "scripts/index_aware_hook.py": {
+      "language": "python",
+      "parsed": true,
+      "imports": [
+        "json",
+        "sys",
+        "os",
+        "re",
+        "subprocess",
+        "pathlib",
+        "datetime"
+      ],
+      "functions": {
+        "find_project_root": {
+          "doc": "Find project root by looking for .git or common project markers.",
+          "signature": "()",
+          "called_by": [
+            "main"
+          ]
+        },
+        "create_index_if_missing": {
+          "doc": "Create PROJECT_INDEX.json if it doesn't exist.",
+          "signature": "(project_root)",
+          "called_by": [
+            "main"
+          ]
+        },
+        "check_index_staleness": {
+          "doc": "Check if index is stale and suggest reindex.",
+          "signature": "(index_path)",
+          "called_by": [
+            "main",
+            "main"
+          ]
+        },
+        "main": {
+          "doc": "Process UserPromptSubmit hook for -i flag detection.",
+          "calls": [
+            "check_index_staleness",
+            "create_index_if_missing",
+            "find_project_root"
+          ],
+          "signature": "()"
+        }
+      },
+      "classes": {},
+      "call_graph": {}
+    },
     "scripts/detect_external_changes.py": {
       "language": "python",
       "parsed": true,
@@ -431,161 +485,15 @@
       "classes": {},
       "call_graph": {}
     },
-    ".claude/settings.local.json": {
+    ".claude/settings.json": {
       "language": "json",
       "parsed": false,
       "purpose": "Configuration"
     },
-    "scripts/index_aware_hook.py": {
-      "language": "python",
-      "parsed": true,
-      "functions": {
-        "find_project_root": {
-          "doc": "Find project root by looking for .git or common project markers.",
-          "signature": "()"
-        },
-        "create_index_if_missing": {
-          "doc": "Create PROJECT_INDEX.json if it doesn't exist.",
-          "signature": "(project_root)"
-        },
-        "check_index_staleness": {
-          "doc": "Check if index is stale and suggest reindex.",
-          "signature": "(index_path)"
-        },
-        "main": {
-          "doc": "Process UserPromptSubmit hook for -i flag detection.",
-          "calls": [
-            "check_index_staleness",
-            "create_index_if_missing",
-            "find_project_root"
-          ],
-          "signature": "()"
-        }
-      },
-      "classes": {},
-      "updated_by_hook": true,
-      "updated_at": "2025-08-17T12:08:54.940044"
-    },
-    "test_hook.py": {
-      "language": "python",
-      "parsed": true,
-      "functions": {
-        "test_hook": {
-          "doc": "Test the hook with a given prompt.",
-          "signature": "(prompt, description)"
-        },
-        "main": {
-          "calls": [
-            "test_hook"
-          ],
-          "signature": "()"
-        }
-      },
-      "classes": {},
-      "updated_by_hook": true,
-      "updated_at": "2025-08-17T12:06:12.857185",
-      "purpose": "Test file"
-    },
-    "test_auto_create.py": {
-      "language": "python",
-      "parsed": true,
-      "functions": {
-        "test_auto_creation": {
-          "doc": "Test that the hook creates PROJECT_INDEX.json when missing.",
-          "calls": [
-            "main"
-          ],
-          "signature": "()"
-        },
-        "main": {
-          "calls": [
-            "test_auto_creation"
-          ],
-          "signature": "()"
-        }
-      },
-      "classes": {},
-      "updated_by_hook": true,
-      "updated_at": "2025-08-17T12:07:06.708699",
-      "purpose": "Test file"
-    },
-    "test_subagent.py": {
-      "language": "python",
-      "parsed": true,
-      "functions": {
-        "test_subagent_invocation": {
-          "doc": "Test that the subagent can be invoked and analyzes PROJECT_INDEX.json.",
-          "calls": [
-            "main"
-          ],
-          "signature": "()"
-        },
-        "test_hook_subagent_integration": {
-          "doc": "Test that the hook properly instructs main agent to use subagent.",
-          "signature": "()"
-        },
-        "main": {
-          "doc": "Run all subagent tests.",
-          "calls": [
-            "test_hook_subagent_integration",
-            "test_subagent_invocation"
-          ],
-          "signature": "()"
-        }
-      },
-      "classes": {},
-      "updated_by_hook": true,
-      "updated_at": "2025-08-17T12:10:04.463891",
-      "purpose": "Test file"
-    },
-    "test_error_handling.py": {
-      "language": "python",
-      "parsed": true,
-      "functions": {
-        "test_malformed_json": {
-          "doc": "Test hook handles malformed JSON input gracefully.",
-          "signature": "()"
-        },
-        "test_missing_prompt_field": {
-          "doc": "Test hook handles missing prompt field.",
-          "signature": "()"
-        },
-        "test_index_creation_failure": {
-          "doc": "Test hook behavior when index creation fails.",
-          "signature": "()"
-        },
-        "test_timeout_handling": {
-          "doc": "Test that hook respects timeout configuration.",
-          "signature": "()"
-        },
-        "test_concurrent_requests": {
-          "doc": "Test handling of concurrent -i flag requests.",
-          "calls": [
-            "run_hook"
-          ],
-          "signature": "()"
-        },
-        "test_special_characters": {
-          "doc": "Test handling of special characters in prompts.",
-          "signature": "()"
-        },
-        "main": {
-          "doc": "Run all error handling tests.",
-          "calls": [
-            "test_concurrent_requests",
-            "test_index_creation_failure",
-            "test_malformed_json",
-            "test_missing_prompt_field",
-            "test_special_characters",
-            "test_timeout_handling"
-          ],
-          "signature": "()"
-        }
-      },
-      "classes": {},
-      "updated_by_hook": true,
-      "updated_at": "2025-08-17T12:11:18.212418",
-      "purpose": "Test file"
+    ".claude/settings.local.json": {
+      "language": "json",
+      "parsed": false,
+      "purpose": "Configuration"
     }
   },
   "dependency_graph": {
@@ -621,6 +529,15 @@
       "pathlib",
       "typing"
     ],
+    "scripts/index_aware_hook.py": [
+      "json",
+      "sys",
+      "os",
+      "re",
+      "subprocess",
+      "pathlib",
+      "datetime"
+    ],
     "scripts/detect_external_changes.py": [
       "os",
       "json",
@@ -630,5 +547,5 @@
       "sys"
     ]
   },
-  "staleness_check": 1754845367.592933
+  "staleness_check": 1754855150.474473
 }
