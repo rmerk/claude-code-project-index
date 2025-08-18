@@ -281,6 +281,20 @@ Focus on providing actionable file locations and insights."""
         # Try to copy to clipboard
         clipboard_success = False
         
+        # Check if we're in an SSH session (clipboard won't work across SSH)
+        is_ssh = os.environ.get('SSH_CONNECTION') or os.environ.get('SSH_CLIENT')
+        
+        # For SSH sessions, skip clipboard attempts and go straight to file
+        if is_ssh:
+            fallback_path = Path.cwd() / '.clipboard_content.txt'
+            with open(fallback_path, 'w') as f:
+                f.write(clipboard_content)
+            print(f"✅ Saved to {fallback_path}", file=sys.stderr)
+            print(f"📋 SSH detected - file saved for easy copying", file=sys.stderr)
+            print(f"\nTo copy on Mac: cat .clipboard_content.txt | pbcopy", file=sys.stderr)
+            print(f"Or in tmux: cat .clipboard_content.txt | tmux load-buffer -", file=sys.stderr)
+            return ('ssh_file', str(fallback_path))
+        
         # First try xclip directly (most reliable for Linux)
         try:
             result = subprocess.run(['which', 'xclip'], capture_output=True)
@@ -376,6 +390,27 @@ Index and instructions copied to clipboard ({size_k}k tokens, {copy_result[1]} c
 Paste into external AI (Gemini, Claude.ai, ChatGPT) for analysis.
 
 No subagent will be invoked - the clipboard contains everything needed.
+Original request: {cleaned_prompt}
+"""
+                    }
+                }
+            elif copy_result[0] == 'ssh_file':
+                # SSH session detected - file saved
+                output = {
+                    "hookSpecificOutput": {
+                        "hookEventName": "UserPromptSubmit",
+                        "additionalContext": f"""
+📁 SSH Session - Saved to File
+
+Index saved to: {copy_result[1]} ({size_k}k tokens).
+
+Copy to your Mac's clipboard:
+cat .clipboard_content.txt | pbcopy
+
+Or load into tmux buffer:
+cat .clipboard_content.txt | tmux load-buffer -
+
+Then paste into external AI (Gemini, Claude.ai, ChatGPT) for analysis.
 Original request: {cleaned_prompt}
 """
                     }
