@@ -139,23 +139,46 @@ def build_index(root_dir: str) -> Tuple[Dict, int]:
     skipped_count = 0
     directory_files = {}  # Track files per directory
     
-    # Walk the directory tree
+    # Try to use git ls-files for better performance and accuracy
     print("🔍 Indexing files...")
-    for file_path in root.rglob('*'):
+    from index_utils import get_git_files
+    git_files = get_git_files(root)
+    
+    if git_files is not None:
+        # Use git-based file discovery
+        print(f"   Using git ls-files (found {len(git_files)} files)")
+        files_to_process = git_files
+        
+        # Count directories from git files
+        seen_dirs = set()
+        for file_path in git_files:
+            for parent in file_path.parents:
+                if parent != root and parent not in seen_dirs:
+                    seen_dirs.add(parent)
+                    if parent not in directory_files:
+                        directory_files[parent] = []
+        dir_count = len(seen_dirs)
+    else:
+        # Fallback to manual file discovery
+        print("   Using manual file discovery (git not available)")
+        files_to_process = []
+        for file_path in root.rglob('*'):
+            if file_path.is_dir():
+                # Track directories
+                if not any(part in IGNORE_DIRS for part in file_path.parts):
+                    dir_count += 1
+                    directory_files[file_path] = []
+                continue
+            
+            if file_path.is_file():
+                files_to_process.append(file_path)
+    
+    # Process files
+    for file_path in files_to_process:
         if file_count >= MAX_FILES:
             print(f"⚠️  Stopping at {MAX_FILES} files (project too large)")
             break
-            
-        if file_path.is_dir():
-            # Track directories
-            if not any(part in IGNORE_DIRS for part in file_path.parts):
-                dir_count += 1
-                directory_files[file_path] = []
-            continue
-            
-        if not file_path.is_file():
-            continue
-            
+        
         if not should_index_file(file_path, root):
             skipped_count += 1
             continue
@@ -376,27 +399,121 @@ def build_index(root_dir: str) -> Tuple[Dict, int]:
 # infer_file_purpose is now imported from index_utils
 
 
-def compress_index_if_needed(index: Dict) -> Dict:
-    """Compress index if it exceeds size limit."""
+def compress_index_if_needed(index: Dict, target_size: int = MAX_INDEX_SIZE) -> Dict:
+    """Compress index if it exceeds size limit. Fixes infinite loop bug (Issue #1)."""
     index_json = json.dumps(index, indent=2)
+    current_size = len(index_json)
     
-    if len(index_json) <= MAX_INDEX_SIZE:
+    if current_size <= target_size:
         return index
     
-    print(f"⚠️  Index too large ({len(index_json)} bytes), compressing...")
+    print(f"⚠️  Index too large ({current_size} bytes), compressing to {target_size}...")
     
-    # First, reduce tree depth
-    if len(index['project_structure']['tree']) > 100:
-        index['project_structure']['tree'] = index['project_structure']['tree'][:100]
-        index['project_structure']['tree'].append("... (truncated)")
+    MAX_ITERATIONS = 10  # Prevent infinite loop
+    iteration = 0
     
-    # If still too large, remove some listed-only files
-    while len(json.dumps(index, indent=2)) > MAX_INDEX_SIZE and index['files']:
-        # Find and remove a listed-only file
-        for path, info in list(index['files'].items()):
+    while current_size > target_size and iteration < MAX_ITERATIONS:
+        iteration += 1
+        initial_size = current_size
+        
+        # Step 1: Reduce tree depth
+        if len(index.get('project_structure', {}).get('tree', [])) > 100:
+            index['project_structure']['tree'] = index['project_structure']['tree'][:100]
+            index['project_structure']['tree'].append("... (truncated)")
+            current_size = len(json.dumps(index, indent=2))
+            if current_size <= target_size:
+                break
+        
+        # Step 2: Remove unparsed files
+        unparsed_removed = 0
+        for path, info in list(index.get('files', {}).items()):
             if not info.get('parsed', False):
                 del index['files'][path]
-                break
+                unparsed_removed += 1
+                if unparsed_removed % 10 == 0:  # Check size every 10 removals
+                    current_size = len(json.dumps(index, indent=2))
+                    if current_size <= target_size:
+                        break
+        
+        current_size = len(json.dumps(index, indent=2))
+        if current_size <= target_size:
+            break
+        
+        # Step 3: Simplify parsed files (remove docstrings, reduce signatures)
+        for path, info in list(index.get('files', {}).items()):
+            if info.get('parsed', False):
+                # Remove docstrings from functions
+                if 'functions' in info:
+                    for func_name, func_data in info['functions'].items():
+                        if isinstance(func_data, dict) and 'doc' in func_data:
+                            del func_data['doc']
+                # Remove docstrings from classes
+                if 'classes' in info:
+                    for class_name, class_data in info['classes'].items():
+                        if isinstance(class_data, dict):
+                            if 'doc' in class_data:
+                                del class_data['doc']
+                            if 'methods' in class_data:
+                                for method_name, method_data in class_data['methods'].items():
+                                    if isinstance(method_data, dict) and 'doc' in method_data:
+                                        del method_data['doc']
+        
+        current_size = len(json.dumps(index, indent=2))
+        if current_size <= target_size:
+            break
+        
+        # Step 4: Remove low-value parsed files (tests, examples, migrations)
+        low_value_patterns = ['test_', '_test.', '/tests/', '/examples/', '/migrations/', '/fixtures/']
+        for path in list(index.get('files', {}).keys()):
+            if any(pattern in path.lower() for pattern in low_value_patterns):
+                del index['files'][path]
+        
+        current_size = len(json.dumps(index, indent=2))
+        if current_size <= target_size:
+            break
+        
+        # Step 5: Emergency truncation - remove files until size is met
+        if current_size > target_size and index.get('files'):
+            files_to_keep = int(len(index['files']) * (target_size / current_size) * 0.9)  # 90% to ensure we're under
+            if files_to_keep < 10:
+                files_to_keep = 10  # Keep at least 10 files
+            
+            # Keep the most important files (those with most connections)
+            file_importance = {}
+            for path, info in index['files'].items():
+                importance = 0
+                if info.get('parsed', False):
+                    importance += 10
+                if 'functions' in info:
+                    for func_data in info['functions'].values():
+                        if isinstance(func_data, dict):
+                            importance += len(func_data.get('calls', [])) * 2
+                            importance += len(func_data.get('called_by', [])) * 3
+                file_importance[path] = importance
+            
+            # Sort by importance and keep top files
+            sorted_files = sorted(file_importance.items(), key=lambda x: x[1], reverse=True)
+            files_to_keep_set = set(path for path, _ in sorted_files[:files_to_keep])
+            
+            # Remove less important files
+            for path in list(index['files'].keys()):
+                if path not in files_to_keep_set:
+                    del index['files'][path]
+            
+            print(f"  Emergency truncation: kept {len(index['files'])} most important files")
+        
+        current_size = len(json.dumps(index, indent=2))
+        
+        # Check if we made progress
+        if current_size >= initial_size:
+            print(f"  Warning: No progress in iteration {iteration}, applying emergency truncation")
+            break
+    
+    if iteration >= MAX_ITERATIONS:
+        print(f"  Warning: Reached maximum iterations, index may still be over target size")
+    
+    final_size = len(json.dumps(index, indent=2))
+    print(f"  Compressed from {len(index_json)} to {final_size} bytes")
     
     return index
 
@@ -452,13 +569,30 @@ def print_summary(index: Dict, skipped_count: int):
 def main():
     """Run the enhanced indexer."""
     print("🚀 Building Project Index...")
+    
+    # Check for target size from environment
+    target_size_k = int(os.getenv('INDEX_TARGET_SIZE_K', '0'))
+    if target_size_k > 0:
+        # Convert k tokens to approximate bytes (1 token ≈ 4 chars)
+        target_size_bytes = target_size_k * 1000 * 4
+        print(f"   Target size: {target_size_k}k tokens (~{target_size_bytes:,} bytes)")
+    else:
+        target_size_bytes = MAX_INDEX_SIZE
+    
     print("   Analyzing project structure and documentation...")
     
     # Build index for current directory
     index, skipped_count = build_index('.')
     
     # Compress if needed
-    index = compress_index_if_needed(index)
+    index = compress_index_if_needed(index, target_size_bytes)
+    
+    # Add metadata if requested via environment
+    if target_size_k > 0:
+        if '_meta' not in index:
+            index['_meta'] = {}
+        # Note: Full metadata is added by the hook after generation
+        index['_meta']['target_size_k'] = target_size_k
     
     # Save to PROJECT_INDEX.json
     output_path = Path('PROJECT_INDEX.json')
@@ -468,14 +602,21 @@ def main():
     print_summary(index, skipped_count)
     
     print(f"\n💾 Saved to: {output_path}")
-    print("\n✨ Claude now has architectural awareness of your project!")
-    print("   • Knows WHERE to place new code")
-    print("   • Understands project structure")
-    print("   • Can navigate documentation")
-    print("\n📌 Benefits:")
-    print("   • Prevents code duplication")
-    print("   • Ensures proper file placement")
-    print("   • Maintains architectural consistency")
+    
+    # More concise output when called by hook
+    if target_size_k > 0:
+        actual_size = len(json.dumps(index, indent=2))
+        actual_tokens = actual_size // 4 // 1000
+        print(f"📊 Size: {actual_tokens}k tokens (target was {target_size_k}k)")
+    else:
+        print("\n✨ Claude now has architectural awareness of your project!")
+        print("   • Knows WHERE to place new code")
+        print("   • Understands project structure")
+        print("   • Can navigate documentation")
+        print("\n📌 Benefits:")
+        print("   • Prevents code duplication")
+        print("   • Ensures proper file placement")
+        print("   • Maintains architectural consistency")
 
 
 if __name__ == '__main__':

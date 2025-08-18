@@ -7,11 +7,16 @@ Index-Aware Mode is an intelligent code analysis system that enhances Claude Cod
 ## Quick Start
 
 1. **Installation**: The feature is automatically installed with PROJECT_INDEX
-2. **Usage**: Add `-i` to any prompt:
+2. **Usage**: Add `-i` with optional size to any prompt:
    ```
-   Fix the parser performance issues -i
-   Add error handling to API calls -i
-   What functions are never called? -i
+   # Standard mode (for Claude)
+   Fix the parser performance issues -i       # Default 50k tokens
+   Add error handling to API calls -i75       # 75k tokens
+   What functions are never called? -i100     # 100k tokens (Claude max)
+   
+   # Clipboard mode (for external AI like Gemini, ChatGPT)
+   Redesign the architecture -ic400           # 400k tokens, copy to clipboard
+   Analyze entire codebase -ic800             # 800k tokens, copy to clipboard
    ```
 
 ## How It Works
@@ -37,10 +42,12 @@ Strategic recommendations to main agent
 ### Components
 
 #### 1. UserPromptSubmit Hook (`scripts/index_aware_hook.py`)
-- Detects `-i` flag in user prompts
+- Detects `-i[number]` and `-ic[number]` flags in user prompts
+- Dynamically generates index at requested size (5k-800k tokens)
+- Smart regeneration: only rebuilds when files change or size differs
+- Clipboard mode: copies everything for external AI models
 - Auto-creates PROJECT_INDEX.json if missing
-- Adds context instructing use of index-analyzer subagent
-- Strips `-i` flag from original prompt
+- Uses git ls-files for efficient file discovery
 
 #### 2. Index-Analyzer Subagent (`.claude/agents/index-analyzer.md`)
 - Uses ultrathinking for deep code analysis
@@ -54,6 +61,25 @@ Strategic recommendations to main agent
 - Enables automatic PROJECT_INDEX.json creation
 
 ## Features
+
+### Dynamic Index Sizing
+- **Flexible sizes**: Generate indexes from 5k to 800k tokens
+- **Smart defaults**: 50k tokens if no size specified
+- **Claude limit**: Automatically caps at 100k for Claude (leaves room for reasoning)
+- **External AI support**: Up to 800k for Gemini, ChatGPT, Claude.ai
+
+### Smart Caching & Regeneration
+- **File change detection**: Uses git ls-files and file hashes
+- **Size-aware**: Only regenerates if requested size differs
+- **Metadata tracking**: Stores target vs actual size, compression ratio
+- **Performance**: Caches index to avoid unnecessary rebuilds
+
+### Clipboard Mode (`-ic`)
+Perfect for leveraging AI models with larger context windows:
+- **Automatic copying**: Index + instructions + prompt to clipboard
+- **External AI ready**: Paste into Gemini (1M context), ChatGPT, Claude.ai
+- **Fallback support**: Saves to file if clipboard unavailable
+- **No subagent needed**: Everything copied for external processing
 
 ### Automatic Index Creation
 If PROJECT_INDEX.json doesn't exist when you use `-i`, the system automatically creates it by:

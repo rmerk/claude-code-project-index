@@ -1364,3 +1364,34 @@ def should_index_file(path: Path, root_path: Path = None) -> bool:
             return False
     
     return True
+
+
+def get_git_files(root_path: Path) -> Optional[List[Path]]:
+    """Get list of files tracked by git (respects .gitignore).
+    Returns None if not a git repository or git command fails."""
+    try:
+        import subprocess
+        
+        # Run git ls-files to get tracked and untracked files that aren't ignored
+        result = subprocess.run(
+            ['git', 'ls-files', '--cached', '--others', '--exclude-standard'],
+            cwd=str(root_path),
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        if result.returncode == 0:
+            files = []
+            for line in result.stdout.strip().split('\n'):
+                if line:
+                    file_path = root_path / line
+                    # Only include actual files (not directories)
+                    if file_path.is_file():
+                        files.append(file_path)
+            return files
+        else:
+            return None
+    except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
+        # Git not available or command failed
+        return None
