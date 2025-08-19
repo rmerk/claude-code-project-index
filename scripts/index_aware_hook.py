@@ -221,6 +221,20 @@ def generate_index_at_size(project_root, target_size_k):
 def copy_to_clipboard(prompt, index_path):
     """Copy prompt, instructions, and index to clipboard for external AI."""
     try:
+        # Try VM Bridge first (works with any size over mosh)
+        try:
+            import sys
+            sys.path.insert(0, os.path.expanduser('~/.local/lib/python/vm_bridge'))
+            from vm_client import VMBridgeClient
+            
+            bridge_client = VMBridgeClient()
+            if bridge_client.is_daemon_running():
+                print("🌉 VM Bridge daemon detected", file=sys.stderr)
+                vm_bridge_available = True
+            else:
+                vm_bridge_available = False
+        except ImportError:
+            vm_bridge_available = False
         # Create clipboard-specific instructions (no tools, no subagent references)
         clipboard_instructions = """You are analyzing a codebase index to help identify relevant files and code sections.
 
@@ -281,10 +295,31 @@ Focus on providing actionable file locations and insights."""
         # Try to copy to clipboard
         clipboard_success = False
         
+        # Try VM Bridge first if available (works with any size over mosh)
+        if vm_bridge_available:
+            try:
+                if bridge_client.copy_to_clipboard(clipboard_content):
+                    print(f"✅ Copied to Mac clipboard via VM Bridge ({len(clipboard_content)} chars)", file=sys.stderr)
+                    print(f"🌉 No size limits with VM Bridge!", file=sys.stderr)
+                    
+                    # Also notify on Mac
+                    bridge_client.notify(f"Clipboard updated: {len(clipboard_content)} chars from VM")
+                    
+                    # Save to file as backup
+                    fallback_path = Path.cwd() / '.clipboard_content.txt'
+                    with open(fallback_path, 'w') as f:
+                        f.write(clipboard_content)
+                    print(f"📁 Also saved to {fallback_path} as backup", file=sys.stderr)
+                    
+                    return ('vm_bridge', len(clipboard_content))
+            except Exception as e:
+                print(f"⚠️ VM Bridge failed: {e}", file=sys.stderr)
+                # Fall through to other methods
+        
         # Check if we're in an SSH session (clipboard won't work across SSH)
         is_ssh = os.environ.get('SSH_CONNECTION') or os.environ.get('SSH_CLIENT')
         
-        # For SSH sessions, try to copy to Mac's clipboard via pbcopy
+        # For SSH sessions, try OSC 52 or other methods
         if is_ssh:
             fallback_path = Path.cwd() / '.clipboard_content.txt'
             with open(fallback_path, 'w') as f:
@@ -481,7 +516,24 @@ def main():
         # Handle clipboard mode
         if clipboard_mode:
             copy_result = copy_to_clipboard(cleaned_prompt, index_path)
-            if copy_result[0] == 'clipboard':
+            if copy_result[0] == 'vm_bridge':
+                # Successfully copied via VM Bridge
+                output = {
+                    "hookSpecificOutput": {
+                        "hookEventName": "UserPromptSubmit",
+                        "additionalContext": f"""
+🌉 Clipboard Mode - VM Bridge Success!
+
+✅ Index copied to Mac clipboard via VM Bridge ({copy_result[1]} chars).
+🚀 No size limits with this method!
+📁 Also saved to: .clipboard_content.txt
+
+Paste directly into external AI (Gemini, Claude.ai, ChatGPT) for analysis.
+Original request: {cleaned_prompt}
+"""
+                    }
+                }
+            elif copy_result[0] == 'clipboard':
                 # Successfully copied to clipboard
                 output = {
                     "hookSpecificOutput": {
