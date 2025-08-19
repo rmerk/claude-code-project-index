@@ -1,5 +1,5 @@
 {
-  "indexed_at": "2025-08-18T14:07:02.484152",
+  "indexed_at": "2025-08-19T14:16:46.606691",
   "root": ".",
   "project_structure": {
     "type": "tree",
@@ -524,12 +524,12 @@
       "index_utils"
     ]
   },
-  "staleness_check": 1754939222.507733,
+  "staleness_check": 1755026206.627963,
   "_meta": {
     "target_size_k": 1,
-    "generated_at": 1755544022.513608,
+    "generated_at": 1755631006.633274,
     "actual_size_k": 3,
-    "files_hash": "15ba5cd4d9bb3962",
+    "files_hash": "28911b0823713fe6",
     "compression_ratio": "300.0%"
   }
 }

@@ -290,39 +290,90 @@ Focus on providing actionable file locations and insights."""
             with open(fallback_path, 'w') as f:
                 f.write(clipboard_content)
             
-            # Try OSC 52 for clipboard over SSH (works with iTerm2 and modern terminals)
+            # Try multiple clipboard methods for SSH sessions
+            clipboard_success = False
+            
+            # Method 1: Proper OSC 52 for mosh/tmux/iTerm2 (based on working tmux clipboard solution)
             try:
                 import base64
-                # OSC 52 clipboard sequence
-                b64_content = base64.b64encode(clipboard_content.encode('utf-8')).decode('ascii')
-                # Limit to 100k for OSC 52 (some terminals have limits)
-                if len(b64_content) < 100000:
-                    osc52 = f"\033]52;c;{b64_content}\a"
-                    # Write to stderr which goes to terminal
-                    sys.stderr.write(osc52)
+                
+                # Limit size to prevent issues (OSC 52 has size limits)
+                content = clipboard_content
+                if len(content) > 74994:
+                    content = content[:74994]
+                
+                # Base64 encode and remove newlines
+                b64_content = base64.b64encode(content.encode('utf-8')).decode('ascii')
+                
+                # Get the correct TTY device
+                tty_device = None
+                is_tmux = os.environ.get('TMUX')
+                
+                if is_tmux:
+                    # Inside tmux: get the client tty
+                    try:
+                        result = subprocess.run(['tmux', 'display-message', '-p', '#{client_tty}'],
+                                              capture_output=True, text=True, check=True)
+                        tty_device = result.stdout.strip()
+                    except:
+                        tty_device = "/dev/tty"
+                else:
+                    tty_device = "/dev/tty"
+                
+                # Send OSC 52 sequence with proper format
+                if is_tmux:
+                    # Inside tmux: use DCS passthrough (this is the KEY!)
+                    osc52_sequence = f"\033Ptmux;\033\033]52;c;{b64_content}\007\033\\"
+                else:
+                    # Outside tmux: use standard OSC 52
+                    osc52_sequence = f"\033]52;c;{b64_content}\007"
+                
+                # Write directly to TTY device (not stderr)
+                try:
+                    with open(tty_device, 'w') as tty:
+                        tty.write(osc52_sequence)
+                        tty.flush()
+                    clipboard_success = True
+                    print(f"✅ Sent to Mac clipboard via OSC 52 (mosh/tmux compatible)", file=sys.stderr)
+                except PermissionError:
+                    # Fallback to stderr if can't open TTY
+                    sys.stderr.write(osc52_sequence)
                     sys.stderr.flush()
-                    print(f"✅ Sent to Mac clipboard via OSC 52 (iTerm2)", file=sys.stderr)
-                    print(f"📋 Also saved to {fallback_path} as backup", file=sys.stderr)
-                    print(f"ℹ️  If clipboard is empty, enable OSC 52 in iTerm2:", file=sys.stderr)
-                    print(f"   Preferences → General → Selection → Applications in terminal may access clipboard", file=sys.stderr)
-                    return ('ssh_clipboard', str(fallback_path))
+                    clipboard_success = True
+                    print(f"✅ Sent to Mac clipboard via OSC 52 (stderr fallback)", file=sys.stderr)
+                    
             except Exception as e:
                 print(f"⚠️ OSC 52 failed: {e}", file=sys.stderr)
             
-            # Try tmux if available
+            if clipboard_success:
+                print(f"📋 Also saved to {fallback_path} as backup", file=sys.stderr)
+                return ('ssh_clipboard', str(fallback_path))
+            else:
+                print(f"⚠️ Could not send to Mac clipboard directly", file=sys.stderr)
+            
+            # Output with markers for iTerm2 trigger to intercept
+            print("===ITERM2_CLIPBOARD_START===", file=sys.stderr)
+            print(base64.b64encode(clipboard_content.encode('utf-8')).decode('ascii'), file=sys.stderr)
+            print("===ITERM2_CLIPBOARD_END===", file=sys.stderr)
+            
+            # Also try tmux buffer for local pasting
             try:
                 proc = subprocess.Popen(['tmux', 'load-buffer', '-'], stdin=subprocess.PIPE,
                                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                 proc.communicate(clipboard_content.encode('utf-8'))
                 if proc.returncode == 0:
-                    print(f"✅ Loaded into tmux buffer", file=sys.stderr)
-                    print(f"📋 Use 'prefix + ]' to paste in tmux", file=sys.stderr)
+                    print(f"✅ Loaded into tmux buffer (use prefix + ] to paste)", file=sys.stderr)
             except:
                 pass
             
             print(f"✅ Saved to {fallback_path}", file=sys.stderr)
-            print(f"📋 SSH detected - file saved for manual copying", file=sys.stderr)
-            print(f"\nTo copy on Mac: cat .clipboard_content.txt | pbcopy", file=sys.stderr)
+            
+            # Check if iTerm2 trigger is likely configured
+            if os.environ.get('TERM_PROGRAM') == 'iTerm.app':
+                print(f"📋 If iTerm2 trigger is configured, content copied to Mac clipboard!", file=sys.stderr)
+            else:
+                print(f"📋 SSH detected - configure iTerm2 trigger for auto-clipboard", file=sys.stderr)
+            
             return ('ssh_file', str(fallback_path))
         
         # First try xclip directly (most reliable for Linux)
