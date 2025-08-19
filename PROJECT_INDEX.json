@@ -1,5 +1,5 @@
 {
-  "indexed_at": "2025-08-19T14:16:46.606691",
+  "indexed_at": "2025-08-19T14:22:21.077113",
   "root": ".",
   "project_structure": {
     "type": "tree",
@@ -129,64 +129,39 @@
     "scripts/index_aware_hook.py": {
       "language": "python",
       "parsed": true,
-      "imports": [
-        "json",
-        "sys",
-        "os",
-        "re",
-        "subprocess",
-        "hashlib",
-        "time",
-        "pathlib",
-        "datetime",
-        "base64",
-        "pyperclip"
-      ],
       "functions": {
         "find_project_root": {
-          "signature": "()",
-          "called_by": [
-            "main"
-          ]
+          "doc": "Find project root by looking for .git or common project markers.",
+          "signature": "()"
         },
         "parse_index_flag": {
-          "signature": "(prompt)",
-          "called_by": [
-            "main"
-          ]
+          "doc": "Parse -i or -ic flag with optional size.",
+          "signature": "(prompt)"
         },
         "calculate_files_hash": {
-          "signature": "(project_root)",
-          "called_by": [
-            "should_regenerate_index",
-            "generate_index_at_size"
-          ]
+          "doc": "Calculate hash of non-ignored files to detect changes.",
+          "signature": "(project_root)"
         },
         "should_regenerate_index": {
+          "doc": "Determine if index needs regeneration.",
           "calls": [
             "calculate_files_hash"
           ],
-          "signature": "(project_root, index_path, requested_size_k)",
-          "called_by": [
-            "main"
-          ]
+          "signature": "(project_root, index_path, requested_size_k)"
         },
         "generate_index_at_size": {
+          "doc": "Generate index at specific token size.",
           "calls": [
             "calculate_files_hash"
           ],
-          "signature": "(project_root, target_size_k)",
-          "called_by": [
-            "main"
-          ]
+          "signature": "(project_root, target_size_k)"
         },
         "copy_to_clipboard": {
-          "signature": "(prompt, index_path)",
-          "called_by": [
-            "main"
-          ]
+          "doc": "Copy prompt, instructions, and index to clipboard for external AI.",
+          "signature": "(prompt, index_path)"
         },
         "main": {
+          "doc": "Process UserPromptSubmit hook for -i and -ic flag detection.",
           "calls": [
             "copy_to_clipboard",
             "find_project_root",
@@ -198,13 +173,8 @@
         }
       },
       "classes": {},
-      "constants": {
-        "DEFAULT_SIZE_K": "number",
-        "MIN_SIZE_K": "number",
-        "CLAUDE_MAX_K": "number",
-        "EXTERNAL_MAX_K": "number"
-      },
-      "call_graph": {}
+      "updated_by_hook": true,
+      "updated_at": "2025-08-19T14:24:45.735794"
     },
     "scripts/index_utils.py": {
       "language": "python",
@@ -524,12 +494,12 @@
       "index_utils"
     ]
   },
-  "staleness_check": 1755026206.627963,
+  "staleness_check": 1755026541.097488,
   "_meta": {
     "target_size_k": 1,
-    "generated_at": 1755631006.633274,
+    "generated_at": 1755631341.102551,
     "actual_size_k": 3,
-    "files_hash": "28911b0823713fe6",
+    "files_hash": "11b4ca69202311ff",
     "compression_ratio": "300.0%"
   }
 }

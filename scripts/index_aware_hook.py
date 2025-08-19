@@ -290,71 +290,68 @@ Focus on providing actionable file locations and insights."""
             with open(fallback_path, 'w') as f:
                 f.write(clipboard_content)
             
+            # Import base64 at the beginning for all methods
+            import base64
+            
             # Try multiple clipboard methods for SSH sessions
             clipboard_success = False
             
-            # Method 1: Proper OSC 52 for mosh/tmux/iTerm2 (based on working tmux clipboard solution)
-            try:
-                import base64
-                
-                # Limit size to prevent issues (OSC 52 has size limits)
-                content = clipboard_content
-                if len(content) > 74994:
-                    content = content[:74994]
-                
-                # Base64 encode and remove newlines
-                b64_content = base64.b64encode(content.encode('utf-8')).decode('ascii')
-                
-                # Get the correct TTY device
-                tty_device = None
-                is_tmux = os.environ.get('TMUX')
-                
-                if is_tmux:
-                    # Inside tmux: get the client tty
-                    try:
-                        result = subprocess.run(['tmux', 'display-message', '-p', '#{client_tty}'],
-                                              capture_output=True, text=True, check=True)
-                        tty_device = result.stdout.strip()
-                    except:
-                        tty_device = "/dev/tty"
-                else:
-                    tty_device = "/dev/tty"
-                
-                # Send OSC 52 sequence with proper format
-                if is_tmux:
-                    # Inside tmux: use DCS passthrough (this is the KEY!)
-                    osc52_sequence = f"\033Ptmux;\033\033]52;c;{b64_content}\007\033\\"
-                else:
-                    # Outside tmux: use standard OSC 52
-                    osc52_sequence = f"\033]52;c;{b64_content}\007"
-                
-                # Write directly to TTY device (not stderr)
+            # Check content size first - OSC 52 has limits, especially over mosh
+            content_size = len(clipboard_content)
+            osc52_max_size = 7500  # Conservative limit for mosh (about 10KB base64)
+            
+            if content_size <= osc52_max_size:
+                # Small enough for OSC 52 - try to send directly to clipboard
                 try:
-                    with open(tty_device, 'w') as tty:
-                        tty.write(osc52_sequence)
-                        tty.flush()
-                    clipboard_success = True
-                    print(f"✅ Sent to Mac clipboard via OSC 52 (mosh/tmux compatible)", file=sys.stderr)
-                except PermissionError:
-                    # Fallback to stderr if can't open TTY
-                    sys.stderr.write(osc52_sequence)
-                    sys.stderr.flush()
-                    clipboard_success = True
-                    print(f"✅ Sent to Mac clipboard via OSC 52 (stderr fallback)", file=sys.stderr)
+                    # Base64 encode and remove newlines
+                    b64_content = base64.b64encode(clipboard_content.encode('utf-8')).decode('ascii')
                     
-            except Exception as e:
-                print(f"⚠️ OSC 52 failed: {e}", file=sys.stderr)
-            
-            if clipboard_success:
-                print(f"📋 Also saved to {fallback_path} as backup", file=sys.stderr)
-                return ('ssh_clipboard', str(fallback_path))
+                    # Get the correct TTY device
+                    tty_device = None
+                    is_tmux = os.environ.get('TMUX')
+                    
+                    if is_tmux:
+                        # Inside tmux: get the client tty
+                        try:
+                            result = subprocess.run(['tmux', 'display-message', '-p', '#{client_tty}'],
+                                                  capture_output=True, text=True, check=True)
+                            tty_device = result.stdout.strip()
+                        except:
+                            tty_device = "/dev/tty"
+                    else:
+                        tty_device = "/dev/tty"
+                    
+                    # Send OSC 52 sequence with proper format
+                    if is_tmux:
+                        # Inside tmux: use DCS passthrough (this is the KEY!)
+                        osc52_sequence = f"\033Ptmux;\033\033]52;c;{b64_content}\007\033\\"
+                    else:
+                        # Outside tmux: use standard OSC 52
+                        osc52_sequence = f"\033]52;c;{b64_content}\007"
+                    
+                    # Write directly to TTY device (not stderr)
+                    try:
+                        with open(tty_device, 'w') as tty:
+                            tty.write(osc52_sequence)
+                            tty.flush()
+                        clipboard_success = True
+                        print(f"✅ Sent to Mac clipboard via OSC 52 ({content_size} chars)", file=sys.stderr)
+                    except PermissionError:
+                        # Fallback to stderr if can't open TTY
+                        sys.stderr.write(osc52_sequence)
+                        sys.stderr.flush()
+                        clipboard_success = True
+                        print(f"✅ Sent to Mac clipboard via OSC 52 ({content_size} chars)", file=sys.stderr)
+                        
+                except Exception as e:
+                    print(f"⚠️ OSC 52 failed: {e}", file=sys.stderr)
             else:
-                print(f"⚠️ Could not send to Mac clipboard directly", file=sys.stderr)
-            
-            # Output with markers for iTerm2 trigger to intercept
-            print("===ITERM2_CLIPBOARD_START===", file=sys.stderr)
-            print(base64.b64encode(clipboard_content.encode('utf-8')).decode('ascii'), file=sys.stderr)
-            print("===ITERM2_CLIPBOARD_END===", file=sys.stderr)
+                # Too large for OSC 52 over mosh - provide manual copy command
+                print(f"📋 Content too large for automatic clipboard ({content_size} chars > {osc52_max_size})", file=sys.stderr)
+                print(f"", file=sys.stderr)
+                print(f"   Run this command on your Mac to copy the full index:", file=sys.stderr)
+                print(f"   ssh {os.environ.get('USER', 'user')}@10.211.55.4 'cat ~/Projects/claude-code-project-index/.clipboard_content.txt' | pbcopy", file=sys.stderr)
+                print(f"", file=sys.stderr)
             
             # Also try tmux buffer for local pasting
             try:
@@ -366,15 +363,12 @@ Focus on providing actionable file locations and insights."""
             except:
                 pass
             
-            print(f"✅ Saved to {fallback_path}", file=sys.stderr)
+            print(f"📁 Full content saved to {fallback_path}", file=sys.stderr)
             
-            # Check if iTerm2 trigger is likely configured
-            if os.environ.get('TERM_PROGRAM') == 'iTerm.app':
-                print(f"📋 If iTerm2 trigger is configured, content copied to Mac clipboard!", file=sys.stderr)
+            if clipboard_success:
+                return ('ssh_clipboard', str(fallback_path))
             else:
-                print(f"📋 SSH detected - configure iTerm2 trigger for auto-clipboard", file=sys.stderr)
-            
-            return ('ssh_file', str(fallback_path))
+                return ('ssh_file_large', str(fallback_path))
         
         # First try xclip directly (most reliable for Linux)
         try:
@@ -491,21 +485,19 @@ Original request: {cleaned_prompt}
 """
                     }
                 }
-            elif copy_result[0] == 'ssh_file':
-                # SSH session detected - file saved
+            elif copy_result[0] == 'ssh_file_large':
+                # SSH session with large content - manual copy needed
                 output = {
                     "hookSpecificOutput": {
                         "hookEventName": "UserPromptSubmit",
                         "additionalContext": f"""
-📁 SSH Session - Saved to File
+📋 Clipboard Mode - Content Too Large for Auto-Copy
 
 Index saved to: {copy_result[1]} ({size_k}k tokens).
+⚠️ Content exceeds mosh/OSC 52 limit (7.5KB) for automatic clipboard.
 
-Copy to your Mac's clipboard:
-cat .clipboard_content.txt | pbcopy
-
-Or load into tmux buffer:
-cat .clipboard_content.txt | tmux load-buffer -
+To copy the full index to your Mac clipboard, run this command on your Mac:
+ssh {os.environ.get('USER', 'user')}@10.211.55.4 'cat ~/Projects/claude-code-project-index/.clipboard_content.txt' | pbcopy
 
 Then paste into external AI (Gemini, Claude.ai, ChatGPT) for analysis.
 Original request: {cleaned_prompt}
