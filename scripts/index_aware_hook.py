@@ -298,10 +298,10 @@ Focus on providing actionable file locations and insights."""
             
             # Check content size first - OSC 52 has limits, especially over mosh
             content_size = len(clipboard_content)
-            # Your tmux clipboard solution uses 74994 successfully, let's try 50KB first
-            osc52_max_size = 50000  # Testing higher limit that should handle most indexes
+            # Testing shows mosh/tmux cuts off at ~12KB, so stay safely under that
+            mosh_limit = 11000  # Just under the 12KB cutoff we observed
             
-            if content_size <= osc52_max_size:
+            if content_size <= mosh_limit:
                 # Small enough for OSC 52 - try to send directly to clipboard
                 try:
                     # Base64 encode and remove newlines
@@ -347,12 +347,39 @@ Focus on providing actionable file locations and insights."""
                 except Exception as e:
                     print(f"⚠️ OSC 52 failed: {e}", file=sys.stderr)
             else:
-                # Too large for OSC 52 over mosh - provide manual copy command
-                print(f"📋 Content too large for automatic clipboard ({content_size} chars > {osc52_max_size})", file=sys.stderr)
+                # Too large for mosh/tmux's ~12KB limit - use alternative methods
+                # Testing shows clipboard gets truncated at ~12KB over mosh
+                print(f"📋 Content exceeds mosh/tmux's 12KB limit ({content_size} chars)", file=sys.stderr)
+                
+                # Load into tmux buffer for local access
+                try:
+                    proc = subprocess.Popen(['tmux', 'load-buffer', '-'], stdin=subprocess.PIPE,
+                                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    proc.communicate(clipboard_content.encode('utf-8'))
+                    if proc.returncode == 0:
+                        print(f"✅ Loaded into tmux buffer", file=sys.stderr)
+                        
+                        # Try to trigger automatic Mac clipboard sync
+                        # This runs a command on the tmux client (Mac) side
+                        sync_cmd = f"ssh {os.environ.get('USER', 'user')}@10.211.55.4 'cat ~/Projects/claude-code-project-index/.clipboard_content.txt' | pbcopy"
+                        tmux_run = f"tmux run-shell '{sync_cmd}'"
+                        
+                        try:
+                            subprocess.run(['tmux', 'run-shell', sync_cmd], 
+                                         capture_output=True, timeout=2)
+                            print(f"🚀 Attempting automatic clipboard sync to Mac...", file=sys.stderr)
+                        except:
+                            pass
+                except:
+                    pass
+                
                 print(f"", file=sys.stderr)
-                print(f"   Run this command on your Mac to copy the full index:", file=sys.stderr)
+                print(f"To manually copy to Mac clipboard, run this on your Mac:", file=sys.stderr)
                 print(f"   ssh {os.environ.get('USER', 'user')}@10.211.55.4 'cat ~/Projects/claude-code-project-index/.clipboard_content.txt' | pbcopy", file=sys.stderr)
                 print(f"", file=sys.stderr)
+                print(f"ℹ️  Mosh/tmux limits clipboard to ~12KB. For larger content, consider:", file=sys.stderr)
+                print(f"   - Using SSH instead of mosh for this operation", file=sys.stderr)
+                print(f"   - Or using the manual command above", file=sys.stderr)
             
             # Also try tmux buffer for local pasting
             try:
