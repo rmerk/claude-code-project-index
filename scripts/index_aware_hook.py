@@ -298,7 +298,8 @@ Focus on providing actionable file locations and insights."""
             
             # Check content size first - OSC 52 has limits, especially over mosh
             content_size = len(clipboard_content)
-            osc52_max_size = 7500  # Conservative limit for mosh (about 10KB base64)
+            # Your tmux clipboard solution uses 74994 successfully, let's try 50KB first
+            osc52_max_size = 50000  # Testing higher limit that should handle most indexes
             
             if content_size <= osc52_max_size:
                 # Small enough for OSC 52 - try to send directly to clipboard
