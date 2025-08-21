@@ -222,17 +222,36 @@ def copy_to_clipboard(prompt, index_path):
     """Copy prompt, instructions, and index to clipboard for external AI."""
     try:
         # Try VM Bridge first (works with any size over mosh)
+        vm_bridge_available = False
+        bridge_client = None
+        
         try:
             import sys
-            sys.path.insert(0, os.path.expanduser('~/.local/lib/python/vm_bridge'))
-            from vm_client import VMBridgeClient
+            # Try network version first (no tunnel needed)
+            sys.path.insert(0, '/home/ericbuess/Projects/vm-bridge')
+            from vm_client_network import VMBridgeClient as NetworkClient
             
-            bridge_client = VMBridgeClient()
-            if bridge_client.is_daemon_running():
-                print("🌉 VM Bridge daemon detected", file=sys.stderr)
-                vm_bridge_available = True
-            else:
-                vm_bridge_available = False
+            # Try to auto-detect or use known Mac IP
+            for mac_ip in ['10.211.55.2', '10.211.55.1', '192.168.1.1']:
+                try:
+                    test_client = NetworkClient(host=mac_ip)
+                    if test_client.is_daemon_running():
+                        bridge_client = test_client
+                        print(f"🌉 VM Bridge network daemon detected at {mac_ip}", file=sys.stderr)
+                        vm_bridge_available = True
+                        break
+                except:
+                    continue
+                    
+            # Fall back to localhost tunnel version if network not available
+            if not vm_bridge_available:
+                sys.path.insert(0, os.path.expanduser('~/.local/lib/python/vm_bridge'))
+                from vm_client import VMBridgeClient
+                bridge_client = VMBridgeClient()
+                if bridge_client.is_daemon_running():
+                    print("🌉 VM Bridge tunnel daemon detected", file=sys.stderr)
+                    vm_bridge_available = True
+                    
         except ImportError:
             vm_bridge_available = False
         # Create clipboard-specific instructions (no tools, no subagent references)
