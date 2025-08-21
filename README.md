@@ -43,43 +43,47 @@ Once created, reference it when you need architectural awareness:
 
 ### 🚀 Advanced: Index-Aware Mode with -i Flag
 
-Use the `-i` flag to automatically analyze your codebase structure before tasks:
+Use the `-i` and `-ic` flags to leverage intelligent code analysis:
 
+#### **`-i` Mode: Subagent Analysis (Preserves Main Context)**
 ```bash
-# Default 50k token index with intelligent analysis
+# Default 50k token index analyzed by specialized subagent
 claude "refactor the auth system -i"
 
-# Specify custom size (1k-100k tokens)
+# Custom size (1k-100k tokens)
 claude "find performance issues -i75"
-
-# Clipboard mode for external AI (up to 800k)
-claude "analyze architecture -ic400"
 ```
 
-#### How It Works
+**How it works:**
+- Loads PROJECT_INDEX into a **specialized subagent's context** (not main Claude)
+- Subagent analyzes your codebase and returns only relevant code paths
+- **Your main Claude context stays clean** for actual coding work
+- Perfect for targeted code changes while preserving context
 
-**Standard Mode (`-i`)**: 
-- Generates PROJECT_INDEX.json at requested size
-- Invokes intelligent subagent to analyze structure
-- Provides strategic code locations and insights
-- Claude proceeds with your task using the analysis
+#### **`-ic` Mode: Export for Large Context AI Models**
+```bash
+# Copy to clipboard for AI models with massive context windows
+claude "analyze entire codebase -ic200"    # 200k tokens
+claude "architecture deep dive -ic800"     # 800k tokens (max)
+```
 
-**Clipboard Mode (`-ic`)**: 
-- Generates index and copies to clipboard
-- Paste into external AI (Gemini, ChatGPT, Claude.ai)
-- Copy their analysis back to Claude
-- Useful for leveraging models with larger context windows
+**Leverage models with larger contexts than Claude Code CLI:**
+- **Gemini Pro 1.5**: Up to 2M token context
+- **Claude.ai (Sonnet 3.5)**: 1M token context (not yet in CLI)
+- **Grok**: Large context models
+- **GPT-4 Turbo**: 128k context
 
-#### 🌉 VM Bridge - Unlimited Clipboard (NEW!)
+**Example workflow:**
+1. Generate massive index: `claude "analyze all patterns -ic500"`
+2. Paste into Gemini/Claude.ai for comprehensive analysis
+3. Get insights impossible with smaller contexts
+4. Bring findings back to Claude Code for implementation
 
-For users working over SSH/mosh, the project now includes **VM Bridge** - a network daemon that enables unlimited clipboard operations:
+#### 🌉 Clipboard Support & VM Bridge
 
-- **No size limits** - Works with any size content (tested up to 50MB)
-- **Works over mosh** - No SSH tunnels needed, bypasses mosh's 12KB limit
-- **Auto-detection** - Automatically finds and connects to Mac host
-- **Bidirectional** - Enables Mac ↔ VM agent communication
+**Local clipboard** works automatically on Mac/Linux/WSL.
 
-See the `vm-bridge/` folder for setup instructions, or clipboard falls back to file.
+**For SSH/mosh users**: Standard clipboard methods have limits (~11KB over mosh). The VM Bridge solution provides unlimited clipboard over remote connections. Most users won't need this - it's specifically for SSH/mosh environments.
 
 ## 📦 Updating
 

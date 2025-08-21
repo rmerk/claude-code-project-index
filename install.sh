@@ -188,6 +188,23 @@ jq '
   # Initialize hooks if not present
   if .hooks == null then .hooks = {} else . end |
   
+  # Initialize UserPromptSubmit if not present (for index-aware mode)
+  if .hooks.UserPromptSubmit == null then .hooks.UserPromptSubmit = [] else . end |
+  
+  # Filter out any existing PROJECT_INDEX UserPromptSubmit hooks, then add the new one
+  .hooks.UserPromptSubmit = ([.hooks.UserPromptSubmit[] | select(
+    all(.hooks[]?.command // ""; 
+      contains("index_aware_hook.py") | not) and
+    all(.hooks[]?.command // ""; 
+      contains("project_index") | not)
+  )] + [{
+    "hooks": [{
+      "type": "command",
+      "command": "'"$HOME"'/.claude-code-project-index/scripts/run_python.sh '"$HOME"'/.claude-code-project-index/scripts/index_aware_hook.py",
+      "timeout": 20
+    }]
+  }]) |
+  
   # Initialize PostToolUse if not present
   if .hooks.PostToolUse == null then .hooks.PostToolUse = [] else . end |
   
