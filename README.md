@@ -1,10 +1,6 @@
-# Project Index for Claude Code (v1.0.0)
+# Project Index for Claude Code (v0.2.0-beta)
 
-## 🎯 Status: Feature Complete
-
-This tool does what it was designed to do - generate intelligent code indexes for Claude.
-
-**Maintenance Mode**: Critical bugs only. For custom features, please fork!
+**⚠️ Beta Release** - This tool is in active development. Testing the new index-aware mode.
 
 A UML-inspired code intelligence system that gives Claude Code comprehensive architectural awareness of your codebase through static analysis and pattern recognition.
 
