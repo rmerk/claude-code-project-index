@@ -1,5 +1,5 @@
 {
-  "indexed_at": "2025-08-19T14:45:36.377966",
+  "indexed_at": "2025-08-21T14:57:12.245252",
   "root": ".",
   "project_structure": {
     "type": "tree",
@@ -58,7 +58,8 @@
     },
     "README.md": {
       "sections": [
-        "Project Index for Claude Code (v0.1.0)",
+        "Project Index for Claude Code (v1.0.0)",
+        "\ud83c\udfaf Status: Feature Complete",
         "\ud83d\ude80 Quick Install",
         "\ud83d\udcd6 Usage",
         "Create an Index for Your Project",
@@ -66,23 +67,7 @@
         "Ask architectural questions",
         "Or auto-load in every session by adding to CLAUDE.md:",
         "Add @PROJECT_INDEX.json to your CLAUDE.md file",
-        "\ud83d\ude80 Advanced: Index-Aware Mode with -i Flag",
-        "Default 50k token index with intelligent analysis"
-      ],
-      "architecture_hints": []
-    },
-    "../vm-bridge/README.md": {
-      "sections": [
-        "VM-to-Host Command Bridge",
-        "\ud83c\udfaf Problem Solved",
-        "\u2728 Features",
-        "\ud83d\ude80 Quick Start",
-        "On your Mac",
-        "On your Linux VM",
-        "Copy vm-bridge folder from Mac or clone repo",
-        "\ud83d\udccb Usage Examples",
-        "In Python Scripts",
-        "Copy to Mac clipboard (any size!)"
+        "\ud83d\ude80 Advanced: Index-Aware Mode with -i Flag"
       ],
       "architecture_hints": []
     }
@@ -101,7 +86,7 @@
       "json": 1,
       "shell": 5
     },
-    "markdown_files": 5
+    "markdown_files": 4
   },
   "files": {
     "scripts/detect_external_changes.py": {
@@ -144,39 +129,67 @@
     "scripts/index_aware_hook.py": {
       "language": "python",
       "parsed": true,
+      "imports": [
+        "json",
+        "sys",
+        "os",
+        "re",
+        "subprocess",
+        "hashlib",
+        "time",
+        "pathlib",
+        "datetime",
+        "sys",
+        "vm_client_network",
+        "vm_client",
+        "base64",
+        "pyperclip"
+      ],
       "functions": {
         "find_project_root": {
-          "doc": "Find project root by looking for .git or common project markers.",
-          "signature": "()"
+          "signature": "()",
+          "called_by": [
+            "main"
+          ]
         },
         "parse_index_flag": {
-          "doc": "Parse -i or -ic flag with optional size.",
-          "signature": "(prompt)"
+          "signature": "(prompt)",
+          "called_by": [
+            "main"
+          ]
         },
         "calculate_files_hash": {
-          "doc": "Calculate hash of non-ignored files to detect changes.",
-          "signature": "(project_root)"
+          "signature": "(project_root)",
+          "called_by": [
+            "should_regenerate_index",
+            "generate_index_at_size"
+          ]
         },
         "should_regenerate_index": {
-          "doc": "Determine if index needs regeneration.",
           "calls": [
             "calculate_files_hash"
           ],
-          "signature": "(project_root, index_path, requested_size_k)"
+          "signature": "(project_root, index_path, requested_size_k)",
+          "called_by": [
+            "main"
+          ]
         },
         "generate_index_at_size": {
-          "doc": "Generate index at specific token size.",
           "calls": [
             "calculate_files_hash"
           ],
-          "signature": "(project_root, target_size_k)"
+          "signature": "(project_root, target_size_k)",
+          "called_by": [
+            "main"
+          ]
         },
         "copy_to_clipboard": {
-          "doc": "Copy prompt, instructions, and index to clipboard for external AI.",
-          "signature": "(prompt, index_path)"
+          "signature": "(prompt, index_path)",
+          "called_by": [
+            "main"
+          ]
         },
         "main": {
-          "doc": "Process UserPromptSubmit hook for -i and -ic flag detection.",
           "calls": [
             "copy_to_clipboard",
             "find_project_root",
@@ -188,8 +201,13 @@
         }
       },
       "classes": {},
-      "updated_by_hook": true,
-      "updated_at": "2025-08-19T15:16:21.072689"
+      "constants": {
+        "DEFAULT_SIZE_K": "number",
+        "MIN_SIZE_K": "number",
+        "CLAUDE_MAX_K": "number",
+        "EXTERNAL_MAX_K": "number"
+      },
+      "call_graph": {}
     },
     "scripts/index_utils.py": {
       "language": "python",
@@ -450,167 +468,6 @@
       },
       "classes": {},
       "call_graph": {}
-    },
-    "../vm-bridge/mac_daemon.py": {
-      "language": "python",
-      "parsed": true,
-      "functions": {
-        "main": {
-          "doc": "Main entry point",
-          "calls": [
-            "start",
-            "stop"
-          ],
-          "signature": "()"
-        }
-      },
-      "classes": {
-        "CommandHandler": {
-          "methods": {
-            "execute": {
-              "decorators": [
-                "staticmethod"
-              ],
-              "doc": "Execute a whitelisted command",
-              "signature": "(request)"
-            }
-          },
-          "doc": "Handle individual command execution"
-        },
-        "ClientHandler": {
-          "methods": {
-            "__init__": {
-              "calls": [
-                "__init__"
-              ],
-              "signature": "(self, client_socket, address)"
-            },
-            "run": {
-              "doc": "Handle client request",
-              "calls": [
-                "execute"
-              ],
-              "signature": "(self)"
-            }
-          },
-          "inherits": [
-            "threading.Thread"
-          ],
-          "doc": "Handle individual client connections"
-        },
-        "VMBridgeDaemon": {
-          "methods": {
-            "__init__": "(self, host='127.0.0.1', port=9999)",
-            "start": {
-              "doc": "Start the daemon",
-              "calls": [
-                "start",
-                "stop"
-              ],
-              "signature": "(self)"
-            },
-            "stop": {
-              "doc": "Stop the daemon",
-              "signature": "(self)"
-            }
-          },
-          "doc": "Main daemon class"
-        }
-      },
-      "updated_by_hook": true,
-      "updated_at": "2025-08-19T15:12:03.072741"
-    },
-    "../vm-bridge/vm_client.py": {
-      "language": "python",
-      "parsed": true,
-      "functions": {
-        "get_client": {
-          "doc": "Get or create default client instance",
-          "signature": "()"
-        },
-        "copy_to_mac_clipboard": {
-          "doc": "Quick function to copy to Mac clipboard",
-          "calls": [
-            "copy_to_clipboard",
-            "get_client"
-          ],
-          "signature": "(content)"
-        },
-        "paste_from_mac_clipboard": {
-          "doc": "Quick function to paste from Mac clipboard",
-          "calls": [
-            "get_client",
-            "paste_from_clipboard"
-          ],
-          "signature": "()"
-        },
-        "notify_mac": {
-          "doc": "Quick function to show Mac notification",
-          "calls": [
-            "get_client",
-            "notify"
-          ],
-          "signature": "(message)"
-        },
-        "open_url_on_mac": {
-          "doc": "Quick function to open URL on Mac",
-          "calls": [
-            "get_client",
-            "open_url"
-          ],
-          "signature": "(url)"
-        }
-      },
-      "classes": {
-        "VMBridgeClient": {
-          "methods": {
-            "__init__": "(self, host='localhost', port=9999, timeout=5)",
-            "send_command": "(self, cmd, stdin=None, args=None, timeout=None)",
-            "copy_to_clipboard": {
-              "doc": "Copy content to Mac clipboard",
-              "calls": [
-                "send_command"
-              ],
-              "signature": "(self, content)"
-            },
-            "paste_from_clipboard": {
-              "doc": "Get content from Mac clipboard",
-              "calls": [
-                "send_command"
-              ],
-              "signature": "(self)"
-            },
-            "notify": {
-              "doc": "Show notification on Mac",
-              "calls": [
-                "send_command"
-              ],
-              "signature": "(self, message)"
-            },
-            "open_url": {
-              "doc": "Open URL in Mac browser",
-              "calls": [
-                "send_command"
-              ],
-              "signature": "(self, url)"
-            },
-            "is_daemon_running": {
-              "doc": "Check if daemon is accessible",
-              "signature": "(self)"
-            }
-          },
-          "doc": "Client for communicating with VM Bridge Daemon",
-          "properties": [
-            "cmd",
-            "stdin",
-            "args",
-            "timeout",
-            "dict"
-          ]
-        }
-      },
-      "updated_by_hook": true,
-      "updated_at": "2025-08-19T15:13:25.425365"
     }
   },
   "dependency_graph": {
@@ -632,6 +489,9 @@
       "time",
       "pathlib",
       "datetime",
+      "sys",
+      "vm_client_network",
+      "vm_client",
       "base64",
       "pyperclip"
     ],
@@ -670,12 +530,12 @@
       "index_utils"
     ]
   },
-  "staleness_check": 1755027936.399569,
+  "staleness_check": 1755201432.265531,
   "_meta": {
     "target_size_k": 1,
-    "generated_at": 1755632736.4046652,
+    "generated_at": 1755806232.2706146,
     "actual_size_k": 3,
-    "files_hash": "cd1aa87625c69e8b",
+    "files_hash": "502337e11f4eb329",
     "compression_ratio": "300.0%"
   }
 }

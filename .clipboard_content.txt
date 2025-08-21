@@ -45,7 +45,7 @@ Focus on providing actionable file locations and insights.
 
 ## PROJECT_INDEX.json
 {
-  "indexed_at": "2025-08-19T14:45:36.377966",
+  "indexed_at": "2025-08-21T14:57:12.245252",
   "root": ".",
   "project_structure": {
     "type": "tree",
@@ -104,7 +104,8 @@ Focus on providing actionable file locations and insights.
     },
     "README.md": {
       "sections": [
-        "Project Index for Claude Code (v0.1.0)",
+        "Project Index for Claude Code (v1.0.0)",
+        "\ud83c\udfaf Status: Feature Complete",
         "\ud83d\ude80 Quick Install",
         "\ud83d\udcd6 Usage",
         "Create an Index for Your Project",
@@ -112,8 +113,7 @@ Focus on providing actionable file locations and insights.
         "Ask architectural questions",
         "Or auto-load in every session by adding to CLAUDE.md:",
         "Add @PROJECT_INDEX.json to your CLAUDE.md file",
-        "\ud83d\ude80 Advanced: Index-Aware Mode with -i Flag",
-        "Default 50k token index with intelligent analysis"
+        "\ud83d\ude80 Advanced: Index-Aware Mode with -i Flag"
       ],
       "architecture_hints": []
     }
@@ -185,6 +185,9 @@ Focus on providing actionable file locations and insights.
         "time",
         "pathlib",
         "datetime",
+        "sys",
+        "vm_client_network",
+        "vm_client",
         "base64",
         "pyperclip"
       ],
@@ -532,6 +535,9 @@ Focus on providing actionable file locations and insights.
       "time",
       "pathlib",
       "datetime",
+      "sys",
+      "vm_client_network",
+      "vm_client",
       "base64",
       "pyperclip"
     ],
@@ -570,12 +576,12 @@ Focus on providing actionable file locations and insights.
       "index_utils"
     ]
   },
-  "staleness_check": 1755027936.399569,
+  "staleness_check": 1755201432.265531,
   "_meta": {
     "target_size_k": 1,
-    "generated_at": 1755632736.4046652,
+    "generated_at": 1755806232.2706146,
     "actual_size_k": 3,
-    "files_hash": "cd1aa87625c69e8b",
+    "files_hash": "502337e11f4eb329",
     "compression_ratio": "300.0%"
   }
 }
