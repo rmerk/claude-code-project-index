@@ -548,6 +548,9 @@ def main():
 📁 Also saved to: .clipboard_content.txt
 
 Paste directly into external AI (Gemini, Claude.ai, ChatGPT) for analysis.
+
+**IMPORTANT FOR CLAUDE**: Do not analyze the request yourself. Simply acknowledge the clipboard export and wait for the user to return with the external AI's response. This preserves your context for implementation work.
+
 Original request: {cleaned_prompt}
 """
                     }
@@ -563,7 +566,8 @@ Original request: {cleaned_prompt}
 Index and instructions copied to clipboard ({size_k}k tokens, {copy_result[1]} chars).
 Paste into external AI (Gemini, Claude.ai, ChatGPT) for analysis.
 
-No subagent will be invoked - the clipboard contains everything needed.
+**IMPORTANT FOR CLAUDE**: Do not analyze the request yourself. Simply acknowledge the clipboard export and wait for the user to return with the external AI's response. This preserves your context for implementation work.
+
 Original request: {cleaned_prompt}
 """
                     }
@@ -580,6 +584,9 @@ Original request: {cleaned_prompt}
 📁 Also saved to: {copy_result[1]}
 
 Paste directly into external AI (Gemini, Claude.ai, ChatGPT) for analysis.
+
+**IMPORTANT FOR CLAUDE**: Do not analyze the request yourself. Simply acknowledge the clipboard export and wait for the user to return with the external AI's response. This preserves your context for implementation work.
+
 Original request: {cleaned_prompt}
 """
                     }
@@ -599,6 +606,9 @@ To copy the full index to your Mac clipboard, run this command on your Mac:
 ssh {os.environ.get('USER', 'user')}@10.211.55.4 'cat ~/Projects/claude-code-project-index/.clipboard_content.txt' | pbcopy
 
 Then paste into external AI (Gemini, Claude.ai, ChatGPT) for analysis.
+
+**IMPORTANT FOR CLAUDE**: Do not analyze the request yourself. Simply acknowledge the clipboard export and wait for the user to return with the external AI's response. This preserves your context for implementation work.
+
 Original request: {cleaned_prompt}
 """
                     }
@@ -618,6 +628,9 @@ To copy: cat {copy_result[1]} | pbcopy  # macOS
          cat {copy_result[1]} | xclip   # Linux
 
 Then paste into external AI (Gemini, Claude.ai, ChatGPT) for analysis.
+
+**IMPORTANT FOR CLAUDE**: Do not analyze the request yourself. Simply acknowledge the clipboard export and wait for the user to return with the external AI's response. This preserves your context for implementation work.
+
 Original request: {cleaned_prompt}
 """
                     }
