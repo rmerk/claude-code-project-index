@@ -24,7 +24,7 @@ Thumbs.db
 *_backup.py
 
 # Test outputs
-test_*.py
+tests/
 debug_*.py
 
 # Project Index files (created in user projects)

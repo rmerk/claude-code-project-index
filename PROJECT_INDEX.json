@@ -1,5 +1,5 @@
 {
-  "indexed_at": "2025-08-21T15:37:52.082854",
+  "indexed_at": "2025-08-21T16:46:09.812315",
   "root": ".",
   "project_structure": {
     "type": "tree",
@@ -71,9 +71,18 @@
       "json": 1,
       "shell": 4
     },
-    "markdown_files": 3
+    "markdown_files": 4
   },
   "files": {
+    ".claude/settings.json": {
+      "language": "json",
+      "parsed": false,
+      "purpose": "Configuration"
+    },
+    "install.sh": {
+      "language": "shell",
+      "parsed": false
+    },
     "scripts/detect_external_changes.py": {
       "language": "python",
       "parsed": true,
@@ -87,6 +96,7 @@
       ],
       "functions": {
         "get_file_mtime": {
+          "doc": "Get file modification time as timestamp.",
           "signature": "(file_path)",
           "called_by": [
             "detect_external_changes"
@@ -114,67 +124,49 @@
     "scripts/index_aware_hook.py": {
       "language": "python",
       "parsed": true,
-      "imports": [
-        "json",
-        "sys",
-        "os",
-        "re",
-        "subprocess",
-        "hashlib",
-        "time",
-        "pathlib",
-        "datetime",
-        "sys",
-        "vm_client_network",
-        "vm_client",
-        "base64",
-        "pyperclip"
-      ],
       "functions": {
         "find_project_root": {
-          "signature": "()",
-          "called_by": [
-            "main"
-          ]
+          "doc": "Find project root by looking for .git or common project markers.",
+          "signature": "()"
+        },
+        "get_last_interactive_size": {
+          "doc": "Get the last remembered -i size from the index.",
+          "calls": [
+            "find_project_root"
+          ],
+          "signature": "()"
         },
         "parse_index_flag": {
-          "signature": "(prompt)",
-          "called_by": [
-            "main"
-          ]
+          "doc": "Parse -i or -ic flag with optional size.",
+          "calls": [
+            "get_last_interactive_size"
+          ],
+          "signature": "(prompt)"
         },
         "calculate_files_hash": {
-          "signature": "(project_root)",
-          "called_by": [
-            "should_regenerate_index",
-            "generate_index_at_size"
-          ]
+          "doc": "Calculate hash of non-ignored files to detect changes.",
+          "signature": "(project_root)"
         },
         "should_regenerate_index": {
+          "doc": "Determine if index needs regeneration.",
           "calls": [
             "calculate_files_hash"
           ],
-          "signature": "(project_root, index_path, requested_size_k)",
-          "called_by": [
-            "main"
-          ]
+          "signature": "(project_root, index_path, requested_size_k)"
         },
         "generate_index_at_size": {
+          "doc": "Generate index at specific token size.",
           "calls": [
             "calculate_files_hash"
           ],
-          "signature": "(project_root, target_size_k)",
-          "called_by": [
-            "main"
-          ]
+          "signature": "(project_root, target_size_k, is_clipboard_mode=False)"
         },
         "copy_to_clipboard": {
-          "signature": "(prompt, index_path)",
-          "called_by": [
-            "main"
-          ]
+          "doc": "Copy prompt, instructions, and index to clipboard for external AI.",
+          "signature": "(prompt, index_path)"
         },
         "main": {
+          "doc": "Process UserPromptSubmit hook for -i and -ic flag detection.",
           "calls": [
             "copy_to_clipboard",
             "find_project_root",
@@ -186,13 +178,8 @@
         }
       },
       "classes": {},
-      "constants": {
-        "DEFAULT_SIZE_K": "number",
-        "MIN_SIZE_K": "number",
-        "CLAUDE_MAX_K": "number",
-        "EXTERNAL_MAX_K": "number"
-      },
-      "call_graph": {}
+      "updated_by_hook": true,
+      "updated_at": "2025-08-21T17:27:41.002041"
     },
     "scripts/index_utils.py": {
       "language": "python",
@@ -207,63 +194,76 @@
       ],
       "functions": {
         "extract_function_calls_python": {
+          "doc": "Extract function calls from Python code body.",
           "signature": "(body: str, all_functions: Set[str]) -> List[str]",
           "called_by": [
             "extract_python_signatures"
           ]
         },
         "extract_function_calls_javascript": {
+          "doc": "Extract function calls from JavaScript/TypeScript code body.",
           "signature": "(body: str, all_functions: Set[str]) -> List[str]",
           "called_by": [
             "extract_javascript_signatures"
           ]
         },
         "build_call_graph": {
+          "doc": "Build bidirectional call graph from extracted functions and methods.",
           "signature": "(functions: Dict, classes: Dict) -> Tuple[Dict, Dict]"
         },
         "extract_python_signatures": {
+          "doc": "Extract Python function and class signatures with full details for all files.",
           "calls": [
             "extract_function_calls_python"
           ],
           "signature": "(content: str) -> Dict[str, Dict]"
         },
         "extract_javascript_signatures": {
+          "doc": "Extract JavaScript/TypeScript function and class signatures with full details.",
           "calls": [
             "extract_function_calls_javascript"
           ],
           "signature": "(content: str) -> Dict[str, any]"
         },
         "extract_function_calls_shell": {
+          "doc": "Extract function calls from shell script body.",
           "signature": "(body: str, all_functions: Set[str]) -> List[str]",
           "called_by": [
             "extract_shell_signatures"
           ]
         },
         "extract_shell_signatures": {
+          "doc": "Extract shell script function signatures and structure.",
           "calls": [
             "extract_function_calls_shell"
           ],
           "signature": "(content: str) -> Dict[str, any]"
         },
         "extract_markdown_structure": {
+          "doc": "Extract headers and architectural hints from markdown files.",
           "signature": "(file_path: Path) -> Dict[str, List[str]]"
         },
         "infer_file_purpose": {
+          "doc": "Infer the purpose of a file from its name and location.",
           "signature": "(file_path: Path) -> Optional[str]"
         },
         "infer_directory_purpose": {
+          "doc": "Infer directory purpose from naming patterns and contents.",
           "signature": "(path: Path, files_within: List[str]) -> Optional[str]"
         },
         "get_language_name": {
+          "doc": "Get readable language name from extension.",
           "signature": "(extension: str) -> str"
         },
         "parse_gitignore": {
+          "doc": "Parse a .gitignore file and return list of patterns.",
           "signature": "(gitignore_path: Path) -> List[str]",
           "called_by": [
             "load_gitignore_patterns"
           ]
         },
         "load_gitignore_patterns": {
+          "doc": "Load all gitignore patterns from project root and merge with defaults.",
           "calls": [
             "parse_gitignore"
           ],
@@ -273,12 +273,14 @@
           ]
         },
         "matches_gitignore_pattern": {
+          "doc": "Check if a path matches any gitignore pattern.",
           "signature": "(path: Path, patterns: Set[str], root_path: Path) -> bool",
           "called_by": [
             "should_index_file"
           ]
         },
         "should_index_file": {
+          "doc": "Check if we should index this file.",
           "calls": [
             "load_gitignore_patterns",
             "matches_gitignore_pattern"
@@ -297,6 +299,11 @@
       },
       "call_graph": {}
     },
+    "scripts/project-index-helper.sh": {
+      "language": "shell",
+      "parsed": false,
+      "purpose": "Utility functions"
+    },
     "scripts/project_index.py": {
       "language": "python",
       "parsed": true,
@@ -313,6 +320,7 @@
       ],
       "functions": {
         "generate_tree_structure": {
+          "doc": "Generate a compact ASCII tree representation of the directory structure.",
           "calls": [
             "add_tree_level",
             "should_include_dir"
@@ -323,6 +331,7 @@
           ]
         },
         "build_index": {
+          "doc": "Build the enhanced index with architectural awareness.",
           "calls": [
             "generate_tree_structure"
           ],
@@ -332,18 +341,21 @@
           ]
         },
         "compress_index_if_needed": {
+          "doc": "Compress index if it exceeds size limit. Fixes infinite loop bug (Issue #1).",
           "signature": "(index: Dict, target_size: int = MAX_INDEX_SIZE) -> Dict",
           "called_by": [
             "main"
           ]
         },
         "print_summary": {
+          "doc": "Print a helpful summary of what was indexed.",
           "signature": "(index: Dict, skipped_count: int)",
           "called_by": [
             "main"
           ]
         },
         "main": {
+          "doc": "Run the enhanced indexer.",
           "calls": [
             "build_index",
             "compress_index_if_needed",
@@ -373,42 +385,49 @@
       ],
       "functions": {
         "check_index_features": {
+          "doc": "Check if index has all required features.",
           "signature": "(index_path)",
           "called_by": [
             "main"
           ]
         },
         "check_index_staleness": {
+          "doc": "Check if index is older than threshold.",
           "signature": "(index_path, threshold_hours=24)",
           "called_by": [
             "main"
           ]
         },
         "check_missing_documentation": {
+          "doc": "Check if important documentation files are missing from index.",
           "signature": "(index_path, project_root)",
           "called_by": [
             "main"
           ]
         },
         "check_structural_changes": {
+          "doc": "Check if directory structure has significantly changed.",
           "signature": "(index_path, project_root)",
           "called_by": [
             "main"
           ]
         },
         "count_hook_updates": {
+          "doc": "Count how many files were updated by hooks vs full index.",
           "signature": "(index_path)",
           "called_by": [
             "main"
           ]
         },
         "run_reindex": {
+          "doc": "Run the project_index.py script to perform full reindex.",
           "signature": "(project_root)",
           "called_by": [
             "main"
           ]
         },
         "main": {
+          "doc": "Main hook entry point.",
           "calls": [
             "check_index_features",
             "check_index_staleness",
@@ -423,6 +442,10 @@
       "classes": {},
       "call_graph": {}
     },
+    "scripts/run_python.sh": {
+      "language": "shell",
+      "parsed": false
+    },
     "scripts/update_index.py": {
       "language": "python",
       "parsed": true,
@@ -436,15 +459,18 @@
       ],
       "functions": {
         "find_index_utils": {
+          "doc": "Find index_utils.py in the project directory or system location.",
           "signature": "()"
         },
         "update_file_in_index": {
+          "doc": "Update a single file's entry in the enhanced index.",
           "signature": "(index_path, file_path, project_root)",
           "called_by": [
             "main"
           ]
         },
         "main": {
+          "doc": "Process PostToolUse hook input and update index.",
           "calls": [
             "update_file_in_index"
           ],
@@ -453,6 +479,10 @@
       },
       "classes": {},
       "call_graph": {}
+    },
+    "uninstall.sh": {
+      "language": "shell",
+      "parsed": false
     }
   },
   "dependency_graph": {
@@ -515,12 +545,12 @@
       "index_utils"
     ]
   },
-  "staleness_check": 1755203872.104614,
+  "staleness_check": 1755207969.833938,
   "_meta": {
-    "target_size_k": 1,
-    "generated_at": 1755808672.1096725,
-    "actual_size_k": 3,
-    "files_hash": "eebe7731fc015a70",
-    "compression_ratio": "300.0%"
+    "target_size_k": 50,
+    "generated_at": 1755812769.838166,
+    "actual_size_k": 4,
+    "files_hash": "ebee2bb0f45eef80",
+    "compression_ratio": "8.0%"
   }
 }

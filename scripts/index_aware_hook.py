@@ -42,6 +42,27 @@ def find_project_root():
     # Default to current directory
     return current
 
+def get_last_interactive_size():
+    """Get the last remembered -i size from the index."""
+    try:
+        project_root = find_project_root()
+        index_path = project_root / 'PROJECT_INDEX.json'
+        
+        if index_path.exists():
+            with open(index_path, 'r') as f:
+                index = json.load(f)
+                meta = index.get('_meta', {})
+                last_size = meta.get('last_interactive_size_k')
+                
+                if last_size:
+                    print(f"📝 Using remembered size: {last_size}k", file=sys.stderr)
+                    return last_size
+    except:
+        pass
+    
+    # Fall back to default
+    return DEFAULT_SIZE_K
+
 def parse_index_flag(prompt):
     """Parse -i or -ic flag with optional size."""
     # Pattern matches -i[number] or -ic[number]
@@ -51,7 +72,17 @@ def parse_index_flag(prompt):
         return None, None, prompt
     
     clipboard_mode = match.group(1) == 'c'
-    size_k = int(match.group(2)) if match.group(2) else DEFAULT_SIZE_K
+    
+    # If no explicit size provided, check for remembered size
+    if match.group(2):
+        size_k = int(match.group(2))
+    else:
+        # For -i without size, try to use last remembered size
+        if not clipboard_mode:
+            size_k = get_last_interactive_size()
+        else:
+            # For -ic, always use default
+            size_k = DEFAULT_SIZE_K
     
     # Validate size limits
     if size_k < MIN_SIZE_K:
@@ -139,7 +170,7 @@ def should_regenerate_index(project_root, index_path, requested_size_k):
         print(f"Warning: Could not read index metadata: {e}", file=sys.stderr)
         return True, "Could not read index metadata"
 
-def generate_index_at_size(project_root, target_size_k):
+def generate_index_at_size(project_root, target_size_k, is_clipboard_mode=False):
     """Generate index at specific token size."""
     print(f"🎯 Generating {target_size_k}k token index...", file=sys.stderr)
     
@@ -190,13 +221,20 @@ def generate_index_at_size(project_root, target_size_k):
                 if '_meta' not in index:
                     index['_meta'] = {}
                 
-                index['_meta'].update({
+                metadata_update = {
                     'generated_at': time.time(),
                     'target_size_k': target_size_k,
                     'actual_size_k': actual_size_k,
                     'files_hash': calculate_files_hash(project_root),
                     'compression_ratio': f"{(actual_size_k/target_size_k)*100:.1f}%" if target_size_k > 0 else "N/A"
-                })
+                }
+                
+                # Remember -i size for next time (but not -ic)
+                if not is_clipboard_mode:
+                    metadata_update['last_interactive_size_k'] = target_size_k
+                    print(f"💾 Remembering size {target_size_k}k for next -i", file=sys.stderr)
+                
+                index['_meta'].update(metadata_update)
                 
                 # Save updated index
                 with open(index_path, 'w') as f:
@@ -227,30 +265,52 @@ def copy_to_clipboard(prompt, index_path):
         
         try:
             import sys
-            # Try network version first (no tunnel needed)
-            sys.path.insert(0, '/home/ericbuess/Projects/vm-bridge')
-            from vm_client_network import VMBridgeClient as NetworkClient
+            # Try multiple VM Bridge locations in order of preference
+            vm_bridge_paths = [
+                os.path.expanduser('~/.claude-ericbuess/tools/vm-bridge'),  # New standard location
+                '/home/ericbuess/Projects/vm-bridge',  # Legacy project location
+                os.path.expanduser('~/.local/lib/python/vm_bridge')  # Old tunnel location
+            ]
             
-            # Try to auto-detect or use known Mac IP
-            for mac_ip in ['10.211.55.2', '10.211.55.1', '192.168.1.1']:
-                try:
-                    test_client = NetworkClient(host=mac_ip)
-                    if test_client.is_daemon_running():
-                        bridge_client = test_client
-                        print(f"🌉 VM Bridge network daemon detected at {mac_ip}", file=sys.stderr)
-                        vm_bridge_available = True
-                        break
-                except:
-                    continue
+            # Try network version first (no tunnel needed)
+            for bridge_path in vm_bridge_paths:
+                if os.path.exists(bridge_path):
+                    sys.path.insert(0, bridge_path)
+                    try:
+                        from vm_client_network import VMBridgeClient as NetworkClient
+                        
+                        # Try to auto-detect or use known Mac IP
+                        for mac_ip in ['10.211.55.2', '10.211.55.1', '192.168.1.1']:
+                            try:
+                                test_client = NetworkClient(host=mac_ip)
+                                if test_client.is_daemon_running():
+                                    bridge_client = test_client
+                                    print(f"🌉 VM Bridge network daemon detected at {mac_ip}", file=sys.stderr)
+                                    vm_bridge_available = True
+                                    break
+                            except:
+                                continue
+                        
+                        if vm_bridge_available:
+                            break
+                    except ImportError:
+                        # Try next path
+                        continue
                     
             # Fall back to localhost tunnel version if network not available
             if not vm_bridge_available:
-                sys.path.insert(0, os.path.expanduser('~/.local/lib/python/vm_bridge'))
-                from vm_client import VMBridgeClient
-                bridge_client = VMBridgeClient()
-                if bridge_client.is_daemon_running():
-                    print("🌉 VM Bridge tunnel daemon detected", file=sys.stderr)
-                    vm_bridge_available = True
+                for bridge_path in vm_bridge_paths:
+                    if os.path.exists(bridge_path):
+                        sys.path.insert(0, bridge_path)
+                        try:
+                            from vm_client import VMBridgeClient
+                            bridge_client = VMBridgeClient()
+                            if bridge_client.is_daemon_running():
+                                print("🌉 VM Bridge tunnel daemon detected", file=sys.stderr)
+                                vm_bridge_available = True
+                                break
+                        except ImportError:
+                            continue
                     
         except ImportError:
             vm_bridge_available = False
@@ -526,7 +586,7 @@ def main():
         
         if should_regen:
             print(f"🔄 Regenerating index: {reason}", file=sys.stderr)
-            if not generate_index_at_size(project_root, size_k):
+            if not generate_index_at_size(project_root, size_k, clipboard_mode):
                 print("⚠️ Proceeding without PROJECT_INDEX.json", file=sys.stderr)
                 sys.exit(0)
         else:

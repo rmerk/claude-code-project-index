@@ -79,11 +79,18 @@ claude "architecture deep dive -ic800"     # 800k tokens (max)
 3. Get insights impossible with smaller contexts
 4. Bring findings back to Claude Code for implementation
 
-#### 🌉 Clipboard Support & VM Bridge
+#### 🌉 Clipboard Support
 
 **Local clipboard** works automatically on Mac/Linux/WSL.
 
-**For SSH/mosh users**: Standard clipboard methods have limits (~11KB over mosh). The VM Bridge solution provides unlimited clipboard over remote connections. Most users won't need this - it's specifically for SSH/mosh environments.
+**For SSH/mosh users**: Standard clipboard methods have size limits (~11KB over mosh due to protocol constraints).
+
+**Optional Enhancement - VM Bridge**: For unlimited clipboard over SSH/mosh connections, see [VM Bridge](https://github.com/ericbuess/vm-bridge) - a separate tool that enables:
+- Unlimited clipboard size over remote connections
+- Bidirectional agent communication between Mac and Linux VMs
+- Network-based clipboard that bypasses terminal limitations
+
+Note: VM Bridge is entirely optional. The index-aware mode works perfectly without it, just with size constraints over remote connections.
 
 ## 📦 Updating
 
