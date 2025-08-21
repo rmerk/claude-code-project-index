@@ -70,20 +70,16 @@ claude "analyze architecture -ic400"
 - Copy their analysis back to Claude
 - Useful for leveraging models with larger context windows
 
-#### Requirements for Clipboard Mode
+#### 🌉 VM Bridge - Unlimited Clipboard (NEW!)
 
-For clipboard mode (`-ic`) to work with actual clipboard (not file fallback):
-```bash
-# Install pyperclip
-pip install --break-system-packages pyperclip
+For users working over SSH/mosh, the project now includes **VM Bridge** - a network daemon that enables unlimited clipboard operations:
 
-# Linux also needs xclip
-sudo apt-get install xclip  # Ubuntu/Debian
-# or
-sudo yum install xclip      # RedHat/Fedora
-```
+- **No size limits** - Works with any size content (tested up to 50MB)
+- **Works over mosh** - No SSH tunnels needed, bypasses mosh's 12KB limit
+- **Auto-detection** - Automatically finds and connects to Mac host
+- **Bidirectional** - Enables Mac ↔ VM agent communication
 
-Without pyperclip, content saves to `.clipboard_content.txt` for manual copying.
+See the `vm-bridge/` folder for setup instructions, or clipboard falls back to file.
 
 ## 📦 Updating
 
