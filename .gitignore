@@ -33,3 +33,6 @@ settings.json.backup*
 # Runtime configuration
 .python_cmd
 .clipboard_content.txt
+
+# User customization
+CLAUDE.md

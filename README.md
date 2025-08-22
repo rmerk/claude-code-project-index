@@ -190,6 +190,14 @@ For any issue, just describe it to Claude and let it fix the tool for you!
 - SSH users: Content saved to `.clipboard_content.txt`
 - For unlimited clipboard over SSH: [VM Bridge](https://github.com/ericbuess/vm-bridge)
 
+## Technical Details
+
+The index uses a compressed format to save ~50% space:
+- Minified JSON (single line) for file storage
+- Short keys: `f`→files, `g`→graph, `d`→docs, `deps`→dependencies
+- Compact function signatures with line numbers
+- Clipboard mode (`-ic`) uses readable formatting for external AI tools
+
 ## Uninstall
 
 ```bash
