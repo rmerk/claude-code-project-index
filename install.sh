@@ -177,13 +177,13 @@ jq '
   # Filter out any existing PROJECT_INDEX UserPromptSubmit hooks, then add the new one
   .hooks.UserPromptSubmit = ([.hooks.UserPromptSubmit[] | select(
     all(.hooks[]?.command // ""; 
-      contains("index_aware_hook.py") | not) and
+      contains("i_flag_hook.py") | not) and
     all(.hooks[]?.command // ""; 
       contains("project_index") | not)
   )] + [{
     "hooks": [{
       "type": "command",
-      "command": "'"$HOME"'/.claude-code-project-index/scripts/run_python.sh '"$HOME"'/.claude-code-project-index/scripts/index_aware_hook.py",
+      "command": "'"$HOME"'/.claude-code-project-index/scripts/run_python.sh '"$HOME"'/.claude-code-project-index/scripts/i_flag_hook.py",
       "timeout": 20
     }]
   }]) |

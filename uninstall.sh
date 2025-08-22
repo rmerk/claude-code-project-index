@@ -60,7 +60,7 @@ if [[ -f "$SETTINGS_FILE" ]]; then
           all(.hooks[]?.command // ""; 
             contains("claude-code-project-index") | not) and
           all(.hooks[]?.command // ""; 
-            contains("index_aware_hook.py") | not) and
+            contains("i_flag_hook.py") | not) and
           all(.hooks[]?.command // ""; 
             contains("project_index") | not)
         )]
