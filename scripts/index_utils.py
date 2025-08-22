@@ -13,7 +13,8 @@ from typing import Dict, List, Optional, Set, Tuple
 IGNORE_DIRS = {
     '.git', 'node_modules', '__pycache__', '.venv', 'venv', 'env',
     'build', 'dist', '.next', 'target', '.pytest_cache', 'coverage',
-    '.idea', '.vscode', '__pycache__', '.DS_Store', 'eggs', '.eggs'
+    '.idea', '.vscode', '__pycache__', '.DS_Store', 'eggs', '.eggs',
+    '.claude'  # Exclude Claude configuration directory
 }
 
 # Languages we can fully parse (extract functions/classes)

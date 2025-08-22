@@ -177,6 +177,8 @@ def build_index(root_dir: str) -> Tuple[Dict, int]:
     for file_path in files_to_process:
         if file_count >= MAX_FILES:
             print(f"⚠️  Stopping at {MAX_FILES} files (project too large)")
+            print(f"   Consider adding more patterns to .gitignore to reduce scope")
+            print(f"   Or ask Claude to modify MAX_FILES in scripts/project_index.py")
             break
         
         if not should_index_file(file_path, root):
@@ -534,17 +536,34 @@ def compress_if_needed(dense_index: Dict, target_size: int = MAX_INDEX_SIZE) -> 
     
     print(f"⚠️  Index too large ({current_size} bytes), compressing to {target_size}...")
     
+    # Add safeguards
+    iteration = 0
+    MAX_ITERATIONS = 10
+    
     # Progressive compression strategies
     
     # Step 1: Reduce tree to 10 items
+    iteration += 1
+    if iteration > MAX_ITERATIONS:
+        print(f"  ⚠️ Max compression iterations reached. Returning partially compressed index.")
+        return dense_index
+    
+    print(f"  Step {iteration}: Reducing tree structure...")
     if len(dense_index.get('tree', [])) > 10:
         dense_index['tree'] = dense_index['tree'][:10]
         dense_index['tree'].append("... (truncated)")
         current_size = len(json.dumps(dense_index, separators=(',', ':')))
         if current_size <= target_size:
+            print(f"  ✅ Compressed to {current_size} bytes")
             return dense_index
         
     # Step 2: Truncate docstrings to 40 chars
+    iteration += 1
+    if iteration > MAX_ITERATIONS:
+        print(f"  ⚠️ Max compression iterations reached. Returning partially compressed index.")
+        return dense_index
+    
+    print(f"  Step {iteration}: Truncating docstrings...")
     for path, file_data in dense_index.get('f', {}).items():
         if len(file_data) > 1 and isinstance(file_data[1], list):
             # Truncate function docstrings
@@ -558,9 +577,16 @@ def compress_if_needed(dense_index: Dict, target_size: int = MAX_INDEX_SIZE) -> 
     
     current_size = len(json.dumps(dense_index, separators=(',', ':')))
     if current_size <= target_size:
+        print(f"  ✅ Compressed to {current_size} bytes")
         return dense_index
         
     # Step 3: Remove docstrings entirely
+    iteration += 1
+    if iteration > MAX_ITERATIONS:
+        print(f"  ⚠️ Max compression iterations reached. Returning partially compressed index.")
+        return dense_index
+    
+    print(f"  Step {iteration}: Removing docstrings entirely...")
     for path, file_data in dense_index.get('f', {}).items():
         if len(file_data) > 1 and isinstance(file_data[1], list):
             # Remove docstrings from functions
@@ -574,17 +600,31 @@ def compress_if_needed(dense_index: Dict, target_size: int = MAX_INDEX_SIZE) -> 
     
     current_size = len(json.dumps(dense_index, separators=(',', ':')))
     if current_size <= target_size:
+        print(f"  ✅ Compressed to {current_size} bytes")
         return dense_index
     
     # Step 4: Remove documentation map
+    iteration += 1
+    if iteration > MAX_ITERATIONS:
+        print(f"  ⚠️ Max compression iterations reached. Returning partially compressed index.")
+        return dense_index
+    
+    print(f"  Step {iteration}: Removing documentation map...")
     if 'd' in dense_index:
         del dense_index['d']
     
     current_size = len(json.dumps(dense_index, separators=(',', ':')))
     if current_size <= target_size:
+        print(f"  ✅ Compressed to {current_size} bytes")
         return dense_index
     
     # Step 5: Emergency truncation - keep most important files
+    iteration += 1
+    if iteration > MAX_ITERATIONS:
+        print(f"  ⚠️ Max compression iterations reached. Returning partially compressed index.")
+        return dense_index
+    
+    print(f"  Step {iteration}: Emergency truncation - keeping most important files...")
     if dense_index.get('f'):
         files_to_keep = int(len(dense_index['f']) * (target_size / current_size) * 0.9)
         if files_to_keep < 10:

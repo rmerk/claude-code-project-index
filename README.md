@@ -674,6 +674,33 @@ If Python isn't found, you'll see:
 - Platform-specific installation instructions
 - How to manually specify Python location
 
+## ⚠️ Known Issues & Workarounds
+
+### Large Projects (>2000 files) 
+**Problem**: Compression may hang or timeout  
+**Workarounds**:
+1. Add more directories to `.gitignore` to reduce scope
+2. Fork and modify `MAX_FILES = 10000` in `scripts/project_index.py` 
+3. Ask Claude: "The indexer hangs on my large project. Please modify the compression function to handle it better"
+
+### .claude Directory Being Indexed
+**Problem**: Your `.claude` directory with subagents/docs inflates the index  
+**Status**: Fixed in latest version - `.claude` is now automatically excluded
+
+### Timeout Errors
+**Problem**: Large projects timeout during indexing  
+**Quick Fix**: Timeout has been increased to 120 seconds  
+**For Very Large Projects**: Ask Claude: "Please make the timeout dynamic based on project size in scripts/i_flag_hook.py"
+
+### PROJECT_INDEX.md Instead of .json
+**Problem**: Getting a markdown file instead of JSON  
+**Solution**: This was an old issue - make sure you've reinstalled with the latest version
+
+### Compression Stalls Forever
+**Problem**: On very large projects (>3000 files), compression can hang  
+**Solution**: The latest version adds progress indicators and max iteration limits  
+**If Still Hanging**: Fork and ask Claude to rewrite the `compress_if_needed()` function for your needs
+
 ## Troubleshooting
 
 ### Python Issues?
@@ -833,6 +860,26 @@ cd ~/.claude-code-project-index
 # "Add GraphQL schema parsing"
 # "Customize for my Django/Rails/Next.js project"
 ```
+
+### Common Customizations for Large Projects
+
+If you're hitting issues with large codebases, ask Claude to help:
+
+```bash
+# For hanging compression:
+"The compression hangs on my 5000 file project. Please rewrite compress_if_needed() to be more efficient"
+
+# For timeouts:
+"Add dynamic timeouts based on file count to all subprocess calls"
+
+# For memory issues:
+"Implement streaming JSON generation to handle my massive codebase"
+
+# For specific needs:
+"Only index src/ and lib/ directories, ignore everything else"
+```
+
+Remember: This is a personal tool I'm sharing. Fork it, modify it, make it yours!
 
 ### Adding Language Support
 To add a new language parser, ask Claude:
