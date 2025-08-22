@@ -100,6 +100,21 @@ claude "architecture deep dive -ic800"     # 800k tokens (max)
 
 Note: VM Bridge is entirely optional. The index-aware mode works perfectly without it, just with size constraints over remote connections.
 
+## 🚀 Enhanced Dense Format (v0.2.0-beta)
+
+The index now uses an **enhanced dense format** that provides:
+- **50% size reduction** (18KB → 8.8KB) through minified JSON
+- **Preserves all AI-relevant information** including docstrings (80 char max)
+- **Line numbers** for all functions and classes for better code navigation
+- **Progressive compression** that automatically adjusts when size limits are hit
+
+### Format Structure
+Functions are stored as: `name:line:signature:calls:docstring`
+
+Example: `main:669:():build_index,compress_if_needed:Run the enhanced indexer.`
+
+This format ensures the AI subagent has all the semantic context needed to understand your code while using minimal tokens.
+
 ## 📦 Updating
 
 To update to the latest version, simply run the installer again:
