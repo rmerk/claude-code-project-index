@@ -20,6 +20,9 @@ PROJECT_INDEX works automatically with the `-i` flag:
 ```bash
 # Simply add -i to any prompt
 claude "fix the auth bug -i"
+
+# Or manually create/update the index anytime
+/index
 ```
 
 **The index is created automatically** when you first use `-i` in a project. It includes:

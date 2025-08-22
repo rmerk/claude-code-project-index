@@ -37,11 +37,11 @@ fi
 echo ""
 echo "Uninstalling PROJECT_INDEX..."
 
-# Remove command file
+# Remove /index command file
 if [[ -f "$HOME/.claude/commands/index.md" ]]; then
     echo "Removing /index command..."
     rm -f "$HOME/.claude/commands/index.md"
-    echo "✓ Command removed"
+    echo "✓ /index command removed"
 fi
 
 # Remove hooks from settings.json

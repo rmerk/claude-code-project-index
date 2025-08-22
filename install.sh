@@ -144,13 +144,64 @@ chmod +x "$INSTALL_DIR/scripts/run_python.sh" 2>/dev/null || true
 echo "$PYTHON_CMD" > "$INSTALL_DIR/.python_cmd"
 echo "   ✓ Python command saved: $PYTHON_CMD"
 
-# Clean up old /index command if it exists
-if [[ -f "$HOME/.claude/commands/index.md" ]]; then
-    echo ""
-    echo "Removing old /index command..."
-    rm -f "$HOME/.claude/commands/index.md"
-    echo "✓ Removed deprecated /index command"
-fi
+# Create /index command
+echo ""
+echo "Creating /index command..."
+mkdir -p "$HOME/.claude/commands"
+cat > "$HOME/.claude/commands/index.md" << 'EOF'
+---
+name: index
+description: Create or update PROJECT_INDEX.json for the current project
+---
+
+# PROJECT_INDEX Command
+
+This command creates or updates a PROJECT_INDEX.json file that gives Claude architectural awareness of your codebase.
+
+## What it does
+
+The PROJECT_INDEX creates a comprehensive map of your project including:
+- Directory structure and file organization
+- Function and class signatures with type annotations
+- Call graphs showing what calls what
+- Import dependencies
+- Documentation structure
+- Directory purposes
+
+## Usage
+
+Simply type `/index` in any project directory to create or update the index.
+
+## About the Tool
+
+**PROJECT_INDEX** is a community tool created by Eric Buess that helps Claude Code understand your project structure better. 
+
+- **GitHub**: https://github.com/ericbuess/claude-code-project-index
+- **Purpose**: Prevents code duplication, ensures proper file placement, maintains architectural consistency
+- **Philosophy**: Fork and customize for your needs - Claude can modify it instantly
+
+## How to Use the Index
+
+After running `/index`, you can:
+1. Reference it directly: `@PROJECT_INDEX.json what functions call authenticate_user?`
+2. Use with -i flag: `refactor the auth system -i`
+3. Add to CLAUDE.md for auto-loading: `@PROJECT_INDEX.json`
+
+## Implementation
+
+When you run `/index`, Claude will:
+1. Check if PROJECT_INDEX is installed at ~/.claude-code-project-index
+2. Run the indexer to create PROJECT_INDEX.json
+3. Provide feedback on what was indexed
+
+## Troubleshooting
+
+If the index is too large for your project, ask Claude:
+"The indexer creates too large an index. Please modify it to only index src/ and lib/ directories"
+
+For other issues, the tool is designed to be customized - just describe your problem to Claude!
+EOF
+echo "✓ Created /index command"
 
 # Update hooks in settings.json
 echo ""
