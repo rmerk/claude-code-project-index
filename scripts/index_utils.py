@@ -322,6 +322,7 @@ def extract_python_signatures(content: str) -> Dict[str, Dict]:
                         _, doc_content = doc_match.groups()
                         class_info['doc'] = doc_content.strip()
                 
+                class_info['line'] = i + 1  # Store line number (1-based)
                 result['classes'][name] = class_info
                 current_class = name
                 current_class_indent = indent_level
@@ -416,7 +417,9 @@ def extract_python_signatures(content: str) -> Dict[str, Dict]:
                 continue
             
             # Build function/method info
-            func_info = {}
+            func_info = {
+                'line': i + 1  # Store line number (1-based)
+            }
             
             # Build full signature
             signature = f"({params})"
@@ -476,11 +479,8 @@ def extract_python_signatures(content: str) -> Dict[str, Dict]:
                 if calls:
                     func_info['calls'] = calls
             
-            # If we only have signature, store as string; otherwise as dict
-            if len(func_info) == 0:
-                func_info = signature
-            else:
-                func_info['signature'] = signature
+            # Always store as dict to include line number
+            func_info['signature'] = signature
             
             # Determine where to place this function
             if current_class and indent_level > current_class_indent:
@@ -554,6 +554,10 @@ def extract_javascript_signatures(content: str) -> Dict[str, any]:
         'enums': {},
         'call_graph': {}  # Track function calls for flow analysis
     }
+    
+    # Helper to convert character position to line number
+    def pos_to_line(pos: int) -> int:
+        return content[:pos].count('\n') + 1
     
     # First pass: collect all function names for call detection
     all_function_names = set()
@@ -698,7 +702,11 @@ def extract_javascript_signatures(content: str) -> Dict[str, any]:
         class_positions[class_name] = (start_pos, end_pos)
         
         # Initialize class info
-        class_info = {'methods': {}, 'static_constants': {}}
+        class_info = {
+            'line': pos_to_line(start_pos),
+            'methods': {}, 
+            'static_constants': {}
+        }
         if extends:
             class_info['extends'] = extends
             # Check for exception classes
@@ -746,7 +754,9 @@ def extract_javascript_signatures(content: str) -> Dict[str, any]:
                 if method_name in ['get', 'set', 'if', 'for', 'while', 'switch', 'catch', 'try']:
                     continue
                 
-                method_info = {}
+                method_info = {
+                    'line': pos_to_line(start + match.start())
+                }
                 
                 # Build full signature
                 params = re.sub(r'\s+', ' ', params).strip()
@@ -826,7 +836,9 @@ def extract_javascript_signatures(content: str) -> Dict[str, any]:
                     break
             
             if not inside_class:
-                func_info = {}
+                func_info = {
+                    'line': pos_to_line(func_pos)
+                }
                 
                 # Build full signature
                 params = re.sub(r'\s+', ' ', params).strip()

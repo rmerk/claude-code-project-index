@@ -14,6 +14,16 @@ When invoked, you MUST:
 3. If it exists, read and deeply analyze it using ultrathinking
 4. Provide strategic code intelligence for the given request
 
+## DENSE FORMAT SUPPORT
+
+If the index contains a `_dense` field, prioritize using it for faster analysis:
+- `f`: Files with compressed function data (name:line:signature:calls format)
+- `g`: Call graph edges as [caller, callee] pairs
+- `d`: Documentation map with section headers
+- `m`: Metadata including timestamp and statistics
+
+The dense format contains the same information as the verbose format but is 40-60% smaller.
+
 ## ULTRATHINKING FRAMEWORK
 
 For every request, engage in deep ultrathinking about:

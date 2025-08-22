@@ -399,6 +399,112 @@ def build_index(root_dir: str) -> Tuple[Dict, int]:
 # infer_file_purpose is now imported from index_utils
 
 
+def convert_to_dense_format(index: Dict) -> Dict:
+    """Convert verbose index to dense format for massive space savings."""
+    dense = {
+        'v': '2.0',  # Version for format
+        'f': {},     # Files (abbreviated)
+        'g': [],     # Graph edges
+        'd': {}      # Documentation map (compressed)
+    }
+    
+    # Build compressed files section
+    for path, info in index.get('files', {}).items():
+        if not info.get('parsed', False):
+            continue
+            
+        # Use abbreviated path (remove common prefixes)
+        abbrev_path = path.replace('scripts/', 's/').replace('src/', 'sr/').replace('test/', 't/')
+        
+        file_entry = []
+        
+        # Add language as single letter
+        lang = info.get('language', 'unknown')
+        lang_map = {'python': 'p', 'javascript': 'j', 'typescript': 't', 'shell': 's'}
+        file_entry.append(lang_map.get(lang, 'u'))
+        
+        # Compress functions: name:line:signature:calls
+        funcs = []
+        for fname, fdata in info.get('functions', {}).items():
+            if isinstance(fdata, dict):
+                line = fdata.get('line', 0)
+                sig = fdata.get('signature', '()')
+                # Compress signature
+                sig = sig.replace(' -> ', '>').replace(': ', ':')
+                calls = ','.join(fdata.get('calls', []))
+                funcs.append(f"{fname}:{line}:{sig}:{calls}")
+            else:
+                funcs.append(f"{fname}:0:{fdata}:")
+        
+        if funcs:
+            file_entry.append(funcs)
+        
+        # Compress classes similarly
+        classes = []
+        for cname, cdata in info.get('classes', {}).items():
+            if isinstance(cdata, dict):
+                line = cdata.get('line', 0)
+                methods = []
+                for mname, mdata in cdata.get('methods', {}).items():
+                    if isinstance(mdata, dict):
+                        mline = mdata.get('line', 0)
+                        msig = mdata.get('signature', '()')
+                        msig = msig.replace(' -> ', '>').replace(': ', ':')
+                        methods.append(f"{mname}:{mline}:{msig}")
+                    else:
+                        methods.append(f"{mname}:0:{mdata}")
+                
+                class_str = f"{cname}:{line}"
+                if methods:
+                    class_str += f":[{','.join(methods)}]"
+                classes.append(class_str)
+        
+        if classes:
+            file_entry.append(classes)
+        
+        # Only add file if it has content
+        if len(file_entry) > 1:
+            dense['f'][abbrev_path] = file_entry
+    
+    # Build call graph edges
+    edges = set()
+    for path, info in index.get('files', {}).items():
+        if info.get('parsed', False):
+            # Extract function calls
+            for fname, fdata in info.get('functions', {}).items():
+                if isinstance(fdata, dict) and 'calls' in fdata:
+                    for called in fdata['calls']:
+                        edges.add((fname, called))
+            
+            # Extract method calls
+            for cname, cdata in info.get('classes', {}).items():
+                if isinstance(cdata, dict):
+                    for mname, mdata in cdata.get('methods', {}).items():
+                        if isinstance(mdata, dict) and 'calls' in mdata:
+                            full_name = f"{cname}.{mname}"
+                            for called in mdata['calls']:
+                                edges.add((full_name, called))
+    
+    # Convert edges to list format
+    dense['g'] = [[e[0], e[1]] for e in edges]
+    
+    # Add compressed documentation map
+    for doc_path, doc_info in index.get('documentation_map', {}).items():
+        sections = doc_info.get('sections', [])
+        if sections:
+            # Only keep first 5 sections
+            dense['d'][doc_path] = sections[:5]
+    
+    # Add metadata
+    dense['m'] = {
+        'at': index.get('indexed_at', ''),
+        'files': len(dense['f']),
+        'edges': len(dense['g'])
+    }
+    
+    return dense
+
+
 def compress_index_if_needed(index: Dict, target_size: int = MAX_INDEX_SIZE) -> Dict:
     """Compress index if it exceeds size limit. Fixes infinite loop bug (Issue #1)."""
     index_json = json.dumps(index, indent=2)
@@ -511,6 +617,19 @@ def compress_index_if_needed(index: Dict, target_size: int = MAX_INDEX_SIZE) -> 
     
     if iteration >= MAX_ITERATIONS:
         print(f"  Warning: Reached maximum iterations, index may still be over target size")
+    
+    # Add dense format for even better compression
+    try:
+        dense = convert_to_dense_format(index)
+        index['_dense'] = dense
+        
+        # Calculate compression ratio
+        dense_size = len(json.dumps(dense))
+        verbose_size = len(json.dumps(index, indent=2))
+        ratio = (dense_size / verbose_size) * 100
+        print(f"  Dense format: {dense_size} bytes ({ratio:.1f}% of verbose)")
+    except Exception as e:
+        print(f"  Warning: Could not create dense format: {e}")
     
     final_size = len(json.dumps(index, indent=2))
     print(f"  Compressed from {len(index_json)} to {final_size} bytes")
