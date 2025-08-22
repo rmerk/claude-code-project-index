@@ -68,21 +68,31 @@ def update_file_in_index(index_path, file_path, project_root):
             return
             
         with open(index_path, 'r') as f:
-            index = json.load(f)
-        
-        # Check if index is in dense format (v3.0)
-        if 'v' in index and index['v'] == '3.0':
-            # Dense format - mark for full reindex
-            index['needs_full_reindex'] = True
-            with open(index_path, 'w') as f:
-                json.dump(index, f, separators=(',', ':'))
+            content = f.read()
+            
+        # Quick check for dense format - if it starts with {"v":"3.0" skip entirely
+        if content.startswith('{"v":"3.0"'):
+            print(f"Dense format v3.0 detected, skipping all updates", file=sys.stderr)
+            return
+            
+        # Parse JSON for other checks
+        try:
+            index = json.loads(content)
+        except:
             return
         
-        # Legacy verbose format - also mark for reindex
+        # Check if index is in dense format (v3.0)
+        if 'v' in index and index.get('v') == '3.0':
+            # Dense format - DO NOT modify at all
+            print(f"Dense format detected, skipping incremental update", file=sys.stderr)
+            return
+        
+        # Check if this is minified (no indentation in original content)
+        is_minified = '\n' not in content or '  ' not in content
+        
+        # Legacy verbose format - also skip updates
         if 'project_structure' not in index:
-            index['needs_full_reindex'] = True
-            with open(index_path, 'w') as f:
-                json.dump(index, f, indent=2)
+            print(f"Legacy format detected, skipping update", file=sys.stderr)
             return
         
         # Get relative path from project root
@@ -204,7 +214,19 @@ def main():
         if not index_path:
             return
         
-        # Update based on tool type
+        # Check if index is in dense format BEFORE doing anything
+        # This check happens before any JSON parsing to avoid reformatting
+        try:
+            with open(index_path, 'r') as f:
+                first_line = f.readline(100)  # Read just first 100 chars
+                # If it's dense format (v3.0), skip ALL processing
+                if '"v":"3.0"' in first_line or '"v": "3.0"' in first_line:
+                    print(f"Dense format v3.0 detected, skipping hook entirely", file=sys.stderr)
+                    return
+        except:
+            pass
+        
+        # Update based on tool type (only for non-dense formats)
         if tool_name == 'Write' or tool_name == 'Edit':
             file_path = tool_input.get('file_path')
             if file_path:

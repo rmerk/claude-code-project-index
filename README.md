@@ -1,6 +1,6 @@
 # Project Index for Claude Code (v0.2.0-beta)
 
-**⚠️ Beta Release** - This tool is in active development. Testing the new index-aware mode.
+**⚠️ Beta Release** - This tool is in active development. Testing the new index-aware mode with enhanced dense format v3.0.
 
 A UML-inspired code intelligence system that gives Claude Code comprehensive architectural awareness of your codebase through static analysis and pattern recognition.
 
