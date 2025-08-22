@@ -188,23 +188,9 @@ jq '
     }]
   }]) |
   
-  # Initialize PostToolUse if not present
-  if .hooks.PostToolUse == null then .hooks.PostToolUse = [] else . end |
-  
-  # Filter out any existing PROJECT_INDEX PostToolUse hooks, then add the new one
-  .hooks.PostToolUse = ([.hooks.PostToolUse[] | select(
-    all(.hooks[]?.command // ""; 
-      contains("update_index.py") | not) and
-    all(.hooks[]?.command // ""; 
-      contains("project_index") | not)
-  )] + [{
-    "matcher": "Write|Edit|MultiEdit",
-    "hooks": [{
-      "type": "command",
-      "command": "'"$HOME"'/.claude-code-project-index/scripts/run_python.sh '"$HOME"'/.claude-code-project-index/scripts/update_index.py",
-      "timeout": 5
-    }]
-  }]) |
+  # PostToolUse hook removed - not needed with dense format v3.0
+  # Dense format is read-only and doesn't support incremental updates
+  # Full reindex happens via Stop hook when needed
   
   # Initialize Stop if not present
   if .hooks.Stop == null then .hooks.Stop = [] else . end |
