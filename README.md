@@ -86,6 +86,8 @@ claude "architecture review -ic800"      # Up to 800k tokens
 - ChatGPT
 - Grok
 
+**Note**: I'm not using this on large projects myself yet - this is inspiration/theory. Your mileage may vary. If you hit snags, have Claude Code update it to work for your specific use case!
+
 ## Token Sizing
 
 The number after `-i` is a **maximum target**, not a guaranteed size:
@@ -125,19 +127,26 @@ The tool remembers your last `-i` size per project and targets that amount, but 
 
 ## Fork & Customize
 
-This is a community tool. Feel free to:
-1. Fork the repo
-2. Ask Claude to modify it for your needs
-3. Share your improvements
+**The whole point of this tool is that Claude Code can unbobble it for you!** When you hit issues, don't wait for me - have Claude fix them immediately. This is a community tool meant to be forked and adapted.
+
+How to customize:
+1. Fork the repo or work with the installed version
+2. Describe your problem to Claude Code 
+3. Let Claude modify it for your exact needs
+4. Share your improvements with others
 
 Common customizations:
 ```bash
 cd ~/.claude-code-project-index
 # Then ask Claude:
-# "Add support for Ruby files"
-# "Skip test files when indexing"
-# "Change compression strategy"
+# "The indexer hangs on my 5000 file project - fix it"
+# "Add support for Ruby and Go files with full parsing"
+# "Skip test files and node_modules even if not in .gitignore"
+# "Make it work with my monorepo structure"
+# "Change compression to handle my specific project better"
 ```
+
+Remember: Claude Code can rewrite this entire tool in minutes to match your needs. That's the power you have - use it!
 
 ## Known Issues & Quick Fixes
 
