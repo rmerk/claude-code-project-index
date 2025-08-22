@@ -609,9 +609,14 @@ def main():
 
 Paste directly into external AI (Gemini, Claude.ai, ChatGPT) for analysis.
 
-**IMPORTANT FOR CLAUDE**: Do not analyze the request yourself. Simply acknowledge the clipboard export and wait for the user to return with the external AI's response. This preserves your context for implementation work.
+**CRITICAL INSTRUCTION FOR CLAUDE**: STOP! Do NOT proceed with the original request. The user wants to use an external AI for analysis. You should:
+1. ONLY acknowledge that the content was copied to clipboard
+2. WAIT for the user to paste the external AI's response
+3. DO NOT attempt to answer or work on: "{cleaned_prompt}"
 
-Original request: {cleaned_prompt}
+Simply respond with something like: "✅ Index copied to clipboard for external AI analysis. Please paste the response here when ready."
+
+User's request (DO NOT ANSWER): {cleaned_prompt}
 """
                     }
                 }
@@ -626,9 +631,14 @@ Original request: {cleaned_prompt}
 Index and instructions copied to clipboard ({size_k}k tokens, {copy_result[1]} chars).
 Paste into external AI (Gemini, Claude.ai, ChatGPT) for analysis.
 
-**IMPORTANT FOR CLAUDE**: Do not analyze the request yourself. Simply acknowledge the clipboard export and wait for the user to return with the external AI's response. This preserves your context for implementation work.
+**CRITICAL INSTRUCTION FOR CLAUDE**: STOP! Do NOT proceed with the original request. The user wants to use an external AI for analysis. You should:
+1. ONLY acknowledge that the content was copied to clipboard
+2. WAIT for the user to paste the external AI's response
+3. DO NOT attempt to answer or work on: "{cleaned_prompt}"
 
-Original request: {cleaned_prompt}
+Simply respond with something like: "✅ Index copied to clipboard for external AI analysis. Please paste the response here when ready."
+
+User's request (DO NOT ANSWER): {cleaned_prompt}
 """
                     }
                 }
@@ -645,9 +655,14 @@ Original request: {cleaned_prompt}
 
 Paste directly into external AI (Gemini, Claude.ai, ChatGPT) for analysis.
 
-**IMPORTANT FOR CLAUDE**: Do not analyze the request yourself. Simply acknowledge the clipboard export and wait for the user to return with the external AI's response. This preserves your context for implementation work.
+**CRITICAL INSTRUCTION FOR CLAUDE**: STOP! Do NOT proceed with the original request. The user wants to use an external AI for analysis. You should:
+1. ONLY acknowledge that the content was copied to clipboard
+2. WAIT for the user to paste the external AI's response
+3. DO NOT attempt to answer or work on: "{cleaned_prompt}"
 
-Original request: {cleaned_prompt}
+Simply respond with something like: "✅ Index copied to clipboard for external AI analysis. Please paste the response here when ready."
+
+User's request (DO NOT ANSWER): {cleaned_prompt}
 """
                     }
                 }
@@ -667,9 +682,14 @@ ssh {os.environ.get('USER', 'user')}@10.211.55.4 'cat ~/Projects/claude-code-pro
 
 Then paste into external AI (Gemini, Claude.ai, ChatGPT) for analysis.
 
-**IMPORTANT FOR CLAUDE**: Do not analyze the request yourself. Simply acknowledge the clipboard export and wait for the user to return with the external AI's response. This preserves your context for implementation work.
+**CRITICAL INSTRUCTION FOR CLAUDE**: STOP! Do NOT proceed with the original request. The user wants to use an external AI for analysis. You should:
+1. ONLY acknowledge that the content was copied to clipboard
+2. WAIT for the user to paste the external AI's response
+3. DO NOT attempt to answer or work on: "{cleaned_prompt}"
 
-Original request: {cleaned_prompt}
+Simply respond with something like: "✅ Index copied to clipboard for external AI analysis. Please paste the response here when ready."
+
+User's request (DO NOT ANSWER): {cleaned_prompt}
 """
                     }
                 }
@@ -689,9 +709,14 @@ To copy: cat {copy_result[1]} | pbcopy  # macOS
 
 Then paste into external AI (Gemini, Claude.ai, ChatGPT) for analysis.
 
-**IMPORTANT FOR CLAUDE**: Do not analyze the request yourself. Simply acknowledge the clipboard export and wait for the user to return with the external AI's response. This preserves your context for implementation work.
+**CRITICAL INSTRUCTION FOR CLAUDE**: STOP! Do NOT proceed with the original request. The user wants to use an external AI for analysis. You should:
+1. ONLY acknowledge that the content was copied to clipboard
+2. WAIT for the user to paste the external AI's response
+3. DO NOT attempt to answer or work on: "{cleaned_prompt}"
 
-Original request: {cleaned_prompt}
+Simply respond with something like: "✅ Index copied to clipboard for external AI analysis. Please paste the response here when ready."
+
+User's request (DO NOT ANSWER): {cleaned_prompt}
 """
                     }
                 }
@@ -706,7 +731,7 @@ Original request: {cleaned_prompt}
 Error: {copy_result[1]}
 
 Please check the error and try again.
-Original request: {cleaned_prompt}
+User's request (DO NOT ANSWER): {cleaned_prompt}
 """
                     }
                 }
