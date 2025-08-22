@@ -130,26 +130,45 @@ For the best experience, also install [Claude Code Docs](https://github.com/eric
 
 ## Important: Community Tool - Fork and Customize!
 
-**This is a personal tool** I built and shared with the community. I may not actively maintain it or implement feature requests quickly (or at all). 
+**This is a personal tool** I built for my own projects and shared as inspiration. I'm not actively fixing issues I don't personally encounter. The beauty is - **you don't need me to fix anything!**
 
-### What This Means for You
+### The Philosophy
 
-- **Fork it!** - Make it your own: `git clone https://github.com/ericbuess/claude-code-project-index.git`
-- **Let Claude customize it** - Claude Code can modify the tool to fit your exact needs
-- **No waiting for updates** - Don't wait for me to add features, ask Claude to add them for you
-- **Share your improvements** - Fork and share your enhanced versions with others
+This tool works perfectly for my needs. When it doesn't work for yours:
+1. **Claude Code can fix it for you** - Just describe your issue
+2. **It's meant to be forked** - Make your own version
+3. **Share your improvements** - Help others with similar needs
 
-### Quick Customization Examples
+### Real Examples from GitHub Issues
+
+Users reported issues with large codebases. Instead of waiting for me to fix them:
+
+```bash
+# Issue #1: Compression hangs on 3000+ files
+"The indexer hangs when compressing my large project. Please rewrite compress_if_needed() to handle 3000 files efficiently"
+
+# Issue #3: Timeout on large repos  
+"Indexing times out on my monorepo. Make the timeout dynamic based on file count"
+
+# Issue #4: .claude directory being indexed (now fixed)
+"Add .claude to IGNORE_DIRS so it doesn't index my Claude config"
+
+# Your specific need:
+"Only index Python files in src/ and ignore everything else"
+```
+
+**Claude Code will literally rewrite the tool for your needs.** That's the power here - you have an AI that can customize any tool instantly.
+
+### Quick Start for Customization
 
 ```bash
 # Navigate to the tool's directory
 cd ~/.claude-code-project-index
 
-# Open Claude Code and ask for customizations:
-# "Modify the indexer to skip test files and only index src/"
-# "Add support for Ruby files" 
-# "Change the index format to be more compact"
-# "Make it work with my monorepo structure"
+# Tell Claude your problem:
+# "The tool fails on my 5000 file project"
+# "I need it to support Rust files"
+# "Make it 10x faster for huge codebases"
 ```
 
 
@@ -689,8 +708,9 @@ If Python isn't found, you'll see:
 
 ### Timeout Errors
 **Problem**: Large projects timeout during indexing  
-**Quick Fix**: Timeout has been increased to 120 seconds  
-**For Very Large Projects**: Ask Claude: "Please make the timeout dynamic based on project size in scripts/i_flag_hook.py"
+**Current Setting**: 30 seconds (reasonable for most projects)
+**For Large Projects**: Ask Claude: "Increase timeout to 60 seconds in scripts/i_flag_hook.py line 204"
+**For Dynamic Solution**: Ask Claude: "Make the timeout dynamic based on project size"
 
 ### PROJECT_INDEX.md Instead of .json
 **Problem**: Getting a markdown file instead of JSON  

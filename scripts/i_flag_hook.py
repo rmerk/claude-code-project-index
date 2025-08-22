@@ -201,7 +201,7 @@ def generate_index_at_size(project_root, target_size_k, is_clipboard_mode=False)
             cwd=str(project_root),
             capture_output=True,
             text=True,
-            timeout=120,  # Increased timeout for larger projects
+            timeout=30,  # 30 seconds should be plenty for most projects
             env=env
         )
         
