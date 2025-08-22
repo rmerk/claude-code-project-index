@@ -399,31 +399,45 @@ def build_index(root_dir: str) -> Tuple[Dict, int]:
 # infer_file_purpose is now imported from index_utils
 
 
-def convert_to_dense_format(index: Dict) -> Dict:
-    """Convert verbose index to dense format for massive space savings."""
+def convert_to_enhanced_dense_format(index: Dict) -> Dict:
+    """Convert to enhanced dense format that preserves all AI-relevant information."""
     dense = {
-        'v': '2.0',  # Version for format
-        'f': {},     # Files (abbreviated)
-        'g': [],     # Graph edges
-        'd': {}      # Documentation map (compressed)
+        'v': '3.0',  # Version 3.0 - enhanced with docstrings
+        'at': index.get('indexed_at', ''),
+        'root': index.get('root', '.'),
+        'tree': index.get('project_structure', {}).get('tree', [])[:20],  # Compact tree
+        'stats': index.get('stats', {}),
+        'f': {},     # Files
+        'g': [],     # Call graph edges
+        'd': {},     # Documentation map
+        'deps': index.get('dependency_graph', {}),  # Keep dependencies
     }
+    
+    def truncate_doc(doc: str, max_len: int = 80) -> str:
+        """Truncate docstring to max length."""
+        if not doc:
+            return ''
+        doc = doc.strip().replace('\n', ' ')
+        if len(doc) > max_len:
+            return doc[:max_len-3] + '...'
+        return doc
     
     # Build compressed files section
     for path, info in index.get('files', {}).items():
         if not info.get('parsed', False):
             continue
             
-        # Use abbreviated path (remove common prefixes)
-        abbrev_path = path.replace('scripts/', 's/').replace('src/', 'sr/').replace('test/', 't/')
+        # Use abbreviated path
+        abbrev_path = path.replace('scripts/', 's/').replace('src/', 'sr/').replace('tests/', 't/')
         
         file_entry = []
         
         # Add language as single letter
         lang = info.get('language', 'unknown')
-        lang_map = {'python': 'p', 'javascript': 'j', 'typescript': 't', 'shell': 's'}
+        lang_map = {'python': 'p', 'javascript': 'j', 'typescript': 't', 'shell': 's', 'json': 'j'}
         file_entry.append(lang_map.get(lang, 'u'))
         
-        # Compress functions: name:line:signature:calls
+        # Compress functions with docstrings: name:line:signature:calls:docstring
         funcs = []
         for fname, fdata in info.get('functions', {}).items():
             if isinstance(fdata, dict):
@@ -432,32 +446,33 @@ def convert_to_dense_format(index: Dict) -> Dict:
                 # Compress signature
                 sig = sig.replace(' -> ', '>').replace(': ', ':')
                 calls = ','.join(fdata.get('calls', []))
-                funcs.append(f"{fname}:{line}:{sig}:{calls}")
+                doc = truncate_doc(fdata.get('doc', ''))
+                funcs.append(f"{fname}:{line}:{sig}:{calls}:{doc}")
             else:
-                funcs.append(f"{fname}:0:{fdata}:")
+                funcs.append(f"{fname}:0:{fdata}::")
         
         if funcs:
             file_entry.append(funcs)
         
-        # Compress classes similarly
-        classes = []
+        # Compress classes with methods and docstrings
+        classes = {}
         for cname, cdata in info.get('classes', {}).items():
             if isinstance(cdata, dict):
-                line = cdata.get('line', 0)
+                class_line = str(cdata.get('line', 0))
                 methods = []
                 for mname, mdata in cdata.get('methods', {}).items():
                     if isinstance(mdata, dict):
                         mline = mdata.get('line', 0)
                         msig = mdata.get('signature', '()')
                         msig = msig.replace(' -> ', '>').replace(': ', ':')
-                        methods.append(f"{mname}:{mline}:{msig}")
+                        mcalls = ','.join(mdata.get('calls', []))
+                        mdoc = truncate_doc(mdata.get('doc', ''))
+                        methods.append(f"{mname}:{mline}:{msig}:{mcalls}:{mdoc}")
                     else:
-                        methods.append(f"{mname}:0:{mdata}")
+                        methods.append(f"{mname}:0:{mdata}::")
                 
-                class_str = f"{cname}:{line}"
-                if methods:
-                    class_str += f":[{','.join(methods)}]"
-                classes.append(class_str)
+                if methods or class_line != '0':
+                    classes[cname] = [class_line, methods]
         
         if classes:
             file_entry.append(classes)
@@ -466,24 +481,28 @@ def convert_to_dense_format(index: Dict) -> Dict:
         if len(file_entry) > 1:
             dense['f'][abbrev_path] = file_entry
     
-    # Build call graph edges
+    # Build call graph edges (keep bidirectional info)
     edges = set()
     for path, info in index.get('files', {}).items():
         if info.get('parsed', False):
             # Extract function calls
             for fname, fdata in info.get('functions', {}).items():
-                if isinstance(fdata, dict) and 'calls' in fdata:
-                    for called in fdata['calls']:
+                if isinstance(fdata, dict):
+                    for called in fdata.get('calls', []):
                         edges.add((fname, called))
+                    for caller in fdata.get('called_by', []):
+                        edges.add((caller, fname))
             
             # Extract method calls
             for cname, cdata in info.get('classes', {}).items():
                 if isinstance(cdata, dict):
                     for mname, mdata in cdata.get('methods', {}).items():
-                        if isinstance(mdata, dict) and 'calls' in mdata:
+                        if isinstance(mdata, dict):
                             full_name = f"{cname}.{mname}"
-                            for called in mdata['calls']:
+                            for called in mdata.get('calls', []):
                                 edges.add((full_name, called))
+                            for caller in mdata.get('called_by', []):
+                                edges.add((caller, full_name))
     
     # Convert edges to list format
     dense['g'] = [[e[0], e[1]] for e in edges]
@@ -492,149 +511,111 @@ def convert_to_dense_format(index: Dict) -> Dict:
     for doc_path, doc_info in index.get('documentation_map', {}).items():
         sections = doc_info.get('sections', [])
         if sections:
-            # Only keep first 5 sections
-            dense['d'][doc_path] = sections[:5]
+            # Keep first 10 sections for better context
+            dense['d'][doc_path] = sections[:10]
     
-    # Add metadata
-    dense['m'] = {
-        'at': index.get('indexed_at', ''),
-        'files': len(dense['f']),
-        'edges': len(dense['g'])
-    }
+    # Add directory purposes if present
+    if 'directory_purposes' in index:
+        dense['dir_purposes'] = index['directory_purposes']
+    
+    # Add staleness check timestamp
+    if 'staleness_check' in index:
+        dense['staleness'] = index['staleness_check']
     
     return dense
 
 
-def compress_index_if_needed(index: Dict, target_size: int = MAX_INDEX_SIZE) -> Dict:
-    """Compress index if it exceeds size limit. Fixes infinite loop bug (Issue #1)."""
-    index_json = json.dumps(index, indent=2)
+def compress_if_needed(dense_index: Dict, target_size: int = MAX_INDEX_SIZE) -> Dict:
+    """Compress dense index further if it exceeds size limit."""
+    index_json = json.dumps(dense_index, separators=(',', ':'))
     current_size = len(index_json)
     
     if current_size <= target_size:
-        return index
+        return dense_index
     
     print(f"⚠️  Index too large ({current_size} bytes), compressing to {target_size}...")
     
-    MAX_ITERATIONS = 10  # Prevent infinite loop
-    iteration = 0
+    # Progressive compression strategies
     
-    while current_size > target_size and iteration < MAX_ITERATIONS:
-        iteration += 1
-        initial_size = current_size
-        
-        # Step 1: Reduce tree depth
-        if len(index.get('project_structure', {}).get('tree', [])) > 100:
-            index['project_structure']['tree'] = index['project_structure']['tree'][:100]
-            index['project_structure']['tree'].append("... (truncated)")
-            current_size = len(json.dumps(index, indent=2))
-            if current_size <= target_size:
-                break
-        
-        # Step 2: Remove unparsed files
-        unparsed_removed = 0
-        for path, info in list(index.get('files', {}).items()):
-            if not info.get('parsed', False):
-                del index['files'][path]
-                unparsed_removed += 1
-                if unparsed_removed % 10 == 0:  # Check size every 10 removals
-                    current_size = len(json.dumps(index, indent=2))
-                    if current_size <= target_size:
-                        break
-        
-        current_size = len(json.dumps(index, indent=2))
+    # Step 1: Reduce tree to 10 items
+    if len(dense_index.get('tree', [])) > 10:
+        dense_index['tree'] = dense_index['tree'][:10]
+        dense_index['tree'].append("... (truncated)")
+        current_size = len(json.dumps(dense_index, separators=(',', ':')))
         if current_size <= target_size:
-            break
+            return dense_index
         
-        # Step 3: Simplify parsed files (remove docstrings, reduce signatures)
-        for path, info in list(index.get('files', {}).items()):
-            if info.get('parsed', False):
-                # Remove docstrings from functions
-                if 'functions' in info:
-                    for func_name, func_data in info['functions'].items():
-                        if isinstance(func_data, dict) and 'doc' in func_data:
-                            del func_data['doc']
-                # Remove docstrings from classes
-                if 'classes' in info:
-                    for class_name, class_data in info['classes'].items():
-                        if isinstance(class_data, dict):
-                            if 'doc' in class_data:
-                                del class_data['doc']
-                            if 'methods' in class_data:
-                                for method_name, method_data in class_data['methods'].items():
-                                    if isinstance(method_data, dict) and 'doc' in method_data:
-                                        del method_data['doc']
-        
-        current_size = len(json.dumps(index, indent=2))
-        if current_size <= target_size:
-            break
-        
-        # Step 4: Remove low-value parsed files (tests, examples, migrations)
-        low_value_patterns = ['test_', '_test.', '/tests/', '/examples/', '/migrations/', '/fixtures/']
-        for path in list(index.get('files', {}).keys()):
-            if any(pattern in path.lower() for pattern in low_value_patterns):
-                del index['files'][path]
-        
-        current_size = len(json.dumps(index, indent=2))
-        if current_size <= target_size:
-            break
-        
-        # Step 5: Emergency truncation - remove files until size is met
-        if current_size > target_size and index.get('files'):
-            files_to_keep = int(len(index['files']) * (target_size / current_size) * 0.9)  # 90% to ensure we're under
-            if files_to_keep < 10:
-                files_to_keep = 10  # Keep at least 10 files
-            
-            # Keep the most important files (those with most connections)
-            file_importance = {}
-            for path, info in index['files'].items():
-                importance = 0
-                if info.get('parsed', False):
-                    importance += 10
-                if 'functions' in info:
-                    for func_data in info['functions'].values():
-                        if isinstance(func_data, dict):
-                            importance += len(func_data.get('calls', [])) * 2
-                            importance += len(func_data.get('called_by', [])) * 3
-                file_importance[path] = importance
-            
-            # Sort by importance and keep top files
-            sorted_files = sorted(file_importance.items(), key=lambda x: x[1], reverse=True)
-            files_to_keep_set = set(path for path, _ in sorted_files[:files_to_keep])
-            
-            # Remove less important files
-            for path in list(index['files'].keys()):
-                if path not in files_to_keep_set:
-                    del index['files'][path]
-            
-            print(f"  Emergency truncation: kept {len(index['files'])} most important files")
-        
-        current_size = len(json.dumps(index, indent=2))
-        
-        # Check if we made progress
-        if current_size >= initial_size:
-            print(f"  Warning: No progress in iteration {iteration}, applying emergency truncation")
-            break
+    # Step 2: Truncate docstrings to 40 chars
+    for path, file_data in dense_index.get('f', {}).items():
+        if len(file_data) > 1 and isinstance(file_data[1], list):
+            # Truncate function docstrings
+            new_funcs = []
+            for func in file_data[1]:
+                parts = func.split(':')
+                if len(parts) >= 5 and len(parts[4]) > 40:
+                    parts[4] = parts[4][:37] + '...'
+                new_funcs.append(':'.join(parts))
+            file_data[1] = new_funcs
     
-    if iteration >= MAX_ITERATIONS:
-        print(f"  Warning: Reached maximum iterations, index may still be over target size")
-    
-    # Add dense format for even better compression
-    try:
-        dense = convert_to_dense_format(index)
-        index['_dense'] = dense
+    current_size = len(json.dumps(dense_index, separators=(',', ':')))
+    if current_size <= target_size:
+        return dense_index
         
-        # Calculate compression ratio
-        dense_size = len(json.dumps(dense))
-        verbose_size = len(json.dumps(index, indent=2))
-        ratio = (dense_size / verbose_size) * 100
-        print(f"  Dense format: {dense_size} bytes ({ratio:.1f}% of verbose)")
-    except Exception as e:
-        print(f"  Warning: Could not create dense format: {e}")
+    # Step 3: Remove docstrings entirely
+    for path, file_data in dense_index.get('f', {}).items():
+        if len(file_data) > 1 and isinstance(file_data[1], list):
+            # Remove docstrings from functions
+            new_funcs = []
+            for func in file_data[1]:
+                parts = func.split(':')
+                if len(parts) >= 5:
+                    parts[4] = ''  # Remove docstring
+                new_funcs.append(':'.join(parts))
+            file_data[1] = new_funcs
     
-    final_size = len(json.dumps(index, indent=2))
+    current_size = len(json.dumps(dense_index, separators=(',', ':')))
+    if current_size <= target_size:
+        return dense_index
+    
+    # Step 4: Remove documentation map
+    if 'd' in dense_index:
+        del dense_index['d']
+    
+    current_size = len(json.dumps(dense_index, separators=(',', ':')))
+    if current_size <= target_size:
+        return dense_index
+    
+    # Step 5: Emergency truncation - keep most important files
+    if dense_index.get('f'):
+        files_to_keep = int(len(dense_index['f']) * (target_size / current_size) * 0.9)
+        if files_to_keep < 10:
+            files_to_keep = 10
+        
+        # Calculate importance based on function count
+        file_importance = {}
+        for path, file_data in dense_index['f'].items():
+            importance = 0
+            if len(file_data) > 1 and isinstance(file_data[1], list):
+                importance = len(file_data[1])  # Number of functions
+            if len(file_data) > 2:  # Has classes
+                importance += 5
+            file_importance[path] = importance
+        
+        # Keep most important files
+        sorted_files = sorted(file_importance.items(), key=lambda x: x[1], reverse=True)
+        files_to_keep_set = set(path for path, _ in sorted_files[:files_to_keep])
+        
+        # Remove less important files
+        for path in list(dense_index['f'].keys()):
+            if path not in files_to_keep_set:
+                del dense_index['f'][path]
+        
+        print(f"  Emergency truncation: kept {len(dense_index['f'])} most important files")
+    
+    final_size = len(json.dumps(dense_index, separators=(',', ':')))
     print(f"  Compressed from {len(index_json)} to {final_size} bytes")
     
-    return index
+    return dense_index
 
 
 def print_summary(index: Dict, skipped_count: int):
@@ -670,15 +651,15 @@ def print_summary(index: Dict, skipped_count: int):
             print(f"   • {count} {lang.capitalize()} files")
     
     # Show documentation insights
-    if index['documentation_map']:
+    if index.get('d'):
         print(f"\n📚 Documentation insights:")
-        for doc_file, info in list(index['documentation_map'].items())[:3]:
-            print(f"   • {doc_file}: {len(info['sections'])} sections")
+        for doc_file, sections in list(index['d'].items())[:3]:
+            print(f"   • {doc_file}: {len(sections)} sections")
     
     # Show directory purposes
-    if index['directory_purposes']:
+    if index.get('dir_purposes'):
         print(f"\n🏗️  Directory structure:")
-        for dir_path, purpose in list(index['directory_purposes'].items())[:5]:
+        for dir_path, purpose in list(index['dir_purposes'].items())[:5]:
             print(f"   • {dir_path}/: {purpose}")
     
     if skipped_count > 0:
@@ -703,8 +684,11 @@ def main():
     # Build index for current directory
     index, skipped_count = build_index('.')
     
-    # Compress if needed
-    index = compress_index_if_needed(index, target_size_bytes)
+    # Convert to enhanced dense format (always)
+    index = convert_to_enhanced_dense_format(index)
+    
+    # Compress further if needed
+    index = compress_if_needed(index, target_size_bytes)
     
     # Add metadata if requested via environment
     if target_size_k > 0:
@@ -713,9 +697,9 @@ def main():
         # Note: Full metadata is added by the hook after generation
         index['_meta']['target_size_k'] = target_size_k
     
-    # Save to PROJECT_INDEX.json
+    # Save to PROJECT_INDEX.json (minified)
     output_path = Path('PROJECT_INDEX.json')
-    output_path.write_text(json.dumps(index, indent=2))
+    output_path.write_text(json.dumps(index, separators=(',', ':')))
     
     # Print summary
     print_summary(index, skipped_count)
@@ -724,7 +708,7 @@ def main():
     
     # More concise output when called by hook
     if target_size_k > 0:
-        actual_size = len(json.dumps(index, indent=2))
+        actual_size = len(json.dumps(index, separators=(',', ':')))
         actual_tokens = actual_size // 4 // 1000
         print(f"📊 Size: {actual_tokens}k tokens (target was {target_size_k}k)")
     else:

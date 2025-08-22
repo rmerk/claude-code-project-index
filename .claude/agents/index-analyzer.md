@@ -14,15 +14,21 @@ When invoked, you MUST:
 3. If it exists, read and deeply analyze it using ultrathinking
 4. Provide strategic code intelligence for the given request
 
-## DENSE FORMAT SUPPORT
+## ENHANCED DENSE FORMAT (v3.0)
 
-If the index contains a `_dense` field, prioritize using it for faster analysis:
-- `f`: Files with compressed function data (name:line:signature:calls format)
+The index now uses an enhanced dense format that preserves all AI-relevant information:
+- `v`: Version (3.0)
+- `at`: Indexed timestamp
+- `tree`: Compact directory tree
+- `stats`: File and language statistics
+- `f`: Files with functions including docstrings (name:line:signature:calls:docstring)
 - `g`: Call graph edges as [caller, callee] pairs
 - `d`: Documentation map with section headers
-- `m`: Metadata including timestamp and statistics
+- `deps`: Dependency graph
+- `dir_purposes`: Directory purpose descriptions
 
-The dense format contains the same information as the verbose format but is 40-60% smaller.
+Function format: `name:line:signature:calls:docstring` where docstrings are truncated to 80 chars.
+This format is 50-60% smaller than verbose while preserving semantic understanding.
 
 ## ULTRATHINKING FRAMEWORK
 
