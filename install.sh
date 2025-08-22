@@ -198,6 +198,8 @@ jq '
   # Filter out any existing PROJECT_INDEX Stop hooks, then add the new one
   .hooks.Stop = ([.hooks.Stop[] | select(
     all(.hooks[]?.command // ""; 
+      contains("stop_hook.py") | not) and
+    all(.hooks[]?.command // ""; 
       contains("reindex_if_needed.py") | not) and
     all(.hooks[]?.command // ""; 
       contains("project_index") | not)
@@ -205,7 +207,7 @@ jq '
     "matcher": "",
     "hooks": [{
       "type": "command",
-      "command": "'"$HOME"'/.claude-code-project-index/scripts/run_python.sh '"$HOME"'/.claude-code-project-index/scripts/reindex_if_needed.py",
+      "command": "'"$HOME"'/.claude-code-project-index/scripts/run_python.sh '"$HOME"'/.claude-code-project-index/scripts/stop_hook.py",
       "timeout": 10
     }]
   }])

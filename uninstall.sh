@@ -84,6 +84,8 @@ if [[ -f "$SETTINGS_FILE" ]]; then
           all(.hooks[]?.command // ""; 
             contains("claude-code-project-index") | not) and
           all(.hooks[]?.command // ""; 
+            contains("stop_hook.py") | not) and
+          all(.hooks[]?.command // ""; 
             contains("reindex_if_needed.py") | not) and
           all(.hooks[]?.command // ""; 
             contains("project_index") | not)
