@@ -144,30 +144,13 @@ chmod +x "$INSTALL_DIR/scripts/run_python.sh" 2>/dev/null || true
 echo "$PYTHON_CMD" > "$INSTALL_DIR/.python_cmd"
 echo "   ✓ Python command saved: $PYTHON_CMD"
 
-# Create Claude commands directory if it doesn't exist
-mkdir -p "$HOME/.claude/commands"
-
-# Create the /index command
-echo ""
-echo "Creating /index command..."
-cat > "$HOME/.claude/commands/index.md" << 'EOF'
-Execute the PROJECT_INDEX helper script at ~/.claude-code-project-index/scripts/project-index-helper.sh
-
-Usage:
-- /index - Create or update PROJECT_INDEX.json for current project
-
-This analyzes your codebase and creates PROJECT_INDEX.json with:
-- Directory tree structure
-- Function/method signatures  
-- Class inheritance relationships
-- Import dependencies
-- Documentation structure
-- Language-specific parsing for Python, JavaScript/TypeScript, and Shell scripts
-
-The index is automatically updated when you edit files through PostToolUse hooks.
-EOF
-
-echo "✓ Created /index command"
+# Clean up old /index command if it exists
+if [[ -f "$HOME/.claude/commands/index.md" ]]; then
+    echo ""
+    echo "Removing old /index command..."
+    rm -f "$HOME/.claude/commands/index.md"
+    echo "✓ Removed deprecated /index command"
+fi
 
 # Update hooks in settings.json
 echo ""
@@ -270,8 +253,9 @@ echo "   • index_utils.py"
 echo "   • detect_external_changes.py"
 echo ""
 echo "🚀 Usage:"
-echo "   • Use /index command to create PROJECT_INDEX.json in any project"
+echo "   • Add -i flag to any prompt for index-aware mode (e.g., 'fix auth bug -i')"
+echo "   • Use -ic flag to export to clipboard for large context AI models"
 echo "   • Reference with @PROJECT_INDEX.json when you need architectural awareness"
-echo "   • The index updates automatically when you edit files"
+echo "   • The index is created automatically when you use -i flag"
 echo ""
 echo "📚 For more information, see: $INSTALL_DIR/README.md"

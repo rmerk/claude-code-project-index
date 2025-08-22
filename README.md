@@ -14,27 +14,35 @@ That's it! The tool is installed with automatic hooks for maintaining the index.
 
 ## 📖 Usage
 
-### Create an Index for Your Project
+### No Manual Setup Required!
 
-Navigate to any project directory and run:
+PROJECT_INDEX works automatically with the `-i` flag:
 ```bash
-/index
+# Simply add -i to any prompt
+claude "fix the auth bug -i"
 ```
 
-This creates `PROJECT_INDEX.json` with:
+**The index is created automatically** when you first use `-i` in a project. It includes:
 - Complete function/class signatures
 - Call graphs showing what calls what
 - Directory structure and purposes
 - Import dependencies
 - Documentation structure
 
-**⚠️ Important: You only need to run `/index` once per project!** The index automatically updates whenever you edit files.
-
 ### Using the Index
 
-Once created, reference it when you need architectural awareness:
+Two ways to leverage the index:
+
+#### 1. Index-Aware Mode (Recommended)
 ```bash
-# Ask architectural questions
+# Add -i flag to any prompt
+claude "refactor the auth system -i"
+claude "find performance issues -i75"  # 75k tokens
+```
+
+#### 2. Manual Reference
+```bash
+# Reference directly in your prompt
 @PROJECT_INDEX.json what functions call authenticate_user?
 
 # Or auto-load in every session by adding to CLAUDE.md:
@@ -390,6 +398,8 @@ cd ~/.claude-code-project-index
 ./install.sh
 ```
 
+**Note**: If upgrading from an older version, the installer will automatically remove the deprecated `/index` command.
+
 ### Uninstalling
 
 To completely remove PROJECT_INDEX:
@@ -406,18 +416,18 @@ curl -fsSL https://raw.githubusercontent.com/ericbuess/claude-code-project-index
 
 ## How It Works
 
-### One-Time Setup Per Project
-Run `/index` **once** in any project where you want architectural awareness:
+### Automatic Index Creation
+The index is created **automatically** when you first use the `-i` flag in any project:
 ```bash
-/index
+claude "explain the auth flow -i"
 ```
 
 This creates `PROJECT_INDEX.json` and enables automatic maintenance.
 
 **Important**: 
-- You only need to run `/index` once per project
+- The index is created automatically on first use of `-i`
 - The index automatically updates on every file change thereafter
-- If you don't want an index in a project, simply don't run `/index` there
+- If you don't want an index in a project, simply don't use the `-i` flag
 - To stop indexing, just delete the PROJECT_INDEX.json file
 
 ### What Happens After `/index`
@@ -538,13 +548,18 @@ Return specific file:line references for all findings.
 
 ### Common Usage Patterns
 
-#### Before Making Changes
+#### Using Index-Aware Mode
 ```bash
-# Check what will break if you change a function
-@PROJECT_INDEX.json analyze impact of changing validate_user signature
+# Automatically loads index into subagent for analysis
+claude "analyze impact of changing validate_user signature -i"
+claude "where should I add a new email validation function? -i"
+```
 
-# Find where to add new code
-@PROJECT_INDEX.json where should I add a new email validation function?
+#### Manual Reference
+```bash
+# Direct questions about the index
+@PROJECT_INDEX.json what calls validate_user?
+@PROJECT_INDEX.json find all authentication functions
 ```
 
 #### During Debugging
@@ -659,15 +674,22 @@ If hooks aren't working or you see Python errors:
 3. Look for errors in Claude's output
 4. Reinstall if needed: `curl -fsSL https://raw.githubusercontent.com/ericbuess/claude-code-project-index/main/install.sh | bash`
 
+### -i flag not working?
+1. Make sure you've installed PROJECT_INDEX (run the installer)
+2. Check hooks are configured: `cat ~/.claude/settings.json | grep index_aware`
+3. Reinstall to fix hook paths if needed
+
 ### Index too large?
 The system automatically compresses large indexes, but you can:
 - Add more directories to `IGNORE_DIRS` in `~/.claude-code-project-index/scripts/index_utils.py`
 - Reduce `MAX_TREE_DEPTH` (default: 5) in `~/.claude-code-project-index/scripts/project_index.py`
 
 ### External changes not detected?
-The system checks for changes every time Claude stops. If needed, manually run:
+The system checks for changes every time Claude stops. If needed, manually recreate the index:
 ```bash
-/index
+# Remove old index and use -i to regenerate
+rm PROJECT_INDEX.json
+claude "check the code -i"
 ```
 Or from the command line:
 ```bash

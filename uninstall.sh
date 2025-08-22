@@ -11,7 +11,6 @@ echo ""
 INSTALL_DIR="$HOME/.claude-code-project-index"
 
 echo "This will remove:"
-echo "  • The /index command from ~/.claude/commands/index.md"
 echo "  • PROJECT_INDEX hooks from ~/.claude/settings.json"
 echo "  • Installation directory at $INSTALL_DIR"
 echo ""
@@ -55,6 +54,18 @@ if [[ -f "$SETTINGS_FILE" ]]; then
     
     # Remove PROJECT_INDEX hooks using jq
     jq '
+      # Remove PROJECT_INDEX UserPromptSubmit hooks
+      if .hooks.UserPromptSubmit then
+        .hooks.UserPromptSubmit = [.hooks.UserPromptSubmit[] | select(
+          all(.hooks[]?.command // ""; 
+            contains("claude-code-project-index") | not) and
+          all(.hooks[]?.command // ""; 
+            contains("index_aware_hook.py") | not) and
+          all(.hooks[]?.command // ""; 
+            contains("project_index") | not)
+        )]
+      else . end |
+      
       # Remove PROJECT_INDEX PostToolUse hooks
       if .hooks.PostToolUse then
         .hooks.PostToolUse = [.hooks.PostToolUse[] | select(
@@ -80,6 +91,7 @@ if [[ -f "$SETTINGS_FILE" ]]; then
       else . end |
       
       # Clean up empty arrays
+      if .hooks.UserPromptSubmit == [] then del(.hooks.UserPromptSubmit) else . end |
       if .hooks.PostToolUse == [] then del(.hooks.PostToolUse) else . end |
       if .hooks.Stop == [] then del(.hooks.Stop) else . end |
       

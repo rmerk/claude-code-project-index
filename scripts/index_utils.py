@@ -133,20 +133,26 @@ def build_call_graph(functions: Dict, classes: Dict) -> Tuple[Dict, Dict]:
     calls_map = {}
     called_by_map = {}
     
-    # Initialize maps for all functions
-    all_funcs = set(functions.keys())
-    for class_info in classes.values():
-        if 'methods' in class_info:
-            all_funcs.update(class_info['methods'].keys())
+    # Build calls_map from functions
+    for func_name, func_info in functions.items():
+        if isinstance(func_info, dict) and 'calls' in func_info:
+            calls_map[func_name] = func_info['calls']
     
-    # Build the reverse index
-    for func_name in calls_map:
-        if func_name in calls_map:
-            for called_func in calls_map[func_name]:
-                if called_func not in called_by_map:
-                    called_by_map[called_func] = []
-                if func_name not in called_by_map[called_func]:
-                    called_by_map[called_func].append(func_name)
+    # Build calls_map from class methods
+    for class_name, class_info in classes.items():
+        if isinstance(class_info, dict) and 'methods' in class_info:
+            for method_name, method_info in class_info['methods'].items():
+                if isinstance(method_info, dict) and 'calls' in method_info:
+                    full_method_name = f"{class_name}.{method_name}"
+                    calls_map[full_method_name] = method_info['calls']
+    
+    # Build the reverse index (called_by_map)
+    for func_name, called_funcs in calls_map.items():
+        for called_func in called_funcs:
+            if called_func not in called_by_map:
+                called_by_map[called_func] = []
+            if func_name not in called_by_map[called_func]:
+                called_by_map[called_func].append(func_name)
     
     return calls_map, called_by_map
 

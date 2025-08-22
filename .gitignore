@@ -27,9 +27,6 @@ Thumbs.db
 tests/
 debug_*.py
 
-# Project Index files (created in user projects)
-PROJECT_INDEX.json
-
 # Settings backups
 settings.json.backup*
 
