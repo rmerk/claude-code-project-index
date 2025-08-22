@@ -49,24 +49,31 @@ claude "find performance issues -i75"  # 75k tokens
 # Add @PROJECT_INDEX.json to your CLAUDE.md file
 ```
 
-### 🚀 Advanced: Index-Aware Mode with -i Flag
+### 🚀 Index-Aware Mode (-i flag)
 
-Use the `-i` and `-ic` flags to leverage intelligent code analysis:
+Add `-i` to any prompt for intelligent code analysis:
 
-#### **`-i` Mode: Subagent Analysis (Preserves Main Context)**
 ```bash
-# Default 50k token index analyzed by specialized subagent
-claude "refactor the auth system -i"
+# Standard mode (50k default, up to 100k)
+claude "refactor the auth system -i"        # Uses specialized subagent
+claude "find performance issues -i75"       # 75k tokens
 
-# Custom size (1k-100k tokens)
-claude "find performance issues -i75"
+# Clipboard mode for external AI (up to 800k)
+claude "analyze entire codebase -ic200"     # Copies to clipboard
+claude "architecture review -ic800"         # For Gemini/Claude.ai
 ```
 
-**How it works:**
-- Loads PROJECT_INDEX into a **specialized subagent's context** (not main Claude)
-- Subagent analyzes your codebase and returns only relevant code paths
-- **Your main Claude context stays clean** for actual coding work
-- Perfect for targeted code changes while preserving context
+**Key Features:**
+- **Auto-creates index** if PROJECT_INDEX.json doesn't exist
+- **Preserves main context** by using specialized subagent
+- **Smart caching** - only rebuilds when files change
+- **Progressive compression** adapts to size limits
+
+**The subagent provides:**
+- Call graph analysis and execution paths
+- Dependency mapping and impact analysis  
+- Dead code detection
+- Strategic recommendations on where to make changes
 
 #### **`-ic` Mode: Export for Large Context AI Models**
 ```bash
@@ -100,20 +107,13 @@ claude "architecture deep dive -ic800"     # 800k tokens (max)
 
 Note: VM Bridge is entirely optional. The index-aware mode works perfectly without it, just with size constraints over remote connections.
 
-## 🚀 Enhanced Dense Format (v0.2.0-beta)
+## 🎯 What's New in v0.2.0-beta
 
-The index now uses an **enhanced dense format** that provides:
-- **50% size reduction** (18KB → 8.8KB) through minified JSON
-- **Preserves all AI-relevant information** including docstrings (80 char max)
-- **Line numbers** for all functions and classes for better code navigation
-- **Progressive compression** that automatically adjusts when size limits are hit
-
-### Format Structure
-Functions are stored as: `name:line:signature:calls:docstring`
-
-Example: `main:669:():build_index,compress_if_needed:Run the enhanced indexer.`
-
-This format ensures the AI subagent has all the semantic context needed to understand your code while using minimal tokens.
+**Enhanced Dense Format:**
+- 50% smaller indexes (18KB → 8.8KB)
+- Includes docstrings and line numbers
+- Format: `name:line:signature:calls:docstring`
+- Progressive compression for large projects
 
 ## 📦 Updating
 

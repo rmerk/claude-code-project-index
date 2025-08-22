@@ -70,7 +70,15 @@ def update_file_in_index(index_path, file_path, project_root):
         with open(index_path, 'r') as f:
             index = json.load(f)
         
-        # Check if index has required structure
+        # Check if index is in dense format (v3.0)
+        if 'v' in index and index['v'] == '3.0':
+            # Dense format - mark for full reindex
+            index['needs_full_reindex'] = True
+            with open(index_path, 'w') as f:
+                json.dump(index, f, separators=(',', ':'))
+            return
+        
+        # Legacy verbose format - also mark for reindex
         if 'project_structure' not in index:
             index['needs_full_reindex'] = True
             with open(index_path, 'w') as f:
