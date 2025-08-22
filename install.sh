@@ -191,8 +191,9 @@ After running `/index`, you can:
 
 When you run `/index`, Claude will:
 1. Check if PROJECT_INDEX is installed at ~/.claude-code-project-index
-2. Run the indexer to create PROJECT_INDEX.json
+2. Always run the indexer to create/update PROJECT_INDEX.json (no need to check if it exists first)
 3. Provide feedback on what was indexed
+4. The index is then available as PROJECT_INDEX.json
 
 ## Troubleshooting
 

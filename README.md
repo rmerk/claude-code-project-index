@@ -34,7 +34,7 @@ claude "fix the auth bug -i"
 
 ### Using the Index
 
-Two ways to leverage the index:
+Three ways to leverage the index:
 
 #### 1. Index-Aware Mode (Recommended)
 ```bash
@@ -43,7 +43,19 @@ claude "refactor the auth system -i"
 claude "find performance issues -i75"  # 75k tokens
 ```
 
-#### 2. Manual Reference
+#### 2. Manual Index Creation with /index
+```bash
+# Create or update the index manually
+/index
+
+# Use when:
+# - Starting a new project session
+# - After major code changes outside Claude
+# - To verify the index exists
+# - To rebuild from scratch
+```
+
+#### 3. Direct Reference
 ```bash
 # Reference directly in your prompt
 @PROJECT_INDEX.json what functions call authenticate_user?
@@ -51,6 +63,24 @@ claude "find performance issues -i75"  # 75k tokens
 # Or auto-load in every session by adding to CLAUDE.md:
 # Add @PROJECT_INDEX.json to your CLAUDE.md file
 ```
+
+### When to Use Each Method
+
+**Use `-i` flag when:**
+- You want Claude to analyze code with full architectural context
+- Working on refactoring or debugging
+- Need to understand code flow and dependencies
+
+**Use `/index` command when:**
+- First time in a project (though -i also creates it)
+- Want to manually refresh after git pull or external changes
+- Need to verify index exists before starting work
+- Want to see what gets indexed
+
+**Use `@PROJECT_INDEX.json` when:**
+- You need to query specific architectural questions
+- Want persistent context across all prompts
+- Working with the same project for extended time
 
 ### 🚀 Index-Aware Mode (-i flag)
 
