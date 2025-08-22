@@ -2,7 +2,13 @@
 
 **⚠️ Beta Community Tool - Let Claude Code Fork It!** This is my personal indexing solution that I'm sharing (still in beta). I'm not maintaining this as a product. If you run into issues, have Claude Code help you fix them! Give this repo URL to Claude and ask it to fork, set up, and adapt it for your specific needs.
 
-I may post videos explaining how I use it - check [my X/Twitter](https://x.com/EricBuess) for updates.
+## Background
+
+I created this tool for myself and talked about it in [this video](https://www.youtube.com/watch?v=JU8BwMe_BWg) and [this X post](https://x.com/EricBuess/status/1955271258939043996). People requested it, so here it is! This works alongside my [Claude Code Docs mirror](https://github.com/ericbuess/claude-code-docs) project.
+
+I may post videos explaining how I use this project - check [my X/Twitter](https://x.com/EricBuess) for updates and explanations.
+
+This isn't a product - just a tool that solves Claude Code's architectural blindness for me. Fork it, improve it, make it yours!
 
 Automatically gives Claude Code architectural awareness of your codebase. Add `-i` to any prompt to generate or update a PROJECT_INDEX.json containing your project's functions, classes, and structure.
 
@@ -189,12 +195,6 @@ For any issue, just describe it to Claude and let it fix the tool for you!
 ```bash
 ~/.claude-code-project-index/uninstall.sh
 ```
-
-## Background
-
-I created this tool for myself and talked about it in [this video](https://www.youtube.com/watch?v=JU8BwMe_BWg) and [this X post](https://x.com/EricBuess/status/1955271258939043996). People requested it, so here it is! This works alongside my [Claude Code Docs mirror](https://github.com/ericbuess/claude-code-docs) project.
-
-This isn't a product - just a tool that solves Claude Code's architectural blindness for me. Fork it, improve it, make it yours!
 
 ---
 Created by [Eric Buess](https://github.com/ericbuess)
