@@ -188,10 +188,6 @@ jq '
     }]
   }]) |
   
-  # PostToolUse hook removed - not needed with dense format v3.0
-  # Dense format is read-only and doesn't support incremental updates
-  # Full reindex happens via Stop hook when needed
-  
   # Initialize Stop if not present
   if .hooks.Stop == null then .hooks.Stop = [] else . end |
   

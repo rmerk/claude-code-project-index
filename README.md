@@ -1,6 +1,6 @@
 # Project Index for Claude Code (v0.2.0-beta)
 
-**⚠️ Beta Release** - This tool is in active development. Testing the new index-aware mode with enhanced dense format v3.0!
+**⚠️ Beta Release** - This tool is in active development. Testing the new index-aware mode with enhanced dense format.
 
 A UML-inspired code intelligence system that gives Claude Code comprehensive architectural awareness of your codebase through static analysis and pattern recognition.
 
@@ -83,10 +83,10 @@ claude "architecture deep dive -ic800"     # 800k tokens (max)
 ```
 
 **Leverage models with larger contexts than Claude Code CLI:**
-- **Gemini Pro 1.5**: Up to 2M token context
-- **Claude.ai (Sonnet 3.5)**: 1M token context (not yet in CLI)
-- **Grok**: Large context models
-- **GPT-4 Turbo**: 128k context
+- **Gemini Pro 2.5**
+- **Claude Sonnet 4 via API**
+- **Grok 4**
+- **GPT-5**
 
 **Example workflow:**
 1. Generate massive index: `claude "analyze all patterns -ic500"`

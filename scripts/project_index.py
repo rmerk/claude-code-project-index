@@ -402,7 +402,6 @@ def build_index(root_dir: str) -> Tuple[Dict, int]:
 def convert_to_enhanced_dense_format(index: Dict) -> Dict:
     """Convert to enhanced dense format that preserves all AI-relevant information."""
     dense = {
-        'v': '3.0',  # Version 3.0 - enhanced with docstrings
         'at': index.get('indexed_at', ''),
         'root': index.get('root', '.'),
         'tree': index.get('project_structure', {}).get('tree', [])[:20],  # Compact tree
