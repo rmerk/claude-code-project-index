@@ -158,7 +158,7 @@ description: Create or update PROJECT_INDEX.json for the current project
 
 This command creates or updates a PROJECT_INDEX.json file that gives Claude architectural awareness of your codebase.
 
-**IMPORTANT**: The indexer script is located at:
+The indexer script is located at:
 `~/.claude-code-project-index/scripts/project_index.py`
 
 ## What it does
@@ -195,8 +195,6 @@ After running `/index`, you can:
 When you run `/index`, Claude will:
 1. Check if PROJECT_INDEX is installed at ~/.claude-code-project-index
 2. Run the indexer script at ~/.claude-code-project-index/scripts/project_index.py to create/update PROJECT_INDEX.json
-   - IMPORTANT: The script is in the 'scripts' subdirectory, not the root directory
-   - Full path: ~/.claude-code-project-index/scripts/project_index.py
 3. Provide feedback on what was indexed
 4. The index is then available as PROJECT_INDEX.json
 
