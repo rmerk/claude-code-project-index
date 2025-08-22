@@ -1,61 +1,53 @@
-# Project Index for Claude Code (v0.2.0-beta)
+# Project Index for Claude Code
 
-**⚠️ Beta Release** - This tool is in active development. Testing the new index-aware mode with enhanced dense format.
+**⚠️ Beta Community Tool - Let Claude Code Fork It!** This is my personal indexing solution that I'm sharing (still in beta). I'm not maintaining this as a product. If you run into issues, have Claude Code help you fix them! Give this repo URL to Claude and ask it to fork, set up, and adapt it for your specific needs.
 
-A UML-inspired code intelligence system that gives Claude Code comprehensive architectural awareness of your codebase through static analysis and pattern recognition.
+I may post videos explaining how I use it - check [my X/Twitter](https://x.com/EricBuess) for updates.
 
-## 🚀 Quick Install
+Automatically gives Claude Code architectural awareness of your codebase. Add `-i` to any prompt to generate or update a PROJECT_INDEX.json containing your project's functions, classes, and structure.
+
+## Quick Install
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ericbuess/claude-code-project-index/main/install.sh | bash
 ```
 
-That's it! The tool is installed with automatic hooks for maintaining the index.
+## Usage
 
-## 📖 Usage
+Just add `-i` to any Claude prompt:
 
-### No Manual Setup Required!
-
-PROJECT_INDEX works automatically with the `-i` flag:
 ```bash
-# Simply add -i to any prompt
-claude "fix the auth bug -i"
+claude "fix the auth bug -i"          # Auto-creates/uses index (default 50k)
+claude "refactor database code -i75"  # Target ~75k tokens (if project needs it)
+claude "analyze architecture -ic200"  # Export up to 200k to clipboard for external AI
 
 # Or manually create/update the index anytime
 /index
 ```
 
-**The index is created automatically** when you first use `-i` in a project. It includes:
-- Complete function/class signatures
-- Call graphs showing what calls what
-- Directory structure and purposes
-- Import dependencies
-- Documentation structure
+**Key behaviors:**
+- **One-time setup**: Use `-i` once in a project and the index auto-updates forever
+- **Size memory**: The number (e.g., 75) is remembered until you specify a new one
+- **Auto-maintenance**: Every file change triggers automatic index updates
+- **To stop indexing**: Simply delete PROJECT_INDEX.json
 
-### Using the Index
+## What It Does
 
-Three ways to leverage the index:
+PROJECT_INDEX extracts and tracks:
+- **Functions & Classes**: Full signatures with parameters and return types
+- **Call Relationships**: Which functions call which others
+- **File Organization**: All code files respecting .gitignore
+- **Directory Structure**: Project layout with file counts
 
-#### 1. Index-Aware Mode (Recommended)
-```bash
-# Add -i flag to any prompt
-claude "refactor the auth system -i"
-claude "find performance issues -i75"  # 75k tokens
-```
+This helps Claude:
+- Find the right code without searching
+- Understand dependencies before making changes
+- Place new code in the correct location
+- Avoid creating duplicate functions
 
-#### 2. Manual Index Creation with /index
-```bash
-# Create or update the index manually
-/index
+## Three Ways to Use
 
-# Use when:
-# - Starting a new project session
-# - After major code changes outside Claude
-# - To verify the index exists
-# - To rebuild from scratch
-```
-
-#### 3. Direct Reference
+### Small Projects - Direct Reference with `@PROJECT_INDEX.json`
 ```bash
 # Reference directly in your prompt
 @PROJECT_INDEX.json what functions call authenticate_user?
@@ -64,897 +56,138 @@ claude "find performance issues -i75"  # 75k tokens
 # Add @PROJECT_INDEX.json to your CLAUDE.md file
 ```
 
-### When to Use Each Method
+**Best for**: Small projects where the index fits comfortably in context. Gives Claude's main agent direct awareness of your whole project structure.
 
-**Use `-i` flag when:**
-- You want Claude to analyze code with full architectural context
-- Working on refactoring or debugging
-- Need to understand code flow and dependencies
-
-**Use `/index` command when:**
-- First time in a project (though -i also creates it)
-- Want to manually refresh after git pull or external changes
-- Need to verify index exists before starting work
-- Want to see what gets indexed
-
-**Use `@PROJECT_INDEX.json` when:**
-- You need to query specific architectural questions
-- Want persistent context across all prompts
-- Working with the same project for extended time
-
-### 🚀 Index-Aware Mode (-i flag)
-
-Add `-i` to any prompt for intelligent code analysis:
-
+### Medium Projects - Subagent Mode with `-i` flag
 ```bash
-# Standard mode (50k default, up to 100k)
-claude "refactor the auth system -i"        # Uses specialized subagent
-claude "find performance issues -i75"       # 75k tokens
-
-# Clipboard mode for external AI (up to 800k)
-claude "analyze entire codebase -ic200"     # Copies to clipboard
-claude "architecture review -ic800"         # For Gemini/Claude.ai
+# Invokes specialized subagent to analyze PROJECT_INDEX.json
+claude "refactor the auth system -i"   # Default up to 50k tokens
+claude "find performance issues -i75"  # Target ~75k tokens for more detail
 ```
 
-**Key Features:**
-- **Auto-creates index** if PROJECT_INDEX.json doesn't exist
-- **Preserves main context** by using specialized subagent
-- **Smart caching** - only rebuilds when files change
-- **Progressive compression** adapts to size limits
+**Best for**: Medium to large projects where you want to preserve the main agent's context. The subagent analyzes the index separately and returns only relevant findings.
 
-**The subagent provides:**
+The subagent provides:
 - Call graph analysis and execution paths
-- Dependency mapping and impact analysis  
+- Dependency mapping and impact analysis
 - Dead code detection
 - Strategic recommendations on where to make changes
 
-#### **`-ic` Mode: Export for Large Context AI Models**
+### Large Projects - Clipboard Export with `-ic` flag
 ```bash
-# Copy to clipboard for AI models with massive context windows
-claude "analyze entire codebase -ic200"    # 200k tokens
-claude "architecture deep dive -ic800"     # 800k tokens (max)
+# Export to clipboard for external AI with larger contexts
+claude "analyze entire codebase -ic200"  # Up to 200k tokens
+claude "architecture review -ic800"      # Up to 800k tokens
 ```
 
-**Leverage models with larger contexts than Claude Code CLI:**
-- **Gemini Pro 2.5**
-- **Claude Sonnet 4 via API**
-- **Grok 4**
-- **GPT-5**
+**Best for**: Very large projects whose index won't fit in Claude's context window. Export to AI models with larger context windows:
+- Gemini Pro (2M tokens)
+- Claude models with 200k+ tokens
+- ChatGPT
+- Grok
 
-**Example workflow:**
-1. Generate massive index: `claude "analyze all patterns -ic500"`
-2. Paste into Gemini/Claude.ai for comprehensive analysis
-3. Get insights impossible with smaller contexts
-4. Bring findings back to Claude Code for implementation
+## Token Sizing
 
-#### 🌉 Clipboard Support
+The number after `-i` is a **maximum target**, not a guaranteed size:
 
-**Local clipboard** works automatically on Mac/Linux/WSL.
+- **Default**: 50k tokens (remembered per project)
+- **-i mode range**: 1k to 100k maximum
+- **-ic mode range**: 1k to 800k maximum for external AI
+- **Actual size**: Often much smaller - only uses what the project needs
+- **Compression**: Automatic to fit within limits
 
-**For SSH/mosh users**: Standard clipboard methods have size limits (~11KB over mosh due to protocol constraints).
+Examples:
+- Small project with `-i200`: Might only generate 10k tokens
+- Large project with `-i50`: Compresses to fit ~50k target
+- Huge project with `-ic500`: Allows up to 500k if needed
 
-**Optional Enhancement - VM Bridge**: For unlimited clipboard over SSH/mosh connections, see [VM Bridge](https://github.com/ericbuess/vm-bridge) - a separate tool that enables:
-- Unlimited clipboard size over remote connections
-- Bidirectional agent communication between Mac and Linux VMs
-- Network-based clipboard that bypasses terminal limitations
+The tool remembers your last `-i` size per project and targets that amount, but actual size depends on your codebase.
 
-Note: VM Bridge is entirely optional. The index-aware mode works perfectly without it, just with size constraints over remote connections.
+## Language Support
 
-## 🎯 What's New in v0.2.0-beta
+**Full parsing** (extracts functions, classes, methods):
+- Python (.py)
+- JavaScript/TypeScript (.js, .ts, .jsx, .tsx)
+- Shell scripts (.sh, .bash)
 
-**Enhanced Dense Format:**
-- 50% smaller indexes (18KB → 8.8KB)
-- Includes docstrings and line numbers
-- Format: `name:line:signature:calls:docstring`
-- Progressive compression for large projects
+**File tracking** (listing only):
+- Go, Rust, Java, C/C++, Ruby, PHP, Swift, Kotlin, and 20+ more
 
-## 📦 Updating
+## Installation Details
 
-To update to the latest version, simply run the installer again:
+- **Location**: `~/.claude-code-project-index/`
+- **Hooks configured**:
+  - `UserPromptSubmit`: Detects -i flag
+  - `Stop`: Refreshes index after session
+- **Commands**: `/index` for manual creation/update
+- **Agent**: `~/.claude/agents/index-analyzer.md` for deep analysis
+- **Python**: Automatically finds newest 3.8+ version
+
+## Fork & Customize
+
+This is a community tool. Feel free to:
+1. Fork the repo
+2. Ask Claude to modify it for your needs
+3. Share your improvements
+
+Common customizations:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/ericbuess/claude-code-project-index/main/install.sh | bash
-```
-
-**Note**: This will remove and reinstall the tool completely. Your PROJECT_INDEX.json files in projects remain untouched.
-
-## 🔧 Highly Recommended: Claude Code Docs
-
-For the best experience, also install [Claude Code Docs](https://github.com/ericbuess/claude-code-docs) - a companion tool that gives Claude deep understanding of its own capabilities through automatically updated documentation. It provides a `/docs` command that loads the latest Claude Code documentation directly into context, helping Claude use its features more effectively.
-
-## Important: Community Tool - Fork and Customize!
-
-**This is a personal tool** I built for my own projects and shared as inspiration. I'm not actively fixing issues I don't personally encounter. The beauty is - **you don't need me to fix anything!**
-
-### The Philosophy
-
-This tool works perfectly for my needs. When it doesn't work for yours:
-1. **Claude Code can fix it for you** - Just describe your issue
-2. **It's meant to be forked** - Make your own version
-3. **Share your improvements** - Help others with similar needs
-
-### Real Examples from GitHub Issues
-
-Users reported issues with large codebases. Instead of waiting for me to fix them:
-
-```bash
-# Issue #1: Compression hangs on 3000+ files
-"The indexer hangs when compressing my large project. Please rewrite compress_if_needed() to handle 3000 files efficiently"
-
-# Issue #3: Timeout on large repos  
-"Indexing times out on my monorepo. Make the timeout dynamic based on file count"
-
-# Issue #4: .claude directory being indexed (now fixed)
-"Add .claude to IGNORE_DIRS so it doesn't index my Claude config"
-
-# Your specific need:
-"Only index Python files in src/ and ignore everything else"
-```
-
-**Claude Code will literally rewrite the tool for your needs.** That's the power here - you have an AI that can customize any tool instantly.
-
-### Quick Start for Customization
-
-```bash
-# Navigate to the tool's directory
 cd ~/.claude-code-project-index
-
-# Tell Claude your problem:
-# "The tool fails on my 5000 file project"
-# "I need it to support Rust files"
-# "Make it 10x faster for huge codebases"
+# Then ask Claude:
+# "Add support for Ruby files"
+# "Skip test files when indexing"
+# "Change compression strategy"
 ```
 
+## Known Issues & Quick Fixes
 
-## Background
+**Large projects (>2000 files)**: May timeout or hang during compression
+- Fix: Ask Claude "Rewrite compress_if_needed() to handle my 3000 file project"
 
-I created this tool for myself and talked about it in [this video](https://www.youtube.com/watch?v=JU8BwMe_BWg) and [this X post](https://x.com/EricBuess/status/1955271258939043996). People requested it, so here it is! This works alongside my [Claude Code Docs mirror](https://github.com/ericbuess/claude-code-docs) project.
+**.claude directory**: Already fixed - now excluded from indexing
 
-## What Problem Does This Solve for Claude Code?
+**Timeouts**: Default is 30 seconds, may be too short for huge projects
+- Fix: Ask Claude "Make timeout dynamic based on file count in i_flag_hook.py"
 
-Claude Code CLI faces specific challenges when working with your codebase. PROJECT_INDEX directly addresses each pain point:
-
-### Common Claude Code Pain Points → Solutions
-
-| Pain Point | Without PROJECT_INDEX | With PROJECT_INDEX |
-|------------|----------------------|-------------------|
-| **🔄 Duplicate Code** | Claude recreates existing functions because it can't see what's already there | Claude sees all existing functions with signatures and can reuse them |
-| **💥 Breaking Changes** | Claude changes a function without knowing what else depends on it | `called_by` field shows exactly what will break if you change something |
-| **📁 Wrong Location** | Claude adds code to random files or creates unnecessary new files | Directory purposes and file patterns guide Claude to the right location |
-| **🔍 Wasted Tokens** | Claude uses multiple search commands trying to find the right code | Single index reference provides instant navigation to any function |
-| **🧟 Dead Code** | Claude keeps unused code because it can't verify if it's called anywhere | Functions without `called_by` are clearly dead code, safe to remove |
-| **🐛 Incomplete Fixes** | Claude fixes one function but misses related functions that need updates | `calls` field shows complete call chains for comprehensive fixes |
-| **🏗️ Pattern Violations** | Claude uses different patterns than the rest of your codebase | Extracted patterns ensure consistency with existing code style |
-
-PROJECT_INDEX.json solves this by providing Claude with complete architectural and flow awareness of your entire project.
-
-## UML Patterns and Their Value
-
-The system extracts key UML (Unified Modeling Language) concepts to build a comprehensive project model:
-
-### 📐 Class Diagrams
-- **Classes with inheritance** (`extends`, `implements`)
-- **Methods with full signatures** (parameters, return types)
-- **Properties and visibility** (public methods, private internals)
-- **Abstract classes and interfaces**
-
-**Why it matters**: Prevents reimplementation of existing functionality and ensures proper inheritance patterns.
-
-### 🔗 Component & Package Diagrams
-- **Module dependencies** (imports/exports)
-- **Package structure** (directory organization)
-- **Dependency graphs** (what depends on what)
-
-**Why it matters**: Helps maintain clean architecture and avoid circular dependencies.
-
-### 📊 Object Diagrams
-- **Enumerations with values**
-- **Constants and configurations**
-- **Type aliases and unions**
-
-**Why it matters**: Ensures consistent use of domain values and types across the codebase.
-
-### 🏛️ Deployment Diagrams
-- **File organization and purposes**
-- **Directory conventions** (controllers, models, views)
-- **Documentation structure**
-
-**Why it matters**: Maintains project conventions and ensures new code goes in the right place.
-
-## Key Features
-
-### 🌳 Directory Tree Visualization
-```
-.
-├── src/ (234 files)
-│   ├── auth/ (12 files)
-│   ├── models/ (45 files)
-│   └── utils/ (67 files)
-└── tests/ (89 files)
-```
-
-### 📚 Documentation Awareness
-Extracts section headers and architectural hints from all markdown files.
-- *Helps Claude:* Navigate to relevant documentation sections instantly
-- *Avoids:* Missing important project guidelines and conventions
-
-### 🏗️ Directory Purpose Inference
-Automatically infers the purpose of directories based on naming patterns:
-- `auth/` → "Authentication and authorization logic"
-- `models/` → "Data models and database schemas"
-- `utils/` → "Shared utility functions and helpers"
-- *Helps Claude:* Place new code in the architecturally correct location
-- *Avoids:* Creating duplicate directories or misplacing files
-
-### 🔍 Enhanced Code Intelligence with Call Tracking
-
-PROJECT_INDEX provides comprehensive code analysis that directly helps Claude Code avoid mistakes:
-
-#### Call Graph Analysis (v0.2.0) - Flow Awareness
-- **`calls` field** - Lists every function that this function calls
-  - *Helps Claude:* Follow execution paths when debugging
-  - *Avoids:* Missing related bugs in called functions
-  
-- **`called_by` field** - Lists every function that calls this function  
-  - *Helps Claude:* Understand impact before making changes
-  - *Avoids:* Breaking dependent code unknowingly
-  
-- **Dead code detection** - Functions without `called_by` are unused
-  - *Helps Claude:* Safely remove unused code
-  - *Avoids:* Keeping zombie code that clutters the codebase
-  
-- **Complete call chains** - Trace from entry points to deep functions
-  - *Helps Claude:* Understand full context of execution
-  - *Avoids:* Partial fixes that miss root causes
-
-#### Class Diagram Elements
-- **Classes with inheritance chains** - `class User(BaseModel, Auditable)`
-- **Method signatures with visibility** - Public vs private methods
-- **Abstract classes and methods** - `@abstractmethod` markers
-- **Interface implementations** - TypeScript `implements` patterns
-- **Properties and attributes** - Instance variables and class constants
-
-#### Behavioral Patterns
-- **Decorators as stereotypes** - `@property`, `@staticmethod`, `@cached`
-- **Method overrides** - Polymorphic behavior tracking
-- **Event handlers** - Callback and listener patterns
-- **Lifecycle methods** - `__init__`, `componentDidMount`, etc.
-
-#### Structural Patterns
-- **Module dependencies** - Import/export relationships
-- **Type system modeling** - Aliases, unions, generics
-- **Enumerations** - Domain values with meanings
-- **Constants and configurations** - System-wide settings
-- **Exception hierarchies** - Error handling chains
-
-#### Documentation Integration
-- **Docstring extraction** - First line for quick context
-- **Architectural hints** - References in markdown files
-- **Directory purposes** - Convention-based organization
-
-Example output:
-```json
-{
-  "imports": ["typing", "enum", "abc"],
-  "type_aliases": {
-    "UserID": "int",
-    "ConfigDict": "Dict[str, Union[str, int, bool]]"
-  },
-  "functions": {
-    "create_user": {
-      "signature": "(name: str, email: str, role: Role = 'user') -> User",
-      "doc": "Create a new user in the system",
-      "decorators": ["validate_input", "log_action"],
-      "calls": ["validate_email", "hash_password", "save_to_db"],
-      "called_by": ["register_user", "admin_create_user"]
-    }
-  },
-  "classes": {
-    "User": {
-      "inherits": ["BaseModel"],
-      "doc": "Represents a system user",
-      "abstract": false,
-      "methods": {
-        "__init__": {
-          "signature": "(self, id: int, name: str) -> None",
-          "doc": "Initialize user with ID and name"
-        },
-        "validate": {
-          "signature": "(self) -> bool",
-          "decorators": ["abstractmethod"]
-        }
-      },
-      "class_constants": {
-        "MAX_NAME_LENGTH": "number",
-        "DEFAULT_ROLE": "str"
-      }
-    },
-    "APIError": {
-      "type": "exception",
-      "inherits": ["Exception"],
-      "doc": "Base exception for API errors"
-    }
-  },
-  "enums": {
-    "Status": {
-      "values": ["PENDING", "ACTIVE", "COMPLETED"],
-      "doc": "Request status options"
-    }
-  },
-  "constants": {
-    "API_VERSION": "str",
-    "MAX_RETRIES": "number"
-  }
-}
-```
-
-### 🔄 Automatic Updates via Hooks
-- **PostToolUse Hook**: Updates index incrementally when files are edited
-  - *Helps Claude:* Always work with current code structure
-  - *Avoids:* Stale information leading to wrong decisions
-- **Stop Hook**: Checks for staleness and external changes
-  - *Helps Claude:* Detect when code changed outside the session
-  - *Avoids:* Conflicts with external changes (git pulls, IDE edits)
-- **Manual Creation**: Use `/index` command to create initial index
-  - *Helps Claude:* Get immediate project awareness
-  - *Avoids:* Blind exploration and wasted search commands
-- **Smart Maintenance**: Index updates itself automatically after creation
-  - *Helps Claude:* Focus on coding, not index management
-  - *Avoids:* Manual maintenance overhead
-
-## Real-World Project Sizes
-
-⚠️ **Testing Disclosure**: This tool has primarily been tested on smaller projects. Your experience with larger codebases may vary.
-
-### 🏠 Small Projects (< 50 files)
-- Instant indexing and updates
-- Full detail extraction
-- **Note**: If your entire project fits comfortably in Claude's context window, you might not need this tool - Claude Code can just read all files directly
-
-### 🏢 Medium Projects (50-500 files) - **Limited Testing**
-- May take 10-30 seconds to index
-- Index file might grow large depending on code complexity
-- May require customization for optimal performance
-
-### 🏙️ Large Projects (500+ files) - **Likely Needs Customization**
-- Index often exceeds Claude's context limit
-- **You'll probably need to ask Claude to customize the indexer**:
-  ```
-  The index is too large. Please modify scripts/project_index.py to:
-  - Only index specific directories (e.g., src/ and lib/)
-  - Skip test files, examples, and generated code
-  - Limit function details to signatures only
-  - Reduce tree depth to 3
-  - Add more patterns to .gitignore or create custom ignore filters
-  ```
-- Consider creating multiple smaller indexes for different parts of your codebase
-
-
-### When NOT to Use
-- **Single-file scripts** - Overhead exceeds benefit
-- **Pure documentation repos** - No code to analyze
-- **Binary/asset repositories** - No source code structure
+For any issue, just describe it to Claude and let it fix the tool for you!
 
 ## Requirements
 
-- Python 3.8 or higher (intelligently detected during installation)
-- Claude Code (any version with hooks support)
-- Operating System: macOS or Linux
-- Dependencies: `git` and `jq` (for installation)
+- Python 3.8 or higher
+- Claude Code with hooks support
+- macOS or Linux
+- git and jq (for installation)
 
-## Installation
+## Troubleshooting
 
-Run this single command:
+**Index not creating?**
+- Check Python: `python3 --version`
+- Verify hooks: `cat ~/.claude/settings.json | grep i_flag_hook`
+- Manual generation: `python3 ~/.claude-code-project-index/scripts/project_index.py`
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/ericbuess/claude-code-project-index/main/install.sh | bash
-```
+**-i flag not working?**
+- Run installer again
+- Check hooks are configured
+- Remove and reinstall if needed
 
-This will:
-1. Install PROJECT_INDEX to `~/.claude-code-project-index/`
-2. Create the `/index` command in Claude Code
-3. Configure hooks for automatic index updates
-4. Clean up any old installations
+**Clipboard issues?**
+- Install pyperclip: `pip install pyperclip`
+- SSH users: Content saved to `.clipboard_content.txt`
+- For unlimited clipboard over SSH: [VM Bridge](https://github.com/ericbuess/vm-bridge)
 
-### Manual Installation
-
-If you prefer to install manually:
-
-```bash
-git clone https://github.com/ericbuess/claude-code-project-index.git ~/.claude-code-project-index
-cd ~/.claude-code-project-index
-./install.sh
-```
-
-**Note**: If upgrading from an older version, the installer will automatically remove the deprecated `/index` command.
-
-### Uninstalling
-
-To completely remove PROJECT_INDEX:
+## Uninstall
 
 ```bash
 ~/.claude-code-project-index/uninstall.sh
 ```
 
-Or if the directory is already gone:
+## Background
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/ericbuess/claude-code-project-index/main/uninstall.sh | bash
-```
+I created this tool for myself and talked about it in [this video](https://www.youtube.com/watch?v=JU8BwMe_BWg) and [this X post](https://x.com/EricBuess/status/1955271258939043996). People requested it, so here it is! This works alongside my [Claude Code Docs mirror](https://github.com/ericbuess/claude-code-docs) project.
 
-## How It Works
+This isn't a product - just a tool that solves Claude Code's architectural blindness for me. Fork it, improve it, make it yours!
 
-### Automatic Index Creation
-The index is created **automatically** when you first use the `-i` flag in any project:
-```bash
-claude "explain the auth flow -i"
-```
-
-This creates `PROJECT_INDEX.json` and enables automatic maintenance.
-
-**Important**: 
-- The index is created automatically on first use of `-i`
-- The index automatically updates on every file change thereafter
-- If you don't want an index in a project, simply don't use the `-i` flag
-- To stop indexing, just delete the PROJECT_INDEX.json file
-
-### What Happens After `/index`
-
-1. **Initial Index Creation**: Analyzes your entire codebase and creates PROJECT_INDEX.json
-2. **Automatic Updates**: Hooks update the index whenever you edit files through Claude
-3. **External Change Detection**: Detects when files change outside Claude (git pulls, IDE edits)
-4. **Smart Reindexing**: Triggers full reindex when structure changes significantly
-
-## Language Support
-
-### Currently Supported Languages
-
-#### Fully Parsed (with enhanced extraction)
-- ✅ **Python** (.py)
-  - Full function/method signatures with type hints
-  - Class inheritance and abstract methods
-  - Decorators (@property, @staticmethod, @lru_cache, etc.)
-  - Enums with values
-  - Type aliases (Union, Optional, etc.)
-  - Module and class constants
-  - Exception hierarchy
-  
-- ✅ **JavaScript/TypeScript** (.js, .ts, .tsx, .jsx)
-  - Function signatures with parameter types
-  - Class inheritance (extends)
-  - Interfaces and type definitions
-  - Enums with values
-  - Type aliases
-  - JSDoc comments
-  - Import/export tracking
-  - Static class properties
-
-- ✅ **Shell Scripts** (.sh, .bash)
-  - Function signatures with parameter detection
-  - Exported variables with type inference
-  - Module-level variables
-  - Sourced files tracking
-  - Documentation comments
-  - Both `function_name()` and `function function_name` syntax
-
-#### Listed Only (file tracking)
-All other common languages are tracked but not parsed for signatures:
-- Go, Rust, Java, C/C++, Ruby, PHP, Swift, Kotlin, Scala, C#, SQL, R, Lua, Elixir, Julia, Dart, Vue, Svelte, and more
-
-### Adding Language Support
-
-**Want support for your favorite language?** 
-
-Fork this repo and add a parser! Check out the existing parsers in `scripts/index_utils.py`:
-- `extract_python_signatures()` for Python
-- `extract_javascript_signatures()` for JavaScript/TypeScript
-- `extract_shell_signatures()` for Shell scripts
-
-Pull requests are welcome! The parsing doesn't need to be perfect - even basic function detection helps.
-
-## Using PROJECT_INDEX.json
-
-### Option 1: Auto-load via CLAUDE.md (Recommended)
-Add to your project's `CLAUDE.md` file to automatically load the index in every session:
-```markdown
-# Project Context
-
-@PROJECT_INDEX.json
-
-Use the index to understand the codebase structure before making changes.
-```
-
-**Benefits**: 
-- Loads automatically every session
-- Claude always has architectural awareness
-- No need to manually reference
-
-**Tradeoff**: Uses context tokens even for simple tasks
-
-### Option 2: Reference When Needed
-Only load the index when you need architectural awareness:
-```bash
-# For specific architectural questions
-@PROJECT_INDEX.json what functions call authenticate_user?
-
-# Before major refactoring
-@PROJECT_INDEX.json show me all files that import the auth module
-
-# When adding new features
-@PROJECT_INDEX.json where should I add a new email service?
-```
-
-**Benefits**: 
-- Saves context tokens for simple tasks
-- More control over when to use it
-
-**Tradeoff**: Need to remember to reference it
-
-### Advanced Usage with Sub-Agents
-
-Use Claude's Task tool for complex architectural analysis:
-```
-Use the Task tool with the general-purpose agent to analyze @PROJECT_INDEX.json and provide:
-
-1. Impact analysis for refactoring the authentication system:
-   - List all files that import or depend on auth modules
-   - Identify all functions that call authentication functions
-   - Find potential breaking points if auth API changes
-
-2. Dead code analysis:
-   - List all functions with no "called_by" field
-   - Identify unused imports and modules
-   - Suggest safe removal candidates
-
-3. Call chain visualization:
-   - Trace complete execution path from login() to database.save()
-   - Identify all intermediate functions and their files
-   - Highlight potential optimization points
-
-Return specific file:line references for all findings.
-```
-
-### Common Usage Patterns
-
-#### Using Index-Aware Mode
-```bash
-# Automatically loads index into subagent for analysis
-claude "analyze impact of changing validate_user signature -i"
-claude "where should I add a new email validation function? -i"
-```
-
-#### Manual Reference
-```bash
-# Direct questions about the index
-@PROJECT_INDEX.json what calls validate_user?
-@PROJECT_INDEX.json find all authentication functions
-```
-
-#### During Debugging
-```bash
-# Trace execution flow
-@PROJECT_INDEX.json show the call chain from endpoint to database
-
-# Find all callers of a problematic function
-@PROJECT_INDEX.json what calls process_payment and from which files?
-```
-
-#### Code Cleanup
-```bash
-# Find dead code
-@PROJECT_INDEX.json list functions with no callers
-
-# Identify duplicate functionality
-@PROJECT_INDEX.json find functions with similar names or purposes
-```
-
-### Real-World Impact for Claude
-- **📍 No More Guessing**: Know exactly where each function exists
-- **🎯 Zero Search Waste**: Navigate directly without trial and error
-- **💥 Safe Changes**: See impact radius before modifying anything
-- **🧹 Clean Codebase**: Remove dead code with confidence
-- **🔗 Complete Context**: Understand full execution flows
-- **🚀 3x Faster**: Spend time coding, not searching
-
-## Configuration
-
-### Gitignore Support
-PROJECT_INDEX automatically respects your `.gitignore` file patterns. Files and directories listed in `.gitignore` will be excluded from indexing, ensuring that:
-- Sensitive files (secrets, credentials) are never indexed
-- Generated files don't clutter the index
-- Test files can be excluded if desired
-- Temporary and cache files are ignored
-
-The system combines `.gitignore` patterns with sensible defaults, so even without a `.gitignore` file, common directories like `node_modules`, `.git`, and `__pycache__` are automatically excluded.
-
-### Customizing Additional Ignored Directories
-For directories not covered by `.gitignore`, you can edit the `IGNORE_DIRS` set in `~/.claude-code-project-index/scripts/index_utils.py`:
-```python
-IGNORE_DIRS = {
-    '.git', 'node_modules', '__pycache__', '.venv', 'venv', 
-    'build', 'dist', '.next', 'target', '.pytest_cache'
-}
-```
-
-### File Size Limits
-The index is automatically compressed if it exceeds 1MB:
-- Tree structure is truncated to 100 entries
-- Non-parsed files are removed first
-
-## Python Detection
-
-PROJECT_INDEX includes intelligent Python detection that automatically finds and uses the **newest** Python version available:
-
-### How It Works
-1. **During Installation**: Scans your system for all Python versions
-2. **Selects the Newest**: Automatically picks the latest version (e.g., 3.12 over 3.10)
-3. **Saves the Choice**: Stores the selected Python path in `.python_cmd`
-4. **Hooks Use Same Python**: All hooks and commands use this saved Python
-5. **Virtual Environments Win**: If you're in a venv during install, that takes priority
-
-### Smart Version Selection
-- **Finds ALL Python installations** on your system
-- **Shows what's available** before making a choice
-- **Picks newest by default** for best performance and features
-- **Respects virtual environments** - venv Python always wins
-- **Consistent across usage** - hooks use the same Python that was selected
-
-Example output:
-```
-🔍 Searching for Python versions...
-   ✓ Found Python 3.11.5 at: /usr/bin/python3.11
-   ✓ Found Python 3.12.7 at: /usr/local/bin/python3.12
-   ✓ Found Python 3.13.1 at: /opt/homebrew/bin/python3.13
-
-   🎯 Selected newest version: Python 3.13
-      Using: /opt/homebrew/bin/python3.13
-```
-
-### Manual Override
-To use a specific Python version instead of the newest:
-```bash
-# During installation
-export PYTHON_CMD=python3.11
-curl -fsSL https://raw.githubusercontent.com/ericbuess/claude-code-project-index/main/install.sh | bash
-
-# Or for a specific path
-export PYTHON_CMD=/usr/local/bin/python3.12
-```
-
-### Clear Error Messages
-If Python isn't found, you'll see:
-- Minimum version requirements (3.8+)
-- Platform-specific installation instructions
-- How to manually specify Python location
-
-## ⚠️ Known Issues & Workarounds
-
-### Large Projects (>2000 files) 
-**Problem**: Compression may hang or timeout  
-**Workarounds**:
-1. Add more directories to `.gitignore` to reduce scope
-2. Fork and modify `MAX_FILES = 10000` in `scripts/project_index.py` 
-3. Ask Claude: "The indexer hangs on my large project. Please modify the compression function to handle it better"
-
-### .claude Directory Being Indexed
-**Problem**: Your `.claude` directory with subagents/docs inflates the index  
-**Status**: Fixed in latest version - `.claude` is now automatically excluded
-
-### Timeout Errors
-**Problem**: Large projects timeout during indexing  
-**Current Setting**: 30 seconds (reasonable for most projects)
-**For Large Projects**: Ask Claude: "Increase timeout to 60 seconds in scripts/i_flag_hook.py line 204"
-**For Dynamic Solution**: Ask Claude: "Make the timeout dynamic based on project size"
-
-### PROJECT_INDEX.md Instead of .json
-**Problem**: Getting a markdown file instead of JSON  
-**Solution**: This was an old issue - make sure you've reinstalled with the latest version
-
-### Compression Stalls Forever
-**Problem**: On very large projects (>3000 files), compression can hang  
-**Solution**: The latest version adds progress indicators and max iteration limits  
-**If Still Hanging**: Fork and ask Claude to rewrite the `compress_if_needed()` function for your needs
-
-## Troubleshooting
-
-### Python Issues?
-If hooks aren't working or you see Python errors:
-1. **Check saved Python**: `cat ~/.claude-code-project-index/.python_cmd`
-2. **Verify it still works**: Test the command shown above
-3. **Reinstall if needed**: The installer will find Python again
-4. **Override if needed**: `export PYTHON_CMD=/path/to/python` before installing
-
-### Index not updating?
-1. Check that hooks are enabled: `cat ~/.claude/settings.json`
-2. Verify installation: `ls -la ~/.claude-code-project-index/`
-3. Look for errors in Claude's output
-4. Reinstall if needed: `curl -fsSL https://raw.githubusercontent.com/ericbuess/claude-code-project-index/main/install.sh | bash`
-
-### -i flag not working?
-1. Make sure you've installed PROJECT_INDEX (run the installer)
-2. Check hooks are configured: `cat ~/.claude/settings.json | grep index_aware`
-3. Reinstall to fix hook paths if needed
-
-### Index too large?
-The system automatically compresses large indexes, but you can:
-- Add more directories to `IGNORE_DIRS` in `~/.claude-code-project-index/scripts/index_utils.py`
-- Reduce `MAX_TREE_DEPTH` (default: 5) in `~/.claude-code-project-index/scripts/project_index.py`
-
-### External changes not detected?
-The system checks for changes every time Claude stops. If needed, manually recreate the index:
-```bash
-# Remove old index and use -i to regenerate
-rm PROJECT_INDEX.json
-claude "check the code -i"
-```
-Or from the command line:
-```bash
-python3 ~/.claude-code-project-index/scripts/project_index.py
-```
-
-## Example PROJECT_INDEX.json Structure
-
-```json
-{
-  "indexed_at": "2024-01-15T10:30:00",
-  "root": "/path/to/project",
-  "project_structure": {
-    "tree": [".", "├── src/", "│   ├── models/", "..."]
-  },
-  "documentation_map": {
-    "README.md": {
-      "sections": ["Installation", "Usage", "API Reference"],
-      "architecture_hints": ["src/api/", "models/user.py"]
-    }
-  },
-  "directory_purposes": {
-    "src/auth": "Authentication and authorization logic",
-    "src/models": "Data models and database schemas"
-  },
-  "files": {
-    "src/models/user.py": {
-      "language": "python",
-      "parsed": true,
-      "functions": {
-        "hash_password": "(password: str) -> str"
-      },
-      "classes": {
-        "User": {
-          "inherits": ["BaseModel"],
-          "methods": {
-            "__init__": "(self, email: str, name: str) -> None",
-            "verify_password": "(self, password: str) -> bool"
-          },
-          "properties": ["id", "email", "name", "created_at"],
-          "class_constants": {
-            "DEFAULT_ROLE": "str",
-            "MAX_LOGIN_ATTEMPTS": "number"
-          }
-        }
-      },
-      "constants": {
-        "BCRYPT_ROUNDS": "number",
-        "TOKEN_EXPIRY": "number"
-      }
-    }
-  },
-  "stats": {
-    "total_files": 156,
-    "total_directories": 23,
-    "fully_parsed": {
-      "python": 89,
-      "javascript": 45
-    },
-    "listed_only": {
-      "go": 12,
-      "rust": 10
-    }
-  },
-  "dependency_graph": {
-    "src/api/auth.py": ["bcrypt", "jwt", "./models/user", "./utils/validators"],
-    "src/models/user.py": ["sqlalchemy", "./base_model"],
-    "src/utils/validators.py": ["re", "email_validator"]
-  }
-}
-```
-
-## Philosophy: Manual Control with Automatic Maintenance
-
-PROJECT_INDEX follows a deliberate design philosophy:
-
-### 🎯 Explicit Creation
-- **You decide** which projects need indexing
-- **No hidden behavior** - indexes only exist where you create them
-- **Privacy respected** - sensitive projects remain unindexed
-
-### 🔄 Automatic Maintenance
-- **Once created**, the index maintains itself
-- **Incremental updates** on every file edit
-- **External change detection** for git operations
-- **Staleness checks** ensure accuracy
-
-### 💭 Selective Usage
-- **Reference when needed** with `@PROJECT_INDEX.json`
-- **Skip for simple tasks** that don't need architecture awareness
-- **Optimal token usage** - only load context when valuable
-
-This approach respects developer autonomy while providing powerful assistance when requested.
-
-## Concrete Benefits for Claude Code
-
-### Speed & Efficiency
-- **90% fewer search commands** - Direct navigation to any function/class
-- **3x faster debugging** - Follow call chains instantly
-- **50% less context switching** - All architectural info in one place
-
-### Accuracy & Safety  
-- **Zero breaking changes** - `called_by` prevents surprise breakage
-- **No duplicate functions** - See all existing code before writing
-- **Correct file placement** - Directory purposes guide location choices
-- **Safe refactoring** - Know exact impact radius of changes
-
-### Code Quality
-- **Dead code removal** - Identify and remove unused functions
-- **Pattern consistency** - Match existing code style automatically  
-- **Complete fixes** - Fix entire call chains, not just symptoms
-- **Architectural integrity** - Maintain established project structure
-
-## Customizing for Your Needs
-
-Rather than waiting for updates, customize the tool yourself:
-
-```bash
-# 1. Navigate to the installation
-cd ~/.claude-code-project-index
-
-# 2. Ask Claude to make changes
-# Examples:
-# "Add support for Go and Rust files"
-# "Make the index more compact for large projects"
-# "Add GraphQL schema parsing"
-# "Customize for my Django/Rails/Next.js project"
-```
-
-### Common Customizations for Large Projects
-
-If you're hitting issues with large codebases, ask Claude to help:
-
-```bash
-# For hanging compression:
-"The compression hangs on my 5000 file project. Please rewrite compress_if_needed() to be more efficient"
-
-# For timeouts:
-"Add dynamic timeouts based on file count to all subprocess calls"
-
-# For memory issues:
-"Implement streaming JSON generation to handle my massive codebase"
-
-# For specific needs:
-"Only index src/ and lib/ directories, ignore everything else"
-```
-
-Remember: This is a personal tool I'm sharing. Fork it, modify it, make it yours!
-
-### Adding Language Support
-To add a new language parser, ask Claude:
-```
-Add support for [language] files in scripts/index_utils.py. 
-Look at extract_python_signatures() as an example.
-```
-
-## Version History
-
-- **v0.1.0** - Initial public release
-  - Python, JavaScript/TypeScript, and Shell script parsing
-  - Automatic index updates via hooks
-  - Gitignore support
-  - Basic UML pattern extraction
-
-## License
-
-MIT License - See LICENSE file for details
-
-## Author
-
+---
 Created by [Eric Buess](https://github.com/ericbuess)
 - 🐦 [Twitter/X](https://x.com/EricBuess)
 - 📺 [YouTube](https://www.youtube.com/@EricBuess)
