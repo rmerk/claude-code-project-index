@@ -116,6 +116,13 @@ if [[ -f "$SCRIPT_DIR/scripts/project_index.py" || -f "$SCRIPT_DIR/README.md" ]]
     cp "$SCRIPT_DIR/scripts"/*.py "$INSTALL_DIR/scripts/" 2>/dev/null || true
     cp "$SCRIPT_DIR/scripts"/*.sh "$INSTALL_DIR/scripts/" 2>/dev/null || true
     
+    # Copy agent files to Claude's agents directory
+    if [[ -d "$SCRIPT_DIR/agents" ]]; then
+        mkdir -p "$HOME/.claude/agents"
+        cp "$SCRIPT_DIR/agents"/*.md "$HOME/.claude/agents/" 2>/dev/null || true
+        echo "   ✓ Agent files installed to ~/.claude/agents/"
+    fi
+    
     # Remove the old setup script if it was copied
     rm -f "$INSTALL_DIR/scripts/setup_hooks.py"
     
@@ -129,6 +136,13 @@ else
     mkdir -p "$INSTALL_DIR/scripts"
     mv "$INSTALL_DIR"/*.py "$INSTALL_DIR/scripts/" 2>/dev/null || true
     rm -f "$INSTALL_DIR/scripts/setup_hooks.py"
+    
+    # Copy agent files to Claude's agents directory
+    if [[ -d "$INSTALL_DIR/agents" ]]; then
+        mkdir -p "$HOME/.claude/agents"
+        cp "$INSTALL_DIR/agents"/*.md "$HOME/.claude/agents/" 2>/dev/null || true
+        echo "   ✓ Agent files installed to ~/.claude/agents/"
+    fi
     
     echo "✓ Repository cloned to $INSTALL_DIR"
 fi

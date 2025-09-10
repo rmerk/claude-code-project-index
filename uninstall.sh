@@ -13,7 +13,8 @@ INSTALL_DIR="$HOME/.claude-code-project-index"
 echo "This will remove:"
 echo "  • PROJECT_INDEX hooks from ~/.claude/settings.json"
 echo "  • Installation directory at $INSTALL_DIR"
-echo "  • Old /index command if present"
+echo "  • index-analyzer agent from ~/.claude/agents/"
+echo "  • /index command if present"
 echo ""
 echo "⚠️  Note: This will NOT remove:"
 echo "  • Any PROJECT_INDEX.json files in your projects"
@@ -102,6 +103,13 @@ if [[ -f "$SETTINGS_FILE" ]]; then
     ' "$SETTINGS_FILE" > "${SETTINGS_FILE}.tmp" && mv "${SETTINGS_FILE}.tmp" "$SETTINGS_FILE"
     
     echo "✓ Hooks removed"
+fi
+
+# Remove index-analyzer agent
+if [[ -f "$HOME/.claude/agents/index-analyzer.md" ]]; then
+    echo "Removing index-analyzer agent..."
+    rm -f "$HOME/.claude/agents/index-analyzer.md"
+    echo "✓ Agent removed"
 fi
 
 # Remove installation directory
