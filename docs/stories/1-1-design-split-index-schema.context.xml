@@ -1,0 +1,221 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1.1</storyId>
+    <title>Design Split Index Schema</title>
+    <status>drafted</status>
+    <generatedAt>2025-10-31</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-1-design-split-index-schema.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer</asA>
+    <iWant>a well-defined schema for core and detail index formats</iWant>
+    <soThat>the split architecture has a solid foundation and clear contracts</soThat>
+    <tasks>
+      - Define Core Index Schema (AC: #1, #3)
+        - Document tree structure format (compact ASCII representation)
+        - Document function/class signature format (lightweight, names + line numbers only)
+        - Document imports structure
+        - Document git metadata fields (commit hash, author, date, PR number placeholder)
+        - Add version field (e.g., "2.0-split")
+        - Document module reference structure (module_id → PROJECT_INDEX.d/ path mapping)
+
+      - Define Detail Module Schema (AC: #2, #3)
+        - Document per-file detailed structure (full function signatures with params/returns/calls)
+        - Document class structure with methods
+        - Document local call graph format (within-module edges)
+        - Document documentation tiers placeholders (d_standard, d_archive for Epic 2)
+        - Add module_id and version fields
+
+      - Create JSON Schema Examples (AC: #4)
+        - Provide example core index JSON (PROJECT_INDEX.json)
+        - Provide example detail module JSON (PROJECT_INDEX.d/auth.json)
+        - Include realistic data (auth module with login/session functions)
+        - Show module reference links between core and detail
+
+      - Verify Feature Completeness (AC: #5)
+        - Map all existing single-file index features to split format
+        - Verify functions and classes are preserved (signatures in core, full in details)
+        - Verify call graph is preserved (global in core, local in details)
+        - Verify documentation map is preserved (critical in core, others in details)
+        - Document what goes in core vs. what goes in details (clear separation)
+
+      - Create Schema Documentation File (AC: #1, #2)
+        - Write `docs/split-index-schema.md` with complete schema specification
+        - Include rationale for core vs. detail separation
+        - Document size targets (core ≤100KB for 10,000 files)
+        - Add migration notes (how legacy format maps to split format)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. Core index schema documented (file tree, function signatures, imports, git metadata structure)
+    2. Detail module schema documented (per-module detailed function/class info)
+    3. Schema includes version field for future compatibility
+    4. JSON examples provided for both core and detail formats
+    5. Schema supports all existing index features (functions, classes, call graph, docs)
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <!-- Technical Specification - Epic 1 -->
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Split Index Architecture</title>
+        <section>Data Models and Contracts</section>
+        <snippet>Provides complete schema examples for Core Index (PROJECT_INDEX.json) and Detail Module (PROJECT_INDEX.d/auth.json) formats. Core index contains: version "2.0-split", tree structure, modules map, f_signatures (lightweight), imports, call graph edges, d_critical docs. Detail modules contain: module_id, version, files with full function signatures including params/returns/calls/docs, local call graphs, doc tiers (d_standard, d_archive).</snippet>
+      </doc>
+
+      <!-- Architecture Documentation -->
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation</title>
+        <section>Data Architecture - PROJECT_INDEX.json Structure</section>
+        <snippet>Documents current single-file format: at (timestamp), root (project root), tree (compact ASCII directory structure), stats (file counts), f (files in dense format with language + functions/classes), g (call graph edges), d (documentation map), deps (dependencies), dir_purposes. Dense format uses short keys and compact signatures for ~50% space reduction.</snippet>
+      </doc>
+
+      <!-- PRD Functional Requirements -->
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Functional Requirements - FR004, FR005</section>
+        <snippet>FR004: System shall generate lightweight core index (PROJECT_INDEX.json) containing file tree, function signatures, imports, git metadata. FR005: System shall generate detailed module indices in PROJECT_INDEX.d/ with per-module or per-file granularity. Schema must support lazy-loading and relevance-based detail retrieval.</snippet>
+      </doc>
+
+      <!-- PRD Non-Functional Requirements -->
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Non-Functional Requirements - NFR002</section>
+        <snippet>NFR002 Scalability: Core index size shall not exceed 100KB (~25,000 tokens) for codebases up to 10,000 files, ensuring compatibility with AI agent context limits. This constraint drives schema optimization decisions.</snippet>
+      </doc>
+
+      <!-- Current Index Format Reference -->
+      <doc>
+        <path>PROJECT_INDEX.json</path>
+        <title>Current Project Index (Legacy Format)</title>
+        <section>Root Structure</section>
+        <snippet>Existing format includes: at, root, tree (compact), stats (total_files, fully_parsed by language, markdown_files count), f (files with dense encoding), g (call graph edges as tuples), d (documentation headers), deps (file-level imports), dir_purposes. This format must be preserved for backward compatibility while being split into core + detail.</snippet>
+      </doc>
+
+      <!-- Real-World Large Index Analysis -->
+      <doc>
+        <path>External: /Users/rchoi/Developer/asure/asure.ptm.portal.web.ui.new/assureptmdashboard/PROJECT_INDEX.json</path>
+        <title>Large Project Index - Real-World Validation Data</title>
+        <section>Size Analysis and Split Architecture Impact</section>
+        <snippet>CRITICAL VALIDATION: 95.7KB index (33,474 tokens) from 670-file project EXCEEDS AI context limit (25,000 tokens) by 33%. Size breakdown reveals: f (files) 57.8%, deps (dependencies) 29.5%, g (call graph) 9.3%, d (docs) 1.7%, tree 0.9%. Split architecture estimation: Core index 15.9KB (16.6%), Detail modules 79.9KB (83.4%), achieving 83.4% compression - EXCEEDS 60-80% goal. KEY INSIGHT: Full function signatures (f) and dependencies (deps) consume 87.3% of size - MUST be in detail modules. Call graph (9.3%) can stay in core for navigation. This validates schema design: lightweight signatures + imports in core, full details deferred.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <!-- Core Index Generation Module -->
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>build_index</symbol>
+        <lines>109-131</lines>
+        <reason>Main index generation function that creates current single-file format. Returns index dict with: indexed_at, root, project_structure (tree), documentation_map, directory_purposes, stats, files, dependency_graph. This structure must be split into core + detail while preserving all data.</reason>
+      </artifact>
+
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>generate_tree_structure</symbol>
+        <lines>40-103</lines>
+        <reason>Generates compact ASCII tree representation used in current index. This tree format should be preserved in core index as-is (already optimized for size). Returns List[str] with tree lines using ├──, └──, │ characters.</reason>
+      </artifact>
+
+      <!-- Parsing Utilities and Data Structures -->
+      <artifact>
+        <path>scripts/index_utils.py</path>
+        <kind>module</kind>
+        <symbol>PARSEABLE_LANGUAGES, CODE_EXTENSIONS, MARKDOWN_EXTENSIONS</symbol>
+        <lines>20-45</lines>
+        <reason>Language detection constants that determine which files get fully parsed (functions/classes extracted) vs listed only. Schema must support both fully_parsed and listed_only file categories as shown in current stats structure.</reason>
+      </artifact>
+
+      <artifact>
+        <path>scripts/index_utils.py</path>
+        <kind>module</kind>
+        <symbol>extract_python_signatures, extract_javascript_signatures, extract_shell_signatures</symbol>
+        <lines>74+</lines>
+        <reason>Parser functions that extract function/class signatures from code. Schema must define how to store both lightweight signatures (core) and full signatures with params/docstrings (detail). Current format stores all details together; split format separates them.</reason>
+      </artifact>
+
+      <!-- Current Index Format (from PROJECT_INDEX.json) -->
+      <artifact>
+        <path>PROJECT_INDEX.json</path>
+        <kind>data</kind>
+        <symbol>root structure</symbol>
+        <lines>1-10</lines>
+        <reason>Current single-file format with: at (timestamp), root (path), tree (array), stats (object), f (files object with dense encoding), g (call graph array), d (docs object), deps (dependencies object). Schema must define how these map to core index fields vs detail module fields.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem name="python">
+        <package name="python" version="3.12+" required="true">Python standard library only - no external dependencies</package>
+        <stdlib>json, pathlib, datetime, typing</stdlib>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Core index MUST stay under 100KB (~25,000 tokens) for 10,000 file projects (NFR002)
+    - Schema MUST support all existing index features without information loss (AC #5)
+    - Use version field "2.0-split" for split format, preserve legacy format support (backward compatibility)
+    - Dense format optimization: short keys (f, g, d), compact signatures with colon separators
+    - Tree structure: Keep compact ASCII format unchanged (already optimal at <1%)
+    - Function signatures in core: Name + line number ONLY (no params, no docstrings) - CRITICAL: Full signatures consume 57.8% in real-world data
+    - Dependencies in DETAIL modules: Real-world data shows deps consume 29.5% - too large for core
+    - Detail modules: Full signatures with params, return types, calls, docstrings, AND file-level dependencies
+    - Module organization: Group files by top-level directory (depth 1), flat files → root.json
+    - Call graph: Store edges in core (global cross-module at 9.3% - acceptable), local edges in detail modules
+    - Documentation tiers: critical in core (README*, ARCHITECTURE*, API*), standard/archive in details
+    - Git metadata: Placeholder fields in schema (populated in Epic 2, Story 2.3)
+    - No external dependencies: Pure Python stdlib for schema validation
+    - JSON format: Human-readable, not minified (for debugging and third-party integration)
+    - VALIDATION: Real-world 670-file project achieves 83.4% compression (core 15.9KB from 95.7KB total) - exceeds 60-80% goal
+  </constraints>
+
+  <interfaces>
+    <!-- Existing Index Structure (Must Preserve for Backward Compat) -->
+    <interface>
+      <name>Legacy Single-File Index Format</name>
+      <kind>data-structure</kind>
+      <signature>{at: string, root: string, tree: string[], stats: {...}, f: {...}, g: [...], d: {...}, deps: {...}}</signature>
+      <path>PROJECT_INDEX.json</path>
+      <notes>Current format that must remain supported. Detection: no PROJECT_INDEX.d/ directory present. Version field absent or "1.0".</notes>
+    </interface>
+
+    <!-- New Split Format Interfaces -->
+    <interface>
+      <name>Core Index Format (v2.0-split)</name>
+      <kind>data-structure</kind>
+      <signature>{version: "2.0-split", at: string, root: string, tree: string[], stats: {...}, modules: {...}, f_signatures: {...}, g: [...], d_critical: {...}}</signature>
+      <path>PROJECT_INDEX.json (enhanced)</path>
+      <notes>Lightweight core with module references. modules field maps module_id → {path, files[], functions count, modified timestamp}. NOTE: imports/deps NOT in core (29.5% of size in real-world data) - moved to detail modules.</notes>
+    </interface>
+
+    <interface>
+      <name>Detail Module Format (v2.0-split)</name>
+      <kind>data-structure</kind>
+      <signature>{module_id: string, version: "2.0-split", files: {...}, dependencies: {...}, call_graph_local: [...], doc_standard: {...}, doc_archive: {...}}</signature>
+      <path>PROJECT_INDEX.d/{module_id}.json</path>
+      <notes>Per-module detailed content. files field contains full function/class signatures with params/returns/calls/docstrings. dependencies field contains file-level imports for this module. Loaded on-demand based on relevance.</notes>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>Testing approach per tech-spec and architecture: Real-world beta testing with community users providing feedback. No formal test framework currently exists. For this schema definition story (documentation-focused), testing involves: (1) Schema validation - ensure examples are valid JSON, (2) Completeness checking - verify all existing features mapped to new format, (3) Manual review - validate schema clarity and usability. Future stories will implement unit/integration tests for actual code generation.</standards>
+    <locations>No existing test directories. Future test structure per tech-spec Epic 1: Unit tests for schema validation (new tests/ directory), integration tests for end-to-end index generation, performance tests on synthetic repos (1K, 5K, 10K files).</locations>
+    <ideas>
+      - AC1: Validate schema documentation completeness by checking all required fields present in examples (core: version, at, root, tree, stats, modules, f_signatures, imports, g, d_critical; detail: module_id, version, files, call_graph_local, doc tiers)
+      - AC2: Verify detail module schema includes all existing features from current format (functions with full signatures, classes with methods, call graph edges, documentation sections)
+      - AC3: Confirm version field "2.0-split" present in both core and detail schemas
+      - AC4: JSON examples validate with standard JSON parser (python json.load), include realistic auth module data
+      - AC5: Create feature mapping table: existing single-file fields → core index fields + detail module fields, verify zero information loss
+      - Manual review: Have another developer review schema doc for clarity and implementability
+      - Future validation: Write JSON Schema validator (optional, could be future story)
+    </ideas>
+  </tests>
+</story-context>

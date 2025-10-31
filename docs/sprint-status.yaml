@@ -1,0 +1,60 @@
+# generated: 2025-10-31
+# project: claude-code-project-index
+# project_key: claude-code-project-index
+# tracking_system: file-system
+# story_location: {project-root}/docs/stories
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic exists in epic file but not contexted
+#   - contexted: Epic tech context created (required before drafting stories)
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - drafted: Story file created in stories folder
+#   - ready-for-dev: Draft approved and story context created
+#   - in-progress: Developer actively working on implementation
+#   - review: Under SM review (via code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - completed: Retrospective has been done
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epics should be 'contexted' before stories can be 'drafted'
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically drafts next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
+
+generated: 2025-10-31
+project: claude-code-project-index
+project_key: claude-code-project-index
+tracking_system: file-system
+story_location: "{project-root}/docs/stories"
+
+development_status:
+  epic-1: contexted
+  1-1-design-split-index-schema: ready-for-dev
+  1-2-generate-core-index: backlog
+  1-3-generate-detail-modules: backlog
+  1-4-lazy-loading-interface: backlog
+  1-5-update-index-analyzer-agent: backlog
+  1-6-backward-compatibility-detection: backlog
+  1-7-migration-utility: backlog
+  1-8-configuration-and-documentation: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-tiered-documentation-classification: backlog
+  2-2-tiered-documentation-storage: backlog
+  2-3-git-metadata-extraction: backlog
+  2-4-temporal-awareness-integration: backlog
+  2-5-mcp-tool-detection: backlog
+  2-6-hybrid-query-strategy: backlog
+  2-7-relevance-scoring-engine: backlog
+  2-8-impact-analysis-tooling: backlog
+  2-9-incremental-index-updates: backlog
+  epic-2-retrospective: optional
