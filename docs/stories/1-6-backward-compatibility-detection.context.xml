@@ -1,0 +1,166 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1.6</storyId>
+    <title>Backward Compatibility Detection</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-01</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-6-backward-compatibility-detection.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>an existing user</asA>
+    <iWant>the system to work with my existing single-file index</iWant>
+    <soThat>I can upgrade without breaking my workflow</soThat>
+    <tasks>
+      - Implement Legacy Format Detection (AC: #1)
+      - Update Index-Analyzer Agent for Backward Compatibility (AC: #2, #3)
+      - Add User Notifications (AC: #4)
+      - Implement Migration Suggestions (AC: #5)
+      - Update Index Generation Logic (AC: #3)
+      - Integration Testing (All ACs)
+      - Documentation Updates
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. System detects legacy single-file format (no PROJECT_INDEX.d/ directory)
+    2. Agent loads full single-file index when split architecture not detected
+    3. All existing functionality works with legacy format (no regressions)
+    4. Clear message informs user that legacy format is in use
+    5. System suggests migration to split format for large projects
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Split Index Architecture</title>
+        <section>Workflow 4: Backward Compatibility Detection</section>
+        <snippet>The system must detect whether index is legacy or split format by checking: (1) PROJECT_INDEX.d/ directory existence, (2) version field in PROJECT_INDEX.json, (3) modules vs f key structure. When legacy detected, load full single-file index; when split detected, enable lazy-loading mode.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Split Index Architecture</title>
+        <section>Backward Compatibility Contract</section>
+        <snippet>Legacy format detection: Check if PROJECT_INDEX.d/ directory exists. If not, return "legacy". Also validate version field ("2.0-split" vs "1.0" or missing). All existing functionality must work with legacy format without modification.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR010: Legacy format support</section>
+        <snippet>System shall maintain support for legacy single-file PROJECT_INDEX.json format for existing users. No breaking changes.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR011: Migration path</section>
+        <snippet>System shall provide migration path from single-file to split architecture format. Migration suggestions when beneficial (large projects >1000 files).</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 1.6: Backward Compatibility Detection</section>
+        <snippet>System detects legacy single-file format, loads full index when split not detected, provides clear messaging, suggests migration for large projects. Prerequisites: Story 1.5 (agent supports split format).</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation</title>
+        <section>Data Architecture - PROJECT_INDEX.json Structure</section>
+        <snippet>Legacy format uses "f" key for files, dense format optimization. Split format uses "version": "2.0-split" and "modules" key. Both formats must be supported for backward compatibility.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>agents/index-analyzer.md</path>
+        <kind>agent</kind>
+        <symbol>SPLIT ARCHITECTURE DETECTION</symbol>
+        <lines>19-48</lines>
+        <reason>Agent already has basic split/legacy detection logic from Story 1.5. Check version field, modules section, and PROJECT_INDEX.d/ directory. This story enhances with better messaging and migration suggestions.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/loader.py</path>
+        <kind>module</kind>
+        <symbol>find_module_for_file</symbol>
+        <lines>104-150</lines>
+        <reason>Already handles both formats gracefully. Checks for "modules" (v2.0-split) vs "f" (legacy) key. Provides clear error messages when PROJECT_INDEX.d/ not found. Shows pattern for format detection.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>generate_split_index</symbol>
+        <lines>1-100</lines>
+        <reason>Main index generation logic. Need to add detect_index_format() function here. Already supports both legacy and split generation modes.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/test_index_analyzer_agent.py</path>
+        <kind>test</kind>
+        <symbol>test_split_architecture_detection</symbol>
+        <lines>24-62</lines>
+        <reason>Existing test validates split architecture detection in agent. Can be extended to test legacy format detection and backward compatibility.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <stdlib>json, pathlib, logging, warnings, typing</stdlib>
+        <external>None - Python 3.12+ stdlib only</external>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Zero breaking changes: All existing functionality must work with legacy format
+    - No external dependencies: Python 3.12+ stdlib only
+    - Format detection must be fast: <100ms
+    - Migration is optional, not required: Users can stay on legacy format indefinitely
+    - Clear, helpful messaging: Informational (not warnings) for legacy format detection
+    - Configuration respect: Allow forcing legacy mode even for large projects
+    - Agent backward compatibility: Existing analysis capabilities preserved for legacy format
+    - Testing requirement: Validate both formats (legacy and split) work correctly
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>detect_index_format</name>
+      <kind>function</kind>
+      <signature>def detect_index_format(index_path: Path) -> str</signature>
+      <path>scripts/project_index.py</path>
+      <description>NEW - Detect whether index is legacy or split format. Returns "split" if PROJECT_INDEX.d/ exists and version="2.0-split", otherwise "legacy". Primary check: directory existence. Secondary check: version field validation.</description>
+    </interface>
+    <interface>
+      <name>SPLIT ARCHITECTURE DETECTION</name>
+      <kind>agent section</kind>
+      <signature>Detection logic with 3 checks: version field, modules section, directory</signature>
+      <path>agents/index-analyzer.md</path>
+      <description>ENHANCE - Agent section from Story 1.5. Add clear logging for legacy detection, migration suggestions for large projects. Format: "🔍 Detected legacy format (v1.0) - loading full index".</description>
+    </interface>
+    <interface>
+      <name>find_module_for_file</name>
+      <kind>function</kind>
+      <signature>def find_module_for_file(file_path: str, core_index: Dict) -> str</signature>
+      <path>scripts/loader.py</path>
+      <description>REFERENCE - Already checks for "modules" (v2.0) vs "f" (v1.0) keys. Shows pattern for backward compatibility handling. Lines 135-150 demonstrate legacy format error messaging.</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Python unittest framework. Test files in scripts/ directory with naming pattern test_*.py.
+      Performance target: format detection <100ms. Coverage target: 80%+ for new functions.
+      Test both positive and negative cases. Test edge cases: empty index, missing version field, corrupted JSON.
+    </standards>
+    <locations>
+      - scripts/test_index_analyzer_agent.py (agent tests)
+      - scripts/test_loader.py (API tests - has backward compat tests already)
+      - New tests can be added to existing test files or create test_backward_compat.py
+    </locations>
+    <ideas>
+      AC#1: Test detect_index_format() with legacy format (no PROJECT_INDEX.d/), split format (directory + version), edge cases (empty dir, missing version)
+      AC#2: Test agent loads full index with legacy format, uses lazy-loading with split format
+      AC#3: Regression test - verify all existing agent capabilities work with legacy format (call graph, dependency analysis, architecture insights)
+      AC#4: Test user messaging - verify informational message shown when legacy detected, no errors or warnings
+      AC#5: Test migration suggestion logic - shown for >1000 file projects, not shown for small projects, shown only once per session
+    </ideas>
+  </tests>
+</story-context>

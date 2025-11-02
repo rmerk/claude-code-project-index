@@ -1267,6 +1267,24 @@ def infer_directory_purpose(path: Path, files_within: List[str]) -> Optional[str
     return None
 
 
+def extract_lightweight_signature(func_data: Dict, func_name: str) -> str:
+    """Convert full function data to lightweight format (name:line).
+
+    Args:
+        func_data: Function data dict with 'line' key, or string signature
+        func_name: Name of the function
+
+    Returns:
+        Lightweight signature in format "name:line"
+    """
+    if isinstance(func_data, dict):
+        line = func_data.get('line', 0)
+        return f"{func_name}:{line}"
+    else:
+        # If it's already a string signature, just return name:0
+        return f"{func_name}:0"
+
+
 def get_language_name(extension: str) -> str:
     """Get readable language name from extension."""
     if extension in PARSEABLE_LANGUAGES:

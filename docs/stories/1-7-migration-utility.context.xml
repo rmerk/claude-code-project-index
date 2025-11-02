@@ -1,0 +1,157 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1.7</storyId>
+    <title>Migration Utility</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-01</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-7-migration-utility.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>an existing user</asA>
+    <iWant>a simple command to migrate my index to split architecture</iWant>
+    <soThat>I can benefit from the new scalability without manual work</soThat>
+    <tasks>
+- [ ] Implement Migration Command Interface (AC: #1)
+- [ ] Create Backup Mechanism (AC: #3)
+- [ ] Implement Data Extraction and Splitting (AC: #2)
+- [ ] Implement Split Index Generation (AC: #2)
+- [ ] Implement Integrity Validation (AC: #4)
+- [ ] Implement Rollback on Failure (AC: #5)
+- [ ] Add User Messaging (AC: #5)
+- [ ] Testing (All ACs)
+- [ ] Documentation Updates
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. Command `/index --migrate` converts single-file → split format
+2. Migration preserves all existing index data (no information loss)
+3. Migration creates backup of original single-file index
+4. Migration validates split index after creation (integrity check)
+5. Clear success/failure messages with rollback option if migration fails
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/split-index-schema.md" title="Split Index Schema Documentation" section="Overview" snippet="The Split Index Architecture separates project metadata into two layers: Core Index (PROJECT_INDEX.json) for lightweight navigation and Detail Modules (PROJECT_INDEX.d/*.json) for detailed context. Goals: support 10,000 files with core under 100KB." />
+
+      <doc path="docs/split-index-schema.md" title="Split Index Schema Documentation" section="Migration Notes" snippet="Migration process: 1) Read legacy index 2) Extract core fields 3) Generate lightweight signatures 4) Group files by directory 5) Create detail modules 6) Write core with module references 7) Write detail module files. Example migration logic provided." />
+
+      <doc path="docs/split-index-schema.md" title="Split Index Schema Documentation" section="Feature Mapping" snippet="Legacy to split format mapping ensures zero information loss: f (full) → f_signatures (light) + files.functions (full), g (all) → g (cross-module) + call_graph_local (within-module), deps → imports (renamed)." />
+
+      <doc path="docs/tech-spec-epic-1.md" title="Epic Technical Specification" section="Workflow 3: Migration from Legacy" snippet="1) Detect legacy format 2) Create backup 3) Extract lightweight/full data 4) Write core + PROJECT_INDEX.d/ 5) Validate integrity (all data preserved) 6) Report with size comparison. Must complete in <10 seconds." />
+
+      <doc path="docs/tech-spec-epic-1.md" title="Epic Technical Specification" section="Migration API" snippet="migrate_to_split_format(legacy_path, backup=True) -> (core_path, detail_dir). Creates PROJECT_INDEX.d/, writes new core, optionally backs up legacy. Returns paths to split artifacts." />
+
+      <doc path="docs/tech-spec-epic-1.md" title="Epic Technical Specification" section="Data Integrity" snippet="Migration preserves 100% of data from legacy format (zero information loss). Hash validation after split generation ensures consistency. Atomic writes prevent corruption. Backup enables rollback." />
+
+      <doc path="docs/architecture.md" title="Architecture Documentation" section="Data Architecture" snippet="PROJECT_INDEX.json structure includes: at (timestamp), root (project root), tree (directory structure), stats (file counts), f (files in dense format), g (call graph), d (documentation), deps (dependencies)." />
+
+      <doc path="docs/PRD.md" title="Product Requirements Document" section="FR011" snippet="Migration path requirement: Users must be able to convert existing legacy indices to split format without information loss. Migration should create backup and validate integrity." />
+    </docs>
+
+    <code>
+      <artifact path="scripts/project_index.py" kind="script" symbol="detect_index_format" lines="40-74" reason="Format detection function to verify legacy format before migration. Primary check: directory existence. Secondary check: version field validation." />
+
+      <artifact path="scripts/project_index.py" kind="script" symbol="generate_split_index" lines="146-376" reason="Existing split index generation logic that can be reused for migration output. Handles module organization, file grouping, signature extraction." />
+
+      <artifact path="scripts/project_index.py" kind="script" symbol="generate_tree_structure" lines="77-145" reason="Tree generation preserves original structure during migration. Used in both core index output." />
+
+      <artifact path="scripts/project_index.py" kind="script" symbol="build_index" lines="532-826" reason="Legacy single-file index generation (backward compatibility). Shows structure of legacy format to extract during migration." />
+
+      <artifact path="scripts/index_utils.py" kind="module" symbol="extract_python_signatures" lines="161-544" reason="Parsing logic for extracting function/class signatures from Python files. Reused during migration to rebuild split format." />
+
+      <artifact path="scripts/index_utils.py" kind="module" symbol="extract_javascript_signatures" lines="545-905" reason="Parsing logic for JS/TS files. Used when migrating legacy indices containing JavaScript code." />
+
+      <artifact path="scripts/index_utils.py" kind="module" symbol="build_call_graph" lines="132-160" reason="Call graph construction from extracted functions. Must split into cross-module (core) and within-module (detail) during migration." />
+
+      <artifact path="scripts/loader.py" kind="module" symbol="load_detail_module" lines="20-103" reason="Lazy-loading interface for detail modules. Use to validate split index works after migration (integration test)." />
+
+      <artifact path="scripts/test_backward_compat.py" kind="test" symbol="TestDetectIndexFormat" lines="17-183" reason="Test patterns for format detection, validation, edge cases. Provides blueprint for migration testing strategy." />
+    </code>
+
+    <dependencies>
+      <python>
+        <package name="json" version="stdlib" />
+        <package name="pathlib" version="stdlib" />
+        <package name="shutil" version="stdlib" />
+        <package name="hashlib" version="stdlib" />
+        <package name="datetime" version="stdlib" />
+        <package name="os" version="stdlib" />
+        <package name="sys" version="stdlib" />
+        <package name="typing" version="stdlib" />
+        <package name="unittest" version="stdlib" />
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- Python 3.12+ stdlib only - NO external dependencies
+- Must preserve 100% of data from legacy index (zero information loss)
+- Migration must complete in <10 seconds for typical projects (NFR)
+- Backup creation mandatory before migration starts
+- Atomic writes (temp file + rename) to prevent corruption
+- Hash-based validation to ensure data integrity
+- Rollback capability if migration fails
+- No breaking changes to existing legacy format support
+- Respect .gitignore patterns throughout
+- No eval() or exec() - pure parsing only
+- All file paths must be project-relative in output
+  </constraints>
+
+  <interfaces>
+    <interface name="detect_index_format" kind="function" signature="detect_index_format(index_path: Path = None) -> str" path="scripts/project_index.py:40-74">
+      Returns "split" or "legacy" based on PROJECT_INDEX.d/ directory existence and version field. Use to verify legacy format before migrating.
+    </interface>
+
+    <interface name="generate_split_index" kind="function" signature="generate_split_index(root_dir: str) -> Tuple[Dict, int]" path="scripts/project_index.py:146-376">
+      Generates split format index (core + detail modules). Returns (core_index_dict, total_size). Reuse for migration output generation.
+    </interface>
+
+    <interface name="organize_into_modules" kind="function" signature="organize_into_modules(files: List[Path], root_path: Path, depth: int = 1) -> Dict[str, List[str]]" path="scripts/project_index.py:1169-1206">
+      Groups files by directory structure into modules. Returns module_id -> file_paths mapping. Core grouping logic for migration.
+    </interface>
+
+    <interface name="create_module_references" kind="function" signature="create_module_references(modules: Dict[str, List[str]], functions: Dict[str, Dict]) -> Dict[str, Dict]" path="scripts/project_index.py:1207-1241">
+      Creates module metadata (file count, function count, modified timestamp). Used in core index modules section.
+    </interface>
+
+    <interface name="build_call_graph" kind="function" signature="build_call_graph(functions: Dict, classes: Dict) -> Tuple[Dict, Dict]" path="scripts/index_utils.py:132-160">
+      Builds bidirectional call graph. During migration, split into cross-module (core g) and within-module (detail call_graph_local).
+    </interface>
+
+    <interface name="load_detail_module" kind="function" signature="load_detail_module(module_name: str, index_dir: Optional[Path] = None) -> Dict" path="scripts/loader.py:20-103">
+      Loads detail module by name. Use in integration tests to verify split index works after migration.
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+Use Python unittest framework. Test files in scripts/ directory alongside implementation. Test pattern: tempfile.TemporaryDirectory for test isolation, proper setUp/tearDown, performance validation (<10s for migration NFR), hash-based integrity validation. Follow existing test patterns from test_backward_compat.py and test_loader.py.
+    </standards>
+
+    <locations>
+- scripts/test_*.py - Unit tests for migration logic
+- Integration tests within test files for end-to-end migration workflow
+    </locations>
+
+    <ideas>
+- **AC#1**: Test --migrate flag parsing and workflow trigger
+- **AC#2**: Test data preservation with hash comparison (legacy vs split combined)
+- **AC#2**: Test module organization matches directory structure
+- **AC#2**: Verify all function/class signatures preserved
+- **AC#2**: Verify call graph edges preserved (split correctly between core and detail)
+- **AC#3**: Test backup creation with timestamp, verify permissions preserved
+- **AC#4**: Test integrity validation (file counts, function counts, hash validation)
+- **AC#4**: Test validation detects corruption or missing data
+- **AC#5**: Test rollback on simulated failures (write errors, validation errors)
+- **AC#5**: Test user messaging (success, failure, progress indicators)
+- **Performance**: Test migration completes in <10s for typical project
+- **Edge cases**: Empty index, single file, flat structure, deep nesting
+- **Integration**: Verify agent can load and analyze split index after migration (use test_agent_split_format_lazy_loading pattern from Story 1.6)
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,230 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>8</storyId>
+    <title>Configuration and Documentation</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-01</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-8-configuration-and-documentation.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>control over index generation mode and clear documentation</iWant>
+    <soThat>I can choose the right approach for my project size</soThat>
+    <tasks>
+- Implement Configuration System (AC: #1, #2, #3)
+  - Add configuration file support (.project-index.json or similar)
+  - Add --mode flag to project_index.py (single, split, auto)
+  - Add --threshold flag to configure auto-detection threshold
+  - Implement configuration loading and validation
+  - Add configuration precedence: CLI flags > config file > defaults
+
+- Update README with Split Architecture Documentation (AC: #4)
+  - Add "Split Index Architecture" section explaining core/detail separation
+  - Document benefits: scalability, lazy-loading, context efficiency
+  - Add size comparison examples (before/after split)
+  - Document when to use split vs single-file mode
+  - Add visual diagram of split architecture
+
+- Create Migration Guide (AC: #5)
+  - Document step-by-step migration process
+  - Add migration examples with expected output
+  - Document rollback procedure
+  - Add pre-migration checklist
+  - Document validation steps after migration
+
+- Add Troubleshooting Documentation (AC: #5)
+  - Common issues: "Index too large", "Module not found", "Migration failed"
+  - Solutions for each issue type
+  - Performance tuning guidance
+  - Configuration examples for different project sizes
+  - FAQ section
+
+- Testing (All ACs)
+  - Unit tests for configuration loading and precedence
+  - Integration tests for --mode flag (single, split, auto)
+  - Integration tests for --threshold flag
+  - Validate default behavior (auto-detect at 1000 files)
+  - Test config file parsing and validation
+  - Documentation review for completeness and accuracy
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. Configuration option to force single-file mode (for small projects)
+2. Configuration option to force split mode (for large projects)
+3. Auto-detection threshold configurable (default: >1000 files → split mode)
+4. README updated with split architecture explanation and benefits
+5. Migration guide and troubleshooting documentation added
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/tech-spec-epic-1.md" section="Configuration Manager">
+        Configuration Manager module specification (line 67). Manages split/single-file mode selection based on project size and user preferences.
+      </doc>
+      <doc path="docs/tech-spec-epic-1.md" section="Index Generation API">
+        API specification for generate_index() function with mode parameter support (lines 222-244). Implements auto-detection based on configurable threshold.
+      </doc>
+      <doc path="docs/tech-spec-epic-1.md" section="Acceptance Criteria AC8.1-8.5">
+        Acceptance criteria for Story 1.8 (lines 512-516). Defines configuration options, threshold settings, and documentation requirements.
+      </doc>
+      <doc path="docs/PRD.md" section="Non-Functional Requirements">
+        NFR002 defines scalability requirement: Core index must not exceed 100KB for 10,000 files. This drives the need for configurable split mode.
+      </doc>
+      <doc path="docs/split-index-schema.md" section="Overview">
+        Comprehensive schema documentation explaining core vs detail separation, size budgets, and module organization strategy. Essential reference for README documentation.
+      </doc>
+      <doc path="docs/split-index-schema.md" section="Backward Compatibility">
+        Format detection algorithm and dual-format support patterns (lines 739-815). Demonstrates how tools should detect and load both legacy and split formats.
+      </doc>
+      <doc path="docs/epics.md" section="Story 1.8">
+        Story requirements (lines 163-177). Specifies configuration options, auto-detection threshold (>1000 files), README updates, and migration guide needs.
+      </doc>
+      <doc path="docs/architecture.md" section="Hook Layer">
+        Integration constraints for Claude Code hook system. Configuration must not break existing hook-based architecture.
+      </doc>
+      <doc path="README.md" section="Backward Compatibility">
+        Existing documentation section (lines 202-352) that demonstrates migration guide format. Use as template for enhanced split architecture documentation.
+      </doc>
+    </docs>
+    <code>
+      <artifact path="scripts/project_index.py" kind="main-module" symbol="main" lines="1682-1800" reason="Entry point with existing argument parsing. Add --mode and --threshold flags here, integrate config file loading.">
+        Current flags: --migrate, --format=split/legacy, --split, --skip-details, --dry-run
+        Auto-detection logic at lines 1731-1737 with hardcoded 1000 threshold
+        Mode selection based on flags and env vars (lines 1699-1738)
+      </artifact>
+      <artifact path="scripts/project_index.py" kind="function" symbol="generate_split_index" lines="146-376" reason="Split index generation function. Called when use_split_mode=True. No modification needed, but mode selection logic will determine when to call this.">
+        Returns tuple (index_dict, skipped_count)
+        Creates PROJECT_INDEX.d/ directory and detail modules
+      </artifact>
+      <artifact path="scripts/project_index.py" kind="function" symbol="build_index" lines="532-825" reason="Legacy single-file index generation. Called when split mode not enabled. No modification needed.">
+        Returns tuple (index_dict, skipped_count)
+        Generates comprehensive single-file index
+      </artifact>
+      <artifact path="scripts/project_index.py" kind="function" symbol="detect_index_format" lines="40-74" reason="Existing format detection function from Story 1.6. Can be referenced in documentation to explain format auto-detection.">
+        Detects legacy (v1.0) vs split (v2.0-split) format
+        Checks for PROJECT_INDEX.d/ directory and version field
+      </artifact>
+      <artifact path="scripts/index_utils.py" kind="module" symbol="get_git_files" reason="Used for file count in auto-detection (line 1734). Essential for threshold-based mode selection.">
+        Returns list of git-tracked files
+        Fast way to determine project size
+      </artifact>
+      <artifact path="scripts/test_migration.py" kind="test-module" reason="Test pattern reference - uses unittest, tempfile.TemporaryDirectory, comprehensive AC coverage">
+        20 test cases covering all ACs
+        CLI integration tests (lines 431-445)
+        Performance validation patterns
+      </artifact>
+      <artifact path="scripts/test_backward_compat.py" kind="test-module" reason="Test pattern for format detection and compatibility">
+        Unit tests with setUp/tearDown
+        Temporary directory isolation
+        Format detection validation
+      </artifact>
+      <artifact path="README.md" kind="documentation" lines="202-352" reason="Existing migration guide and backward compatibility section. Use as template for new split architecture documentation.">
+        Well-structured format with examples
+        Step-by-step migration process
+        Troubleshooting section included
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package name="json" version="stdlib" usage="Configuration file parsing, JSON serialization">Standard library</package>
+        <package name="argparse" version="stdlib" usage="CLI argument parsing for --mode and --threshold flags">Standard library</package>
+        <package name="pathlib" version="stdlib" usage="File path operations">Standard library</package>
+        <package name="os" version="stdlib" usage="Environment variable access">Standard library</package>
+        <package name="sys" version="stdlib" usage="sys.argv for argument parsing">Standard library</package>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint type="architecture">Python stdlib only - No external dependencies allowed (maintains project principle)</constraint>
+    <constraint type="compatibility">Must maintain backward compatibility with existing --format and --split flags during transition</constraint>
+    <constraint type="integration">Cannot break existing hook-based integration (UserPromptSubmit, Stop hooks)</constraint>
+    <constraint type="precedence">Configuration priority order: CLI flags (highest) > Config file > System defaults (lowest)</constraint>
+    <constraint type="threshold">Auto-detection threshold default: 1000 files for split mode (must be configurable)</constraint>
+    <constraint type="performance">Configuration loading must add minimal overhead (<100ms)</constraint>
+    <constraint type="documentation">All configuration options must be documented in README with examples</constraint>
+    <constraint type="testing">Comprehensive test coverage required - unit tests for config loading, integration tests for CLI flags</constraint>
+  </constraints>
+  <interfaces>
+    <interface name="generate_split_index" kind="function-signature" signature="generate_split_index(root_dir: str) -> Tuple[Dict, int]" path="scripts/project_index.py:146">
+      Generates split format index (v2.0-split). Called when mode selection determines split mode is appropriate.
+      Returns (index_dict, skipped_count)
+    </interface>
+    <interface name="build_index" kind="function-signature" signature="build_index(root_dir: str) -> Tuple[Dict, int]" path="scripts/project_index.py:532">
+      Generates legacy single-file index (v1.0). Called when single-file mode selected or auto-detected for small projects.
+      Returns (index_dict, skipped_count)
+    </interface>
+    <interface name="detect_index_format" kind="function-signature" signature="detect_index_format(index_path: Path = None) -> str" path="scripts/project_index.py:40">
+      Detects format version ('2.0-split', '1.0', or 'none'). Can be referenced in documentation examples.
+    </interface>
+    <interface name="Configuration File Format" kind="json-schema" path="(to be created: .project-index.json.example)">
+      JSON configuration file structure:
+      {
+        "mode": "auto" | "split" | "single",
+        "threshold": number (default: 1000),
+        "max_index_size": number (default: 1048576),
+        "compression_level": "standard" | "aggressive"
+      }
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+      Testing framework: Python unittest (stdlib, no external dependencies)
+      Test isolation: Use tempfile.TemporaryDirectory for isolated test environments
+      Test structure: setUp() for initialization, tearDown() for cleanup
+      Naming convention: test_* methods describing specific scenarios
+      Performance validation: Include timing assertions for NFR compliance
+      Integration tests: CLI flag testing via subprocess or sys.argv manipulation
+      Coverage targets: All ACs must have corresponding test cases
+      Test data: Synthetic config files and project structures for reproducibility
+      Documentation testing: Validate README completeness and accuracy (manual review checklist)
+    </standards>
+    <locations>
+      scripts/test_configuration.py - New test file for configuration and mode selection
+      scripts/test_migration.py - Reference for CLI integration test patterns (lines 431-445)
+      scripts/test_backward_compat.py - Reference for format detection patterns
+    </locations>
+    <ideas>
+      <test ac="1" idea="Unit test: Configuration file loading with mode='single' forces single-file generation">
+        Test that config file with {"mode": "single"} always generates legacy format regardless of file count
+      </test>
+      <test ac="2" idea="Unit test: Configuration file loading with mode='split' forces split generation">
+        Test that config file with {"mode": "split"} always generates split format even for small projects
+      </test>
+      <test ac="3" idea="Unit test: Configurable threshold in config file">
+        Test that config file with {"threshold": 500} triggers split mode at 500 files instead of default 1000
+      </test>
+      <test ac="3" idea="Integration test: --threshold CLI flag overrides config file threshold">
+        Create config with threshold=500, run with --threshold 2000, verify 2000 is used
+      </test>
+      <test ac="3" idea="Integration test: --mode CLI flag overrides config file mode">
+        Create config with mode=split, run with --mode single, verify single-file generated
+      </test>
+      <test ac="1,2,3" idea="Unit test: Configuration precedence validation">
+        Test all three priority levels: CLI flag beats config file beats defaults
+      </test>
+      <test ac="1,2,3" idea="Integration test: Default auto-detection at 1000 files">
+        Create synthetic 999-file project, verify legacy mode. Create 1001-file project, verify split mode.
+      </test>
+      <test ac="4,5" idea="Documentation review test: README completeness checklist">
+        Manual validation that README includes all required sections (automated checklist in test)
+      </test>
+      <test ac="all" idea="Performance test: Config loading completes in <100ms">
+        Time configuration file reading and parsing, verify meets NFR
+      </test>
+      <test ac="all" idea="Edge case: Missing config file gracefully falls back to defaults">
+        Test that absence of .project-index.json doesn't cause errors
+      </test>
+      <test ac="all" idea="Edge case: Corrupted JSON config file handled gracefully">
+        Test invalid JSON in config file produces warning and uses defaults
+      </test>
+      <test ac="3" idea="Integration test: --threshold with --mode=auto triggers at custom threshold">
+        Run with --mode auto --threshold 500, verify split mode at 501 files
+      </test>
+    </ideas>
+  </tests>
+</story-context>

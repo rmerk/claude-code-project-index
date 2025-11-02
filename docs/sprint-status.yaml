@@ -38,13 +38,13 @@ story_location: "{project-root}/docs/stories"
 development_status:
   epic-1: contexted
   1-1-design-split-index-schema: done
-  1-2-generate-core-index: backlog
-  1-3-generate-detail-modules: backlog
-  1-4-lazy-loading-interface: backlog
-  1-5-update-index-analyzer-agent: backlog
-  1-6-backward-compatibility-detection: backlog
-  1-7-migration-utility: backlog
-  1-8-configuration-and-documentation: backlog
+  1-2-generate-core-index: done
+  1-3-generate-detail-modules: done
+  1-4-lazy-loading-interface: done
+  1-5-update-index-analyzer-agent: done
+  1-6-backward-compatibility-detection: done
+  1-7-migration-utility: done
+  1-8-configuration-and-documentation: done
   epic-1-retrospective: optional
 
   epic-2: backlog

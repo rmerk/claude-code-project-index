@@ -1,0 +1,253 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1.4</storyId>
+    <title>Lazy-Loading Interface</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-01</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-4-lazy-loading-interface.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>an AI agent</asA>
+    <iWant>a clear interface to request specific detail modules</iWant>
+    <soThat>I can load only relevant code sections based on user queries</soThat>
+    <tasks>
+- [ ] Create Loader Module (AC: #1, #2, #3, #4)
+  - [ ] Create new file `scripts/loader.py`
+  - [ ] Implement `load_detail_module(module_name: str) -> dict` function
+  - [ ] Implement `load_detail_by_path(file_path: str, core_index: dict) -> dict` function
+  - [ ] Implement `load_multiple_modules(module_names: list[str]) -> dict` function
+  - [ ] Add error handling for FileNotFoundError with clear messages
+  - [ ] Add validation for module_name format (alphanumeric + hyphen/underscore)
+
+- [ ] Implement Module Name Resolution (AC: #1)
+  - [ ] Load detail module JSON from `PROJECT_INDEX.d/{module_name}.json`
+  - [ ] Validate JSON structure (check for required fields: module_id, version, files)
+  - [ ] Return parsed JSON dict
+  - [ ] Handle missing files with descriptive error
+
+- [ ] Implement File Path Resolution (AC: #2)
+  - [ ] Create helper function `find_module_for_file(file_path: str, core_index: dict) -> str`
+  - [ ] Search core_index["modules"] for module containing file_path
+  - [ ] Return module_id if found
+  - [ ] Raise ValueError if file not found in any module
+  - [ ] Call `load_detail_module()` with resolved module_id
+
+- [ ] Implement Batch Loading (AC: #4)
+  - [ ] Accept list of module names
+  - [ ] Load each module sequentially (parallel optimization deferred to Epic 2)
+  - [ ] Return dict mapping module_name -> module_content
+  - [ ] Handle partial failures: skip missing modules, log warnings
+  - [ ] Return all successfully loaded modules
+
+- [ ] Add Error Handling and Validation (AC: #3)
+  - [ ] FileNotFoundError: "Module '{module_name}' not found in PROJECT_INDEX.d/"
+  - [ ] JSONDecodeError: "Invalid JSON in detail module '{module_name}'"
+  - [ ] ValueError: "File '{file_path}' not found in core index modules"
+  - [ ] TypeError: Handle invalid input types gracefully
+  - [ ] Log warnings for partial batch load failures
+
+- [ ] Create Documentation (AC: #5)
+  - [ ] Add docstrings to all public functions with examples
+  - [ ] Create `docs/lazy-loading-interface.md` usage guide
+  - [ ] Include code examples for each loading method
+  - [ ] Document error conditions and handling strategies
+  - [ ] Add integration examples for agents
+
+- [ ] Testing and Validation (All ACs)
+  - [ ] Test `load_detail_module()` with valid module name ("scripts")
+  - [ ] Test `load_detail_module()` with invalid module name (expect error)
+  - [ ] Test `load_detail_by_path()` with valid file path
+  - [ ] Test `load_detail_by_path()` with file not in index (expect error)
+  - [ ] Test `load_multiple_modules()` with mixed valid/invalid modules
+  - [ ] Verify batch loading returns all valid modules despite partial failures
+  - [ ] Test with current project (5 files, 1 module "scripts")
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. Agent can request detail module by module name (e.g., "auth", "database")
+2. Agent can request detail module by file path (e.g., "src/auth/login.py")
+3. Interface returns module content or clear error if not found
+4. Interface supports batch requests (load multiple modules in one call)
+5. Documentation explains how agents should use the interface
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Split Index Architecture</title>
+        <section>Lazy-Loading API (lines 154-187)</section>
+        <snippet>Defines the API contract for load_detail_module(), load_detail_by_path(), and load_multiple_modules() functions. Specifies error handling, parameter types, and return values for the lazy-loading interface.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Split Index Architecture</title>
+        <section>Module Reference Contract (lines 132-147)</section>
+        <snippet>Explains module organization by directory structure. Modules are organized as PROJECT_INDEX.d/auth.json for src/auth/, PROJECT_INDEX.d/database.json for src/database/, and PROJECT_INDEX.d/root.json for flat files.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Split Index Architecture</title>
+        <section>Agent Query Interface (lines 249-256)</section>
+        <snippet>Agent workflow: Load core index first, perform relevance scoring, request top-N modules via load_multiple_modules(), combine core structure with detail content in response.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Split Index Architecture</title>
+        <section>Workflow 2: Agent Lazy-Loading (lines 280-298)</section>
+        <snippet>Complete agent lazy-loading workflow from user query through keyword matching, relevance scoring, module selection, batch loading, and response generation combining core structure and detail content.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR006: Lazy-loading support</section>
+        <snippet>System shall support lazy-loading of detail modules based on query relevance at runtime.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR013: Query interface specification</section>
+        <snippet>System shall provide query interface for agents to request specific detail modules by module name or file path.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>NFR001: Performance targets</section>
+        <snippet>Lazy-loading of detail modules shall have latency under 500ms per module request. Index generation shall complete within 30 seconds for codebases up to 10,000 files.</snippet>
+      </doc>
+      <doc>
+        <path>docs/split-index-schema.md</path>
+        <title>Split Index Schema Documentation</title>
+        <section>Detail Module Schema</section>
+        <snippet>Detail module format includes module_id, version (2.0-split), files dict with per-file details, call_graph_local for within-module edges, and placeholders for doc_standard/doc_archive tiers.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 1.4: Lazy-Loading Interface (lines 95-108)</section>
+        <snippet>Complete story specification with acceptance criteria for module name loading, file path loading, error handling, batch requests, and documentation requirements.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>generate_split_index</symbol>
+        <lines>109-323</lines>
+        <reason>Creates core index and detail modules that this story's loader will consume. Shows module organization structure that loader must understand.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>generate_detail_modules</symbol>
+        <lines>326-483</lines>
+        <reason>Generates the detail module JSON files in PROJECT_INDEX.d/ that this story's loader will load. Defines the actual file structure and JSON format to parse.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>organize_into_modules</symbol>
+        <lines>963-1000</lines>
+        <reason>Shows how files are grouped into modules by directory structure. Loader needs same module ID resolution logic to map file paths to modules.</reason>
+      </artifact>
+      <artifact>
+        <path>PROJECT_INDEX.json</path>
+        <kind>data</kind>
+        <symbol>modules</symbol>
+        <lines>N/A</lines>
+        <reason>Core index with modules section that maps module IDs to file lists. Required input for load_detail_by_path() function's module resolution.</reason>
+      </artifact>
+      <artifact>
+        <path>PROJECT_INDEX.d/scripts.json</path>
+        <kind>data</kind>
+        <symbol>detail module</symbol>
+        <lines>N/A</lines>
+        <reason>Example detail module file showing actual JSON structure loader must parse: module_id, version, files dict, call_graph_local, doc placeholders.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package name="json" version="stdlib">Standard library JSON parser for loading detail module files</package>
+        <package name="pathlib" version="stdlib">Path manipulation for constructing file paths to detail modules</package>
+        <package name="typing" version="stdlib">Type hints for Dict, List return types and parameters</package>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- **Python stdlib only**: No external dependencies beyond json, pathlib, typing (NFR003 maintainability)
+- **Performance target**: Lazy-load latency must be under 500ms per module request (NFR001)
+- **Error handling**: Graceful degradation - partial batch load failures should not break entire operation
+- **Path handling**: Use pathlib.Path for cross-platform compatibility
+- **Default behavior**: index_dir parameter defaults to PROJECT_INDEX.d/ relative to current working directory
+- **JSON validation**: After loading, check for required fields: module_id, version, files
+- **Backward compatibility**: Loader should not crash if PROJECT_INDEX.d/ doesn't exist (Story 1.6 will handle this)
+- **Logging**: Use warnings for partial failures in batch loading (don't fail silently)
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>load_detail_module</name>
+      <kind>function signature</kind>
+      <signature>def load_detail_module(module_name: str, index_dir: Path = None) -> Dict:</signature>
+      <path>scripts/loader.py</path>
+    </interface>
+    <interface>
+      <name>find_module_for_file</name>
+      <kind>function signature</kind>
+      <signature>def find_module_for_file(file_path: str, core_index: Dict) -> str:</signature>
+      <path>scripts/loader.py</path>
+    </interface>
+    <interface>
+      <name>load_detail_by_path</name>
+      <kind>function signature</kind>
+      <signature>def load_detail_by_path(file_path: str, core_index: Dict, index_dir: Path = None) -> Dict:</signature>
+      <path>scripts/loader.py</path>
+    </interface>
+    <interface>
+      <name>load_multiple_modules</name>
+      <kind>function signature</kind>
+      <signature>def load_multiple_modules(module_names: List[str], index_dir: Path = None) -> Dict[str, Dict]:</signature>
+      <path>scripts/loader.py</path>
+    </interface>
+    <interface>
+      <name>Core Index - modules section</name>
+      <kind>data structure</kind>
+      <signature>{"modules": {"{module_id}": {"files": [list of file paths], ...}}}</signature>
+      <path>PROJECT_INDEX.json</path>
+    </interface>
+    <interface>
+      <name>Detail Module JSON</name>
+      <kind>data structure</kind>
+      <signature>{"module_id": str, "version": "2.0-split", "files": {...}, "call_graph_local": [[...]], "doc_standard": {}, "doc_archive": {}}</signature>
+      <path>PROJECT_INDEX.d/{module_id}.json</path>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+Python unittest or pytest for unit testing. Test each public function with valid/invalid inputs. Integration tests load actual PROJECT_INDEX.d/ files generated by Story 1.3. Performance tests verify &lt;500ms latency per module load. Error handling tests verify clear error messages for missing files, invalid JSON, bad paths. Test with current project context: 1 module (scripts), 5 files, 38 functions.
+    </standards>
+    <locations>
+- tests/ (if directory exists)
+- scripts/test_loader.py (co-located with implementation)
+- Manual testing via Python REPL with actual generated detail modules
+    </locations>
+    <ideas>
+      <idea ac="1">Test load_detail_module("scripts") succeeds and returns valid JSON with module_id="scripts"</idea>
+      <idea ac="1">Test load_detail_module("nonexistent") raises FileNotFoundError with clear message</idea>
+      <idea ac="2">Test load_detail_by_path("scripts/project_index.py", core_index) resolves to "scripts" module and loads it</idea>
+      <idea ac="2">Test load_detail_by_path("nonexistent/file.py", core_index) raises ValueError</idea>
+      <idea ac="3">Test error messages are clear and actionable for FileNotFoundError and JSONDecodeError</idea>
+      <idea ac="4">Test load_multiple_modules(["scripts", "nonexistent"]) returns {"scripts": {...}} and skips missing module with warning</idea>
+      <idea ac="4">Test batch loading with all valid modules returns complete dict</idea>
+      <idea ac="4">Test batch loading with all invalid modules returns empty dict</idea>
+      <idea ac="5">Verify all public functions have comprehensive docstrings with Args, Returns, Raises, Examples</idea>
+      <idea ac="5">Verify docs/lazy-loading-interface.md exists with usage examples for all three loading methods</idea>
+    </ideas>
+  </tests>
+</story-context>

@@ -36,3 +36,10 @@ settings.json.backup*
 
 # User customization
 CLAUDE.md
+
+# Project Index Files
+# Note: We commit PROJECT_INDEX.json and PROJECT_INDEX.d/ for this repo as dogfooding examples
+# But these files should normally be .gitignored in user projects (auto-generated)
+PROJECT_INDEX.json.backup-*   # Backup files from migration
+PROJECT_INDEX.legacy.json      # Legacy format copies
+.project-index.json           # Personal configuration (each developer may differ)

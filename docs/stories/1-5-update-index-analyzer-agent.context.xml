@@ -1,0 +1,171 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1.5</storyId>
+    <title>Update Index-Analyzer Agent</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-01</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-5-update-index-analyzer-agent.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer using `-i` flag</asA>
+    <iWant>the index-analyzer agent to intelligently use split architecture</iWant>
+    <soThat>I get relevant code context without manual module selection</soThat>
+    <tasks>
+- Update Index-Analyzer Agent Prompt (AC: #1, #2, #3, #4, #5)
+  - Load `agents/index-analyzer.md` and analyze current structure
+  - Add split architecture detection logic
+  - Implement relevance scoring algorithm (keyword matching)
+  - Add lazy-loading module selection (top 3-5)
+  - Add module loading logging for verbose mode
+  - Update agent instructions to combine core + detail content
+
+- Implement Split Architecture Detection (AC: #1)
+  - Check for `version` field = "2.0-split" in PROJECT_INDEX.json
+  - Check for `modules` section in core index
+  - Check for PROJECT_INDEX.d/ directory existence
+  - If not split format, fall back to legacy full-index loading
+  - Log detection result (split vs legacy)
+
+- Implement Relevance Scoring (AC: #2)
+  - Extract keywords from user query (noun phrases, technical terms)
+  - Score each module based on:
+    * Module name matches keyword (weight: 10x)
+    * File path contains keyword (weight: 5x)
+    * Function name matches keyword (weight: 2x)
+  - Sort modules by relevance score (highest first)
+  - Handle edge case: no keyword matches (load all modules or most recent)
+
+- Implement Lazy-Loading Module Selection (AC: #3)
+  - Select top 3-5 modules from relevance scoring
+  - Use `load_multiple_modules()` from Story 1.4
+  - Handle partial failures gracefully (use what loads successfully)
+  - Configuration option for N (default: 5)
+  - Special case: if query mentions specific file, load that module first
+
+- Combine Core + Detail Response (AC: #4)
+  - Load core index structure (tree, stats, signatures)
+  - Load selected detail modules (full function info, call graphs)
+  - Merge data for response:
+    * Overview from core index (tree, stats)
+    * Deep analysis from detail modules (function bodies, local call graphs)
+  - Format response with clear sections:
+    * Project Overview (from core)
+    * Relevant Code Paths (from detail modules)
+    * Architectural Insights (from call graph + structure)
+
+- Add Verbose Logging (AC: #5)
+  - Log modules loaded: "Loaded detail modules: auth, database, api"
+  - Log relevance scores (verbose mode only)
+  - Log why modules were selected (query keywords matched)
+  - Log fallback behavior if used (legacy format, partial failures)
+
+- Update Agent Documentation
+  - Add split architecture usage section to agent prompt
+  - Document relevance scoring algorithm
+  - Add examples of queries and expected module loading
+  - Document fallback behavior for legacy format
+  - Add troubleshooting section for verbose logging
+
+- Testing and Validation (All ACs)
+  - Test with split format index (PROJECT_INDEX.d/ present)
+  - Test with legacy format index (backward compatibility)
+  - Test relevance scoring with various queries
+  - Test top-N module selection (verify 3-5 modules loaded)
+  - Test verbose logging output
+  - Test response format (core + detail merge)
+  - Test edge cases (no matches, all modules match, partial load failures)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. Agent loads core index first and detects split architecture presence
+2. Agent performs relevance scoring on core index to identify relevant modules
+3. Agent lazy-loads top 3-5 relevant detail modules based on query
+4. Agent provides response combining core index structure + detail module content
+5. Agent logs which modules were loaded (when verbose flag used)
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/tech-spec-epic-1.md" title="Epic 1 Technical Specification" section="Agent Query Interface & Lazy-Loading Workflow" snippet="Specifies the agent query interface (lines 246-256) and lazy-loading workflow (lines 279-298). Defines how the index-analyzer agent should load core index first, perform relevance scoring, and lazy-load top 3-5 modules based on query keywords." />
+      <doc path="docs/tech-spec-epic-1.md" title="Epic 1 Technical Specification" section="Lazy-Loading API" snippet="Documents the complete lazy-loading API contract (lines 154-187) including load_detail_module(), load_detail_by_path(), and load_multiple_modules() functions from Story 1.4." />
+      <doc path="docs/tech-spec-epic-1.md" title="Epic 1 Technical Specification" section="Data Models - Core Index Schema" snippet="Defines core index structure (lines 72-102) with version field '2.0-split', modules section with file mappings, lightweight signatures, and git metadata. Essential for split architecture detection." />
+      <doc path="docs/PRD.md" title="Product Requirements Document" section="FR007: Relevance Scoring" snippet="System shall implement relevance scoring combining explicit file references (10x weight), temporal context (2-5x weight), and semantic keyword matching (1x weight). Lines 41." />
+      <doc path="docs/PRD.md" title="Product Requirements Document" section="NFR001: Performance" snippet="Index generation shall complete within 30 seconds for codebases up to 10,000 files. Lazy-loading of detail modules shall have latency under 500ms per module request. Line 61." />
+      <doc path="docs/PRD.md" title="Product Requirements Document" section="User Journeys - Agent Intelligence" snippet="Describes agent behavior for explicit file references, general questions, and temporal queries (lines 83-148). Shows how agent detects query type and selects appropriate loading strategy combining core index + detail modules." />
+      <doc path="docs/architecture.md" title="Architecture Documentation" section="Analysis Layer (Intelligence)" snippet="Documents the index-analyzer subagent capabilities (lines 125-137): deep analysis of index, code relationship analysis, strategic recommendations. This story enhances this layer with split architecture awareness." />
+      <doc path="docs/lazy-loading-interface.md" title="Lazy-Loading Interface Documentation" section="Complete API Reference" snippet="Comprehensive documentation from Story 1.4 covering all lazy-loading functions, usage patterns, error handling, and agent workflow examples. Essential reference for implementing agent integration." />
+      <doc path="docs/epics.md" title="Epic Breakdown" section="Story 1.5: Update Index-Analyzer Agent" snippet="Full story definition with acceptance criteria and prerequisites (lines 112-126). Prerequisites: Story 1.4 (lazy-loading interface available) is complete." />
+      <doc path="docs/split-index-schema.md" title="Split Index Schema" section="Format Version 2.0-split" snippet="Complete schema documentation for core index and detail module formats. Defines version detection field, modules structure, and module reference contract. Created in Story 1.1." />
+    </docs>
+    <code>
+      <artifact path="agents/index-analyzer.md" kind="agent-prompt" symbol="N/A" lines="1-130" reason="Current index-analyzer agent prompt. Must be modified to add split architecture detection, relevance scoring, lazy-loading, and response formatting. Lines 12-14 check if PROJECT_INDEX.json exists - enhance to also check for split format." />
+      <artifact path="scripts/loader.py" kind="module" symbol="load_detail_module, load_detail_by_path, load_multiple_modules" lines="20-300" reason="Lazy-loading API from Story 1.4. Agent will import and use these functions to load detail modules. Functions: load_detail_module() (lines 20-101), find_module_for_file() (104-192), load_detail_by_path() (195-230), load_multiple_modules() (233-299)." />
+      <artifact path="scripts/project_index.py" kind="module" symbol="generate_split_index" lines="109-339" reason="Core index generation logic. Shows structure of generated core index including modules section, version field, and file tree. Helps understand what data is available in core index for relevance scoring." />
+      <artifact path="scripts/index_utils.py" kind="module" symbol="extract_python_signatures, extract_javascript_signatures" lines="74-905" reason="Parsing utilities that extract function signatures. Understanding signature format helps agent know what data is available in core index vs detail modules." />
+      <artifact path="docs/stories/1-4-lazy-loading-interface.md" kind="story-doc" symbol="N/A" lines="183-280" reason="Story 1.4 learnings and technical approach. Contains usage patterns, error handling strategies, module organization, and detail module structure. Critical reference for understanding how to use loader.py API." />
+    </code>
+    <dependencies>
+      <python>
+        <package name="json" version="stdlib" scope="runtime" />
+        <package name="pathlib" version="stdlib" scope="runtime" />
+        <package name="logging" version="stdlib" scope="runtime" />
+        <package name="typing" version="stdlib" scope="runtime" />
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- **No new files created**: This is a modification-only story. Update existing agents/index-analyzer.md only.
+- **Agent must remain stateless**: Agent executes once per -i flag invocation, doesn't persist state between calls.
+- **Backward compatibility required**: Agent must handle both split format (v2.0-split) AND legacy format (v1.0) gracefully.
+- **Python stdlib only**: Cannot use external dependencies for loading/parsing. Use json, pathlib from stdlib.
+- **Performance target**: Relevance scoring must complete in <100ms (from tech-spec line 354).
+- **Lazy-load latency**: Module loading must be <500ms per module (NFR001) - already satisfied by Story 1.4 (<5ms actual).
+- **Agent response format**: Must preserve existing output structure while enhancing with new sections.
+- **Logging constraints**: Use logging module for verbose mode detection (don't invent new logging system).
+- **Module selection limits**: Default to top 5 modules (configurable N), don't load all modules unless necessary.
+- **Error handling**: Must handle partial failures gracefully (some modules fail to load, continue with successful ones).
+  </constraints>
+
+  <interfaces>
+    <interface name="load_detail_module()" kind="function" signature="load_detail_module(module_name: str, index_dir: Optional[Path] = None) -> Dict" path="scripts/loader.py:20-101" description="Load detail module by name. Returns JSON structure with module_id, version, files, call_graph_local. Raises FileNotFoundError if module missing." />
+    <interface name="load_detail_by_path()" kind="function" signature="load_detail_by_path(file_path: str, core_index: Dict, index_dir: Optional[Path] = None) -> Dict" path="scripts/loader.py:195-230" description="Load detail module containing specific file. First resolves which module contains the file using find_module_for_file(), then loads that module." />
+    <interface name="load_multiple_modules()" kind="function" signature="load_multiple_modules(module_names: List[str], index_dir: Optional[Path] = None) -> Dict[str, Dict]" path="scripts/loader.py:233-299" description="Batch load multiple detail modules. Returns dict mapping module_name -> module_content. Handles partial failures gracefully with warnings." />
+    <interface name="find_module_for_file()" kind="function" signature="find_module_for_file(file_path: str, core_index: Dict) -> str" path="scripts/loader.py:104-192" description="Helper to find which module contains a specific file. Searches core_index['modules'] for file path match. Returns module_id." />
+    <interface name="Core Index Structure" kind="data-contract" signature="{'version': '2.0-split', 'modules': {module_id: {'files': [...], 'functions': int, 'modified': str}}, 'f_signatures': {...}, 'g': [...], 'd_critical': {...}}" path="docs/tech-spec-epic-1.md:72-102" description="Core index JSON structure. Check version field for '2.0-split' to detect split format. Use modules section for relevance scoring (module names, file paths). Legacy format has 'f' key instead of 'modules'." />
+    <interface name="Detail Module Structure" kind="data-contract" signature="{'module_id': str, 'version': '2.0-split', 'files': {file_path: {'language': str, 'functions': [...], 'classes': [...]}}, 'call_graph_local': [[...]]}" path="docs/tech-spec-epic-1.md:104-130" description="Detail module JSON structure returned by loader functions. Contains full function signatures, docstrings, and local call graphs." />
+  </interfaces>
+
+  <tests>
+    <standards>
+Agent testing uses manual verification with real PROJECT_INDEX.json files. No formal test framework for agent prompts. Validation approach:
+1. Generate split format index (PROJECT_INDEX.json + PROJECT_INDEX.d/)
+2. Test agent with -i flag on various queries
+3. Verify correct modules are loaded (check agent output for module names)
+4. Test with legacy format (single-file index) to ensure backward compatibility
+5. Test verbose mode to verify logging output
+
+Testing standards from previous stories (Python code):
+- Use Python unittest framework (stdlib)
+- Test files located in scripts/ directory (e.g., scripts/test_loader.py)
+- Coverage target: 80%+ for critical paths
+- Performance validation: measure and assert <500ms targets
+    </standards>
+    <locations>
+- scripts/test_*.py (Python unit tests for loader.py and related modules)
+- agents/ (no formal test files - manual testing of agent prompts)
+- Integration testing: Run agent with real index files in project root
+    </locations>
+    <ideas>
+      <idea ac="1" description="Test split architecture detection: Generate split index (PROJECT_INDEX.d/ present), invoke agent, verify it loads core first and detects version='2.0-split'. Test legacy detection: remove PROJECT_INDEX.d/, verify agent loads full index." />
+      <idea ac="2" description="Test relevance scoring: Query 'how does loader work?' should score 'scripts' module highest (module name contains 'loader'). Query 'analyze auth' should detect no matching modules in current project (no auth module), handle gracefully." />
+      <idea ac="3" description="Test lazy-loading: Query that matches multiple modules should load top 5 only (not all). Verify load_multiple_modules() is called with correct module list. Test partial failures: create invalid module JSON, verify agent continues with successful loads." />
+      <idea ac="4" description="Test response format: Verify agent output includes both core index overview (tree, stats) AND detail module content (function bodies). Check that response has clear sections: Project Overview, Essential Code Paths, Architectural Insights." />
+      <idea ac="5" description="Test verbose logging: Run with verbose flag (-v or similar), verify agent logs: 'Loaded detail modules: scripts, bmad' and 'Relevance scores: scripts=10, bmad=5'. Test non-verbose mode shows no module loading details." />
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,156 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>2</storyId>
+    <title>Generate Core Index</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-01</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-2-generate-core-index.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>the indexer to generate a lightweight core index</iWant>
+    <soThat>agents can load project overview without hitting context limits</soThat>
+    <tasks>
+      - Implement Core Index Generation Logic (AC: #1, #3) - 7 subtasks
+      - Add Git Metadata Extraction (AC: #2) - 6 subtasks
+      - Create Module Reference Structure (AC: #4) - 5 subtasks
+      - Maintain Backward Compatibility (AC: #5) - 5 subtasks
+      - Testing and Validation (All ACs) - 6 subtasks
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">`PROJECT_INDEX.json` generated with file tree, function/class names (no bodies), imports</criterion>
+    <criterion id="2">Core index includes git metadata (last commit, author, date) per file</criterion>
+    <criterion id="3">Core index size stays under 100KB for test project (current ~3,500 files)</criterion>
+    <criterion id="4">Core index includes references to detail module locations</criterion>
+    <criterion id="5">Existing single-file generation still works (backward compat maintained)</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/split-index-schema.md" title="Split Index Schema Documentation" section="Core Index Schema">
+        Complete TypeScript interface definitions for core index format (v2.0-split). Includes lightweight signature format (name:line only), module reference structure, and size optimization strategies validated against 670-file production project achieving 83.4% compression.
+      </doc>
+      <doc path="docs/split-index-schema-validation.md" title="Real-World Validation Analysis" section="Component Size Breakdown">
+        Empirical data showing lightweight signatures reduce size by 63.6% (52.8 → 19.2 chars avg), dependencies account for 29.5% of index, and call graph overhead is 9.4%. Core index projection: 60.3 KB (well under 100 KB target).
+      </doc>
+      <doc path="docs/tech-spec-epic-1.md" title="Epic Technical Specification" section="Data Models and Contracts">
+        Lines 70-102: Core index schema specification. Lines 132-147: Module reference contract. Lines 222-244: Index generation API. Lines 259-277: Split index generation workflow.
+      </doc>
+      <doc path="docs/architecture.md" title="System Architecture" section="Data Architecture">
+        Lines 141-177: Current PROJECT_INDEX.json structure (legacy format). Describes dense format optimization, compact signatures, and progressive compression strategies to preserve.
+      </doc>
+      <doc path="docs/PRD.md" title="Product Requirements Document" section="Functional Requirements">
+        FR004: Generate lightweight core index. NFR001: Performance targets (≤30s generation, <500ms lazy-load). NFR002: Scalability (100KB core for 10,000 files).
+      </doc>
+      <doc path="docs/epics.md" title="Epic Breakdown" section="Story 1.2">
+        Lines 61-75: Detailed acceptance criteria and prerequisites. Core index must include git metadata and module references while maintaining backward compatibility.
+      </doc>
+    </docs>
+    <code>
+      <artifact path="scripts/project_index.py" kind="main-orchestrator" symbol="main, build_index" lines="708-731, 109-403" reason="Primary entry point for index generation. Contains existing build_index() function to extend for split mode.">
+        Main orchestrator that needs modification to support split format mode alongside existing single-file generation.
+      </artifact>
+      <artifact path="scripts/project_index.py" kind="tree-generation" symbol="generate_tree_structure" lines="40-107" reason="Reusable function for generating compact ASCII tree - no modification needed for split mode">
+        Generates compact ASCII tree representation. Reuse as-is for core index tree field.
+      </artifact>
+      <artifact path="scripts/index_utils.py" kind="parser" symbol="extract_python_signatures" lines="161-543" reason="Needs modification to generate lightweight signatures (name:line only) for core index">
+        Python signature extractor - modify to produce lightweight format without params/docstrings when in split mode.
+      </artifact>
+      <artifact path="scripts/index_utils.py" kind="parser" symbol="extract_javascript_signatures" lines="545-904" reason="Needs modification to generate lightweight signatures for core index">
+        JavaScript/TypeScript signature extractor - modify for lightweight format in split mode.
+      </artifact>
+      <artifact path="scripts/index_utils.py" kind="parser" symbol="extract_shell_signatures" lines="928-1184" reason="Needs modification to generate lightweight signatures for core index">
+        Shell script signature extractor - modify for lightweight format in split mode.
+      </artifact>
+      <artifact path="scripts/index_utils.py" kind="call-graph" symbol="build_call_graph" lines="132-159" reason="Reuse for global cross-module call graph generation">
+        Builds bidirectional call graph. Reuse for global call graph in core index (local graphs go to detail modules).
+      </artifact>
+      <artifact path="scripts/index_utils.py" kind="git-discovery" symbol="get_git_files" lines="1388-1403" reason="Existing git-based file discovery - reuse for performance">
+        Git-based file discovery - reuse as-is for fast file enumeration.
+      </artifact>
+      <artifact path="scripts/index_utils.py" kind="filtering" symbol="should_index_file, load_gitignore_patterns" lines="1368-1386, 1301-1322" reason="Existing gitignore filtering logic - preserve for file selection">
+        Gitignore filtering and pattern matching - reuse existing implementation.
+      </artifact>
+      <artifact path="scripts/project_index.py" kind="compression" symbol="compress_if_needed" lines="529-658" reason="Existing progressive compression - may adapt for core index size enforcement">
+        Progressive compression strategies - may need to adapt for core index 100KB enforcement.
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <stdlib>json, pathlib, os, re, subprocess, hashlib, datetime, typing, shutil</stdlib>
+        <note>Python 3.12+ standard library only - no external dependencies</note>
+      </python>
+      <system>
+        <git>Optional - for fast file discovery and metadata extraction. Graceful fallback to file system timestamps when unavailable.</git>
+      </system>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - **Size Budget**: Core index MUST be ≤100KB for 10,000 file projects (NFR002)
+    - **Performance**: Index generation MUST complete in ≤30 seconds for 10,000 files (NFR001)
+    - **Backward Compatibility**: Existing single-file generation MUST continue to work without breaking changes
+    - **No External Dependencies**: Python 3.12+ stdlib only - no pip packages allowed
+    - **Format Versioning**: Use version field "2.0-split" for new format, "1.0" for legacy
+    - **Module Organization**: Group files by top-level directory (depth 1) as default strategy
+    - **Lightweight Signatures**: Function/class signatures MUST be name:line only (no params, returns, or docstrings)
+    - **Dependencies in Core**: Keep imports in core index (Option 1 from validation - better UX)
+    - **Git Metadata**: Extract last commit hash, author, date per file with fallback to file mtime
+    - **Critical Docs Only**: Core index includes only README*, ARCHITECTURE*, API* documentation
+    - **Zero Information Loss**: All data from legacy format MUST be preserved in split format (core + detail modules combined)
+  </constraints>
+
+  <interfaces>
+    <interface name="generate_split_index" kind="function-signature" signature="def generate_split_index(root_dir: Path) -> dict" path="scripts/project_index.py">
+      New function to generate core index in split format. Returns core index dict. Will be called by main() when split mode detected/configured.
+    </interface>
+    <interface name="extract_lightweight_signature" kind="function-signature" signature="def extract_lightweight_signature(func_data: dict) -> str" path="scripts/index_utils.py">
+      New utility to convert full function signature to lightweight format (name:line). Example: "login:42" instead of "login(user: str, pass: str) -> bool".
+    </interface>
+    <interface name="extract_git_metadata" kind="function-signature" signature="def extract_git_metadata(file_path: Path, root_path: Path) -> dict" path="scripts/project_index.py">
+      New function to extract git metadata per file. Returns dict with commit_hash, author, date. Caches results to avoid redundant git calls.
+    </interface>
+    <interface name="organize_into_modules" kind="function-signature" signature="def organize_into_modules(files: List[Path], root_path: Path, depth: int = 1) -> dict" path="scripts/project_index.py">
+      New function to group files by directory into modules. Returns module_id → file_list mapping. Flat files go to "root" module.
+    </interface>
+    <interface name="create_module_references" kind="function-signature" signature="def create_module_references(modules: dict, functions: dict) -> dict" path="scripts/project_index.py">
+      New function to build module reference section for core index. Returns modules dict with metadata (file count, function count, modified date).
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      No formal test framework currently in place. Testing strategy emphasizes real-world validation on this project (claude-code-project-index) and manual verification. Future stories may introduce pytest for unit testing. Focus on: 1) generating index on self, 2) measuring core size, 3) validating JSON structure against schema, 4) testing backward compat with legacy format.
+    </standards>
+    <locations>
+      - No existing test directory
+      - Validation via manual execution: python3 scripts/project_index.py
+      - Real-world test project: this repository (~670 files based on validation)
+    </locations>
+    <ideas>
+      <test ac="1" idea="Generate core index on this project and verify JSON structure matches schema (tree, f_signatures, imports, modules fields present)">
+        Test file tree generation, lightweight signatures, imports extraction, and module references.
+      </test>
+      <test ac="2" idea="Extract git metadata for sample files and verify commit hash, author, date fields populated. Test graceful fallback when git unavailable (use mock scenario).">
+        Test git metadata extraction with subprocess calls to git log. Verify caching to avoid redundant calls.
+      </test>
+      <test ac="3" idea="Measure core index size in bytes after generation. Assert ≤100KB for this project (~670 files). Validate against size budget constraint.">
+        Validate size optimization - should achieve ~15-20KB for this project based on validation analysis.
+      </test>
+      <test ac="4" idea="Verify modules section in core index contains correct module_id → PROJECT_INDEX.d/ path mappings. Check file count, function count metadata.">
+        Test module organization logic - files grouped by top-level directory with proper metadata.
+      </test>
+      <test ac="5" idea="Run index generation in single-file mode (force legacy format). Verify output matches existing PROJECT_INDEX.json structure (no regressions).">
+        Test backward compatibility - existing functionality must continue to work. Compare output structure to current format.
+      </test>
+      <test ac="all" idea="Run complete workflow: generate core index, measure size, validate structure, test git metadata, verify module references, test backward compat.">
+        Integration test covering all acceptance criteria end-to-end.
+      </test>
+    </ideas>
+  </tests>
+</story-context>

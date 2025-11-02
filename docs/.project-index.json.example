@@ -1,0 +1,17 @@
+{
+  "$schema": "Configuration schema for claude-code-project-index",
+  "mode": "auto",
+  "threshold": 1000,
+  "max_index_size": 1048576,
+  "compression_level": "standard",
+
+  "_comments": {
+    "mode": "Index generation mode: 'auto' (default) | 'split' | 'single'",
+    "threshold": "File count threshold for auto-detection (default: 1000, min: 1)",
+    "max_index_size": "Maximum index size in bytes for single-file format (default: 1048576 = 1MB)",
+    "compression_level": "Compression strategy: 'standard' (default) | 'aggressive'",
+    "validation": "Invalid values are ignored with warnings and defaults are used",
+    "precedence": "CLI flags override config file, config file overrides defaults",
+    "location": "Place this file as .project-index.json in your project root (cwd)"
+  }
+}

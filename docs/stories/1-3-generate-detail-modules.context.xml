@@ -1,0 +1,317 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>1</epicId>
+    <storyId>1.3</storyId>
+    <title>Generate Detail Modules</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-01</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/1-3-generate-detail-modules.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer</asA>
+    <iWant>the indexer to create detail modules with full code information</iWant>
+    <soThat>agents can lazy-load deep details only when needed</soThat>
+    <tasks>
+- Create Detail Module Generation Logic (AC: #1, #3)
+  - Create `generate_detail_modules()` function in `scripts/project_index.py`
+  - Use module organization from core index (reuse `modules` dict from Story 1.2)
+  - Create `PROJECT_INDEX.d/` directory if not exists
+  - Iterate over each module and generate detail JSON file
+  - Handle root-level files → `PROJECT_INDEX.d/root.json`
+
+- Extract Full Function/Class Signatures for Detail Modules (AC: #2)
+  - Reuse existing signature extraction from `index_utils.py`
+  - Include full parameters, return types, and docstrings (NOT lightweight)
+  - Extract complete class information with all methods
+  - Include local call graph (within-module function calls)
+  - Extract module-specific documentation (if any)
+
+- Implement Detail Module Schema (AC: #2, #4)
+  - Create detail module JSON structure per schema from Story 1.1
+  - Include `module_id` field matching core index module ID
+  - Include `version: "2.0-split"` for format identification
+  - Add `files` section with per-file function/class details
+  - Add `call_graph_local` for within-module call relationships
+  - Add placeholders for `doc_standard` and `doc_archive` (Epic 2)
+
+- Validate Detail Modules Match Core Index (AC: #4)
+  - Cross-reference detail module IDs with core index `modules` section
+  - Verify all files in module exist in detail module `files` section
+  - Verify function counts match between core and detail
+  - Ensure no orphan files (all files belong to a module)
+
+- Size Validation and Optimization (AC: #5)
+  - Calculate total size: core index + all detail modules
+  - Compare against original single-file index size
+  - Log size breakdown (core + each detail module)
+  - Verify total size ≤ original (or provide clear explanation if larger)
+
+- Integration with Split Index Workflow (All ACs)
+  - Modify `generate_split_index()` to call detail module generation
+  - Update workflow: core index → detail modules → validation
+  - Add command-line flag `--skip-details` for core-only mode
+  - Update stop hook to preserve detail modules when regenerating
+  - Test split mode generates both core + details successfully
+
+- Testing and Validation (All ACs)
+  - Test detail module generation on this project
+  - Verify `PROJECT_INDEX.d/` directory created
+  - Validate detail module JSON structure matches schema
+  - Test module organization matches directory structure
+  - Verify total size constraint (core + details ≤ original)
+  - Test backward compatibility: single-file mode unchanged
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. `PROJECT_INDEX.d/` directory created with per-module detail files
+2. Detail modules include full function/class signatures, call graphs, documentation
+3. Detail modules organized by directory structure (e.g., `auth.json`, `database.json`)
+4. Detail module references match core index module IDs
+5. Total detail module size + core index ≤ original single-file index size
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Split Index Architecture</title>
+        <section>Detail Module Schema</section>
+        <snippet>Detail modules contain module_id, version "2.0-split", files with full function/class signatures, call_graph_local for within-module call relationships, and placeholders for doc_standard and doc_archive tiers.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Split Index Architecture</title>
+        <section>Module Reference Contract</section>
+        <snippet>Modules organized by directory structure: PROJECT_INDEX.d/auth.json for src/auth/, PROJECT_INDEX.d/database.json for src/database/, flat files go into PROJECT_INDEX.d/root.json. One detail file per module using module_id.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-1.md</path>
+        <title>Epic Technical Specification: Split Index Architecture</title>
+        <section>Split Index Generation Workflow</section>
+        <snippet>Split logic: group files by directory, create module metadata (file count, function count, modified date), extract lightweight signatures for core index, generate full details for module files, write core index and detail modules, validate sizes.</snippet>
+      </doc>
+      <doc>
+        <path>docs/split-index-schema.md</path>
+        <title>Split Index Schema Documentation</title>
+        <section>Detail Module Schema</section>
+        <snippet>Complete schema specification for detail modules from Story 1.1 including JSON structure, field definitions, and examples for per-module detail files.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR005: Generate detailed module indices</section>
+        <snippet>System shall generate detailed module indices in PROJECT_INDEX.d/ directory with per-module or per-file granularity containing full function/class signatures and documentation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>NFR001: Performance</section>
+        <snippet>Index generation shall complete within 30 seconds for codebases up to 10,000 files. Detail module generation is part of this overall budget.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 1.3: Generate Detail Modules</section>
+        <snippet>Acceptance criteria: PROJECT_INDEX.d/ directory created with per-module detail files, detail modules include full function/class signatures and call graphs, organized by directory structure, references match core index module IDs, total size ≤ original single-file index.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation</title>
+        <section>Data Architecture</section>
+        <snippet>Current PROJECT_INDEX.json structure uses dense format with files (f), call graph (g), documentation (d), and dependencies (deps). Split architecture will separate into core + detail modules.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/1-1-design-split-index-schema.md</path>
+        <title>Story 1.1: Design Split Index Schema</title>
+        <section>Completion Notes</section>
+        <snippet>Schema design complete with TypeScript interfaces, real-world validation on 670-file project, lightweight signatures reduce size by 63.6%, dependencies placement decision (Option 1: keep in core), module organization validated.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/1-2-generate-core-index.md</path>
+        <title>Story 1.2: Generate Core Index</title>
+        <section>Learnings from Previous Story</section>
+        <snippet>Core index generation completed with lightweight signatures, module organization established (directory-based grouping at depth=1), git metadata extraction working with caching, stop hook format preservation fixed. Global call graph deferred to Story 1.3.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>generate_split_index</symbol>
+        <lines>109-323</lines>
+        <reason>Main function for split index generation from Story 1.2. Template for detail module generation logic. Currently creates core index only - needs extension to generate detail modules.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>function</kind>
+        <symbol>organize_into_modules</symbol>
+        <lines>963-1000</lines>
+        <reason>REUSE: Creates module organization grouping files by directory (depth=1). Already produces the modules dict needed for detail generation - don't recompute.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>function</kind>
+        <symbol>create_module_references</symbol>
+        <lines>1001-1034</lines>
+        <reason>Reference for module metadata structure. Shows how to build module references with file_count, function_count, detail_path fields.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>function</kind>
+        <symbol>extract_git_metadata</symbol>
+        <lines>877-960</lines>
+        <reason>Available if git metadata needed in detail modules. Includes caching and graceful fallback to file mtime.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/index_utils.py</path>
+        <kind>function</kind>
+        <symbol>extract_python_signatures</symbol>
+        <lines>161-544</lines>
+        <reason>REUSE: Extracts full Python function/class signatures with parameters, return types, docstrings. Use for detail modules (NOT lightweight version).</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/index_utils.py</path>
+        <kind>function</kind>
+        <symbol>extract_javascript_signatures</symbol>
+        <lines>545-905</lines>
+        <reason>REUSE: Extracts full JavaScript/TypeScript function/class signatures. Use for detail modules.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/index_utils.py</path>
+        <kind>function</kind>
+        <symbol>extract_shell_signatures</symbol>
+        <lines>906-1185</lines>
+        <reason>REUSE: Extracts full shell script function signatures. Use for detail modules.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/index_utils.py</path>
+        <kind>function</kind>
+        <symbol>build_call_graph</symbol>
+        <lines>132-160</lines>
+        <reason>REUSE: Builds bidirectional call graph from functions and classes. Use to create call_graph_local for within-module relationships.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/index_utils.py</path>
+        <kind>function</kind>
+        <symbol>extract_lightweight_signature</symbol>
+        <lines>1270-1285</lines>
+        <reason>DO NOT USE: This is for core index lightweight signatures only. Detail modules need FULL signatures from extract_*_signatures() functions.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/stop_hook.py</path>
+        <kind>module</kind>
+        <symbol>main</symbol>
+        <lines>14-60</lines>
+        <reason>Stop hook that regenerates index. Modified in Story 1.2 to preserve split-format. May need update to preserve PROJECT_INDEX.d/ directory.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <stdlib>json - JSON serialization/deserialization for detail module files</stdlib>
+        <stdlib>pathlib.Path - File path operations and directory creation</stdlib>
+        <stdlib>os - File system operations</stdlib>
+        <stdlib>re - Regex parsing (inherited from existing parsers)</stdlib>
+        <stdlib>typing.Dict, typing.List - Type hints</stdlib>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Use FULL function/class signatures with parameters, return types, and docstrings - NOT lightweight signatures from extract_lightweight_signature()</constraint>
+    <constraint>REUSE module organization from Story 1.2 - use existing modules dict from organize_into_modules(), don't recompute</constraint>
+    <constraint>Detail modules include LOCAL call graphs only (within-module edges) - cross-module call edges remain in core index g field</constraint>
+    <constraint>JSON serialization must use compact format (no whitespace) for size optimization</constraint>
+    <constraint>Total size constraint: core index + all detail modules must be ≤ original single-file index size</constraint>
+    <constraint>Performance: Detail module generation part of 30-second overall budget for 10,000 files (NFR001)</constraint>
+    <constraint>Python 3.12+ stdlib only - no external dependencies</constraint>
+    <constraint>Write detail modules incrementally (one file at a time) - don't accumulate all in memory</constraint>
+    <constraint>Validate cross-references: module IDs in detail files must match core index modules section exactly</constraint>
+    <constraint>Version field must be "2.0-split" for format identification consistency with core index</constraint>
+    <constraint>Module file paths: PROJECT_INDEX.d/{module_id}.json where module_id matches directory name</constraint>
+    <constraint>Backward compatibility: Single-file mode (legacy format) must remain unchanged and functional</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>generate_detail_modules</name>
+      <kind>function signature</kind>
+      <signature>def generate_detail_modules(files_data: Dict, modules: Dict, root_path: Path) -> List[str]</signature>
+      <path>scripts/project_index.py (new function)</path>
+      <description>Main function to generate detail module JSON files. Takes parsed files data, module organization dict from organize_into_modules(), and project root. Returns list of created detail module file paths. Side effect: writes JSON files to PROJECT_INDEX.d/ directory.</description>
+    </interface>
+    <interface>
+      <name>Detail Module JSON Schema</name>
+      <kind>JSON schema</kind>
+      <signature>{
+  "module_id": "scripts",
+  "version": "2.0-split",
+  "files": {
+    "scripts/file.py": {
+      "language": "python",
+      "functions": [{
+        "name": "func_name",
+        "line": 42,
+        "signature": "(args: type) -> return_type",
+        "calls": ["other_func"],
+        "doc": "Full docstring"
+      }],
+      "classes": [],
+      "imports": ["module1", "module2"]
+    }
+  },
+  "call_graph_local": [["func1", "func2"]],
+  "doc_standard": {},
+  "doc_archive": {}
+}</signature>
+      <path>docs/split-index-schema.md (lines 104-130)</path>
+      <description>Detail module structure per schema from Story 1.1. Contains full function/class details for all files in module, local call graph, and documentation tier placeholders for Epic 2.</description>
+    </interface>
+    <interface>
+      <name>Core Index modules Field</name>
+      <kind>data structure</kind>
+      <signature>"modules": {
+  "scripts": {
+    "path": "PROJECT_INDEX.d/scripts.json",
+    "files": ["scripts/file1.py", "scripts/file2.py"],
+    "functions": 38,
+    "modified": "2025-10-29T14:32:00Z"
+  }
+}</signature>
+      <path>scripts/project_index.py (generate_split_index, create_module_references)</path>
+      <description>Module references in core index created by Story 1.2. Detail module generation must match these module IDs and file lists exactly.</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+This project uses manual integration testing with real-world validation. Testing approach: run indexer on this project (claude-code-project-index), verify output files and structure, validate JSON against schema, check size constraints, and test backward compatibility. No automated test framework currently in place - rely on manual execution and output inspection with evidence collection.
+    </standards>
+    <locations>
+      <location>Manual testing: Run python3 scripts/project_index.py --split from project root</location>
+      <location>Validation: Inspect PROJECT_INDEX.d/ directory and detail module JSON files</location>
+      <location>Size checks: Use ls -lh or du -h to measure file sizes</location>
+      <location>JSON validation: Use jq or json.tool to validate structure</location>
+    </locations>
+    <ideas>
+      <idea ac="1">Test that PROJECT_INDEX.d/ directory is created when running split mode generation</idea>
+      <idea ac="1">Verify detail module files exist with correct naming pattern (module_id.json)</idea>
+      <idea ac="2">Validate detail module contains full function signatures with parameters, return types, docstrings (not lightweight)</idea>
+      <idea ac="2">Check that call_graph_local contains within-module call edges only</idea>
+      <idea ac="2">Verify doc_standard and doc_archive placeholders exist (empty for now)</idea>
+      <idea ac="3">Test module organization matches directory structure (e.g., scripts/ → scripts.json)</idea>
+      <idea ac="3">Verify root-level files go into root.json module</idea>
+      <idea ac="4">Cross-reference detail module IDs with core index modules section - must match exactly</idea>
+      <idea ac="4">Validate all files listed in core index module exist in corresponding detail module</idea>
+      <idea ac="4">Check function counts match between core metadata and detail module contents</idea>
+      <idea ac="5">Calculate total size: du -sh PROJECT_INDEX.json + du -sh PROJECT_INDEX.d/</idea>
+      <idea ac="5">Compare against original single-file index size (legacy mode) - must be ≤</idea>
+      <idea ac="5">Log size breakdown showing core + each detail module for analysis</idea>
+      <idea>Test backward compatibility: Run without --split flag, verify single-file format unchanged</idea>
+      <idea>Test --skip-details flag (if implemented) generates core only without PROJECT_INDEX.d/</idea>
+      <idea>Verify stop hook preserves PROJECT_INDEX.d/ directory when regenerating</idea>
+    </ideas>
+  </tests>
+</story-context>

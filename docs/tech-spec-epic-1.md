@@ -623,3 +623,29 @@ This epic maintains the project's core principle of zero external dependencies. 
 - Validate all 40 ACs (AC1.1 through AC8.5)
 - User acceptance: Test with beta users on real projects
 - Migration testing: Validate on existing user indices
+
+## Post-Review Follow-ups
+
+Items identified during code review that require attention before epic completion:
+
+### Story 1.6 (Backward Compatibility Detection)
+
+**Review Date**: 2025-11-01
+**Reviewer**: Ryan
+
+- **[Medium]** Add integration test file `scripts/test_integration_legacy.py` to verify agent analysis works with legacy format (AC #6.3 - "All existing functionality works with legacy format")
+  - Current gap: Unit tests pass (10/10 in test_backward_compat.py) but agent workflow not integration-tested
+  - Impact: Cannot fully verify backward compatibility claim without end-to-end testing
+  - Reference: Story 1.6, Task 6 (Integration Testing)
+
+- **[Medium]** Add integration test for agent migration suggestions
+  - Verify >1000 file threshold triggers suggestion correctly
+  - Test "once per session" logic works as documented
+  - File: scripts/test_index_analyzer_agent.py
+  - Reference: Story 1.6, AC #6.5
+
+- **[Low]** Add integration test for agent split format workflow
+  - Verify lazy-loading works correctly when split architecture detected
+  - Complements existing unit tests with end-to-end validation
+  - File: scripts/test_index_analyzer_agent.py
+  - Reference: Story 1.6, AC #6.2

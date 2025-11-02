@@ -27,7 +27,18 @@ def main():
     # If no PROJECT_INDEX.json found, nothing to do
     if not project_root:
         return
-    
+
+    # Detect existing index format to preserve it
+    use_split_mode = False
+    try:
+        with open(project_root / 'PROJECT_INDEX.json', 'r') as f:
+            existing_index = json.load(f)
+            if existing_index.get('version') == '2.0-split':
+                use_split_mode = True
+    except (json.JSONDecodeError, FileNotFoundError, KeyError):
+        # If we can't read the version, default to legacy mode
+        pass
+
     # Find the project_index.py script
     # First check if we're in the project itself
     local_script = project_root / 'scripts' / 'project_index.py'
@@ -58,11 +69,18 @@ def main():
             print("Warning: Could not find Python", file=sys.stderr)
             return
     
-    # Run the indexer silently
+    # Run the indexer silently (preserve format)
     try:
         os.chdir(project_root)
+
+        # Build command with --split flag if needed to preserve format
+        # Note: --split mode automatically regenerates PROJECT_INDEX.d/ detail modules
+        cmd = [python_cmd, str(script_path)]
+        if use_split_mode:
+            cmd.append('--split')
+
         result = subprocess.run(
-            [python_cmd, str(script_path)],
+            cmd,
             capture_output=True,
             text=True,
             timeout=10
