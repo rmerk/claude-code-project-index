@@ -237,10 +237,17 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
         },
         'f': {},  # Files with lightweight signatures
         'g': [],  # Global call graph (cross-module edges only)
-        'd': {},  # Critical documentation only
+        'd_critical': {},  # Critical documentation only (v2.1-tiered)
         'modules': {},  # Module references
         'dir_purposes': {}
     }
+
+    # Check configuration for include_all_doc_tiers setting
+    include_all_tiers = config.get('include_all_doc_tiers', False) if config else False
+    if include_all_tiers:
+        # Small projects: include all tiers in core index
+        core_index['d_standard'] = {}
+        core_index['d_archive'] = {}
 
     # Generate directory tree (reuse existing function)
     print("📊 Building directory tree...")
@@ -283,6 +290,7 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
     # Track all parsed files for module organization
     parsed_files = []
     file_functions_map = {}  # Map file_path -> extracted data for module refs
+    markdown_files_by_tier = {'standard': [], 'archive': []}  # Track non-critical docs for detail modules
 
     # Process files
     file_count = 0
@@ -308,15 +316,34 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
             tier = classify_documentation(file_path, config)
             core_index['stats']['doc_tiers'][tier] += 1
 
-            # Only include critical documentation in core index
-            if tier == 'critical':
-                doc_structure = extract_markdown_structure(file_path)
-                if doc_structure['sections']:
-                    core_index['d'][str(rel_path)] = {
-                        'sections': doc_structure['sections'][:10],
-                        'tier': tier
-                    }
+            # Extract doc structure once for reuse
+            doc_structure = extract_markdown_structure(file_path)
+            if doc_structure['sections']:
+                doc_entry = {
+                    'sections': doc_structure['sections'][:10],
+                    'tier': tier
+                }
+
+                # Store in appropriate tier section based on configuration
+                if tier == 'critical':
+                    core_index['d_critical'][str(rel_path)] = doc_entry
                     core_index['stats']['markdown_files'] += 1
+                elif include_all_tiers:
+                    # Small project mode: include all tiers in core index
+                    if tier == 'standard':
+                        core_index['d_standard'][str(rel_path)] = doc_entry
+                    elif tier == 'archive':
+                        core_index['d_archive'][str(rel_path)] = doc_entry
+                    core_index['stats']['markdown_files'] += 1
+                else:
+                    # Default mode: track standard/archive docs for detail modules
+                    if tier in ['standard', 'archive']:
+                        markdown_files_by_tier[tier].append({
+                            'path': str(rel_path),
+                            'file_path': file_path,
+                            'sections': doc_structure['sections'][:10],
+                            'tier': tier
+                        })
             continue
 
         # Handle code files
@@ -410,6 +437,33 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
     print("📦 Organizing modules...")
     modules = organize_into_modules(parsed_files, root, depth=1)
 
+    # Add modules for directories with only markdown files (no code)
+    # This ensures detail modules are created even for doc-only directories
+    if markdown_files_by_tier:
+        for tier in ['standard', 'archive']:
+            for doc_info in markdown_files_by_tier.get(tier, []):
+                doc_path = doc_info['path']
+                doc_file_path = doc_info['file_path']
+
+                # Determine module for this doc
+                doc_parent = doc_file_path.parent
+                if doc_parent == root:
+                    module_id = 'root'
+                else:
+                    try:
+                        rel_parent = doc_parent.relative_to(root)
+                        parts = rel_parent.parts
+                        if parts:
+                            module_id = parts[0]
+                        else:
+                            module_id = 'root'
+                    except ValueError:
+                        continue
+
+                # Create empty module if it doesn't exist (for doc-only dirs)
+                if module_id not in modules:
+                    modules[module_id] = []
+
     # Create module references with metadata
     core_index['modules'] = create_module_references(modules, file_functions_map)
 
@@ -438,7 +492,13 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
     # Generate detail modules (Story 1.3)
     # Check for --skip-details flag via environment variable
     skip_details = os.getenv('INDEX_SKIP_DETAILS', '').lower() == 'true'
-    detail_files = generate_detail_modules(file_functions_map, modules, root, skip_details)
+    detail_files = generate_detail_modules(
+        file_functions_map,
+        modules,
+        root,
+        skip_details,
+        markdown_files_by_tier=markdown_files_by_tier
+    )
 
     # Add detail file list to core index stats for reference
     if detail_files:
@@ -451,7 +511,8 @@ def generate_detail_modules(
     files_data: Dict[str, Dict],
     modules: Dict[str, List[str]],
     root_path: Path,
-    skip_details: bool = False
+    skip_details: bool = False,
+    markdown_files_by_tier: Optional[Dict[str, List[Dict]]] = None
 ) -> List[str]:
     """Generate detailed module files in PROJECT_INDEX.d/ directory.
 
@@ -460,6 +521,7 @@ def generate_detail_modules(
         modules: Dict mapping module_id -> list of file paths (from organize_into_modules)
         root_path: Project root directory
         skip_details: If True, skip detail generation (core-only mode)
+        markdown_files_by_tier: Dict with 'standard' and 'archive' keys containing doc file info
 
     Returns:
         List of created detail module file paths
@@ -562,6 +624,39 @@ def generate_detail_modules(
 
             # Add file to detail module
             detail_module['files'][file_path] = file_detail
+
+        # Add standard and archive tier documentation to this module
+        if markdown_files_by_tier:
+            for tier in ['standard', 'archive']:
+                tier_key = f'doc_{tier}'
+                for doc_info in markdown_files_by_tier.get(tier, []):
+                    doc_path = doc_info['path']
+                    doc_file_path = doc_info['file_path']
+
+                    # Determine which module this doc belongs to
+                    # Docs should be organized by their directory (similar to code files)
+                    doc_parent = doc_file_path.parent
+                    doc_module = None
+
+                    # Match doc to module based on directory structure
+                    if doc_parent == root_path:
+                        doc_module = 'root'
+                    else:
+                        # Find the top-level directory
+                        try:
+                            rel_parent = doc_parent.relative_to(root_path)
+                            parts = rel_parent.parts
+                            if parts:
+                                doc_module = parts[0]
+                        except ValueError:
+                            continue
+
+                    # Add doc to appropriate module
+                    if doc_module == module_id:
+                        detail_module[tier_key][doc_path] = {
+                            'sections': doc_info['sections'],
+                            'tier': tier
+                        }
 
         # Build local call graph (within-module edges only)
         if module_functions or module_classes:

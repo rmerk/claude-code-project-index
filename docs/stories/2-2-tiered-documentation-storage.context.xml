@@ -1,0 +1,222 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>2</storyId>
+    <title>Tiered Documentation Storage</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-2-tiered-documentation-storage.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>documentation stored in separate tiers in the index</iWant>
+    <soThat>I get 60-80% compression for doc-heavy projects</soThat>
+    <tasks>
+      - Implement Tiered Storage in Core Index Generation (AC: #1)
+        * Modify generate_split_index() in scripts/project_index.py
+        * Store only critical tier docs in d_critical section of core index
+        * Exclude standard and archive tier docs from core index by default
+        * Measure core index size reduction
+
+      - Implement Tiered Storage in Detail Modules (AC: #2)
+        * Modify generate_detail_modules() in scripts/project_index.py
+        * Add d_standard section to detail modules for standard tier docs
+        * Add d_archive section to detail modules for archive tier docs
+        * Organize docs by tier within each detail module
+
+      - Add Configuration for Tier Inclusion (AC: #3)
+        * Extend .project-index.json schema with include_all_doc_tiers boolean
+        * Update load_configuration() to parse new setting
+        * When include_all_doc_tiers: true, include all tiers in core index
+        * Document configuration option in README
+
+      - Implement Agent Tier Loading Interface (AC: #4)
+        * Update loader.py to support tier-specific loading
+        * Add load_doc_tier() function to request standard/archive tiers
+        * Ensure critical docs loaded by default from core index
+        * Document agent usage patterns in README
+
+      - Validation and Compression Measurement (AC: #5)
+        * Create test project with heavy documentation (>=80% doc content)
+        * Measure baseline index size (all docs in core)
+        * Measure tiered index size (only critical in core)
+        * Verify 60-80% compression achieved
+        * Add compression ratio to index stats
+
+      - Testing (All ACs)
+        * Unit tests for tiered storage in core index
+        * Unit tests for tiered storage in detail modules
+        * Test configuration option parsing and behavior
+        * Integration test with doc-heavy project (validate compression)
+        * Test loader.py tier-specific loading
+        * Backward compatibility test (existing indices still work)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. Core index contains only d_critical tier by default
+    2. Detail modules contain d_standard and d_archive tiers
+    3. Configuration option to include all tiers in core index (small projects)
+    4. Agent loads critical docs by default, can request other tiers if needed
+    5. Doc-heavy test project shows 60-80% reduction in default index size
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/PRD.md" title="Product Requirements Document" section="Functional Requirements">
+        FR002: System shall store tiered documentation in separate index sections (d_critical, d_standard, d_archive) with default loading of critical tier only
+      </doc>
+      <doc path="docs/epics.md" title="Epic Breakdown" section="Story 2.2: Tiered Documentation Storage">
+        Core index contains only d_critical tier by default. Detail modules contain d_standard and d_archive tiers. Doc-heavy test project shows 60-80% reduction in default index size.
+      </doc>
+      <doc path="docs/tech-spec-epic-2.md" title="Epic 2 Technical Specification" section="Enhanced Core Index Schema">
+        Core index includes d_critical section (lines 78-119). Detail modules include d_standard and d_archive sections (lines 122-154). Doc Storage Manager responsibility (line 66).
+      </doc>
+      <doc path="docs/architecture.md" title="Architecture Documentation" section="Data Architecture">
+        PROJECT_INDEX.json structure with dense format optimization. Core index with docs section (d). Detail modules in PROJECT_INDEX.d/ directory.
+      </doc>
+      <doc path="docs/stories/2-1-tiered-documentation-classification.md" title="Story 2.1 (COMPLETED)" section="Dev Agent Record">
+        Classification infrastructure implemented: doc_classifier.py module with TIER_RULES constant and classify_documentation() function. Tier metadata tracked in stats. Configuration pattern established.
+      </doc>
+    </docs>
+    <code>
+      <artifact path="scripts/doc_classifier.py" kind="module" symbol="classify_documentation" lines="47-99" reason="Classification function to reuse - determines tier (critical/standard/archive) for each markdown file">
+        def classify_documentation(file_path: Path, config: Optional[Dict] = None) -> str
+        Returns: "critical", "standard", or "archive"
+        TIER_RULES constant at lines 18-44 defines patterns
+      </artifact>
+      <artifact path="scripts/project_index.py" kind="module" symbol="generate_split_index" lines="209-454" reason="Core index generation - needs modification to store only critical tier docs in d_critical section">
+        Currently stores all classified docs. Modify to filter by tier: only critical → core index, standard/archive → detail modules.
+      </artifact>
+      <artifact path="scripts/project_index.py" kind="module" symbol="generate_detail_modules" lines="455-608" reason="Detail module generation - needs modification to add d_standard and d_archive sections">
+        Currently generates files and call_graph_local. Add logic to organize standard/archive docs by module into separate sections.
+      </artifact>
+      <artifact path="scripts/project_index.py" kind="module" symbol="load_configuration" lines="78-138" reason="Configuration loader - extend to parse include_all_doc_tiers boolean">
+        Parse .project-index.json. Add include_all_doc_tiers boolean (default: false). When true, include all tiers in core index.
+      </artifact>
+      <artifact path="scripts/loader.py" kind="module" symbol="load_detail_module" lines="20-105" reason="Lazy-loading interface - enhance to support tier-specific doc loading">
+        Current structure returns module_id, version, files, call_graph_local. Extend to include d_standard and d_archive sections when present.
+      </artifact>
+      <artifact path="scripts/loader.py" kind="module" symbol="find_module_for_file" lines="104-202" reason="File-to-module mapping - ensure docs are properly mapped to modules for tier organization">
+        Maps file paths to module names. Use this to determine which detail module should contain standard/archive docs for organization.
+      </artifact>
+      <artifact path="scripts/test_doc_classifier.py" kind="test" symbol="TestClassifyDocumentation" lines="20-183" reason="Testing patterns to follow - unittest framework with tempfile for isolation, edge case coverage">
+        14 tests validating classification. Follow patterns: setUp/tearDown, edge cases (missing/invalid config), integration tests with real files.
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package name="pathlib" version="stdlib" usage="Path manipulation and file operations" />
+        <package name="json" version="stdlib" usage="JSON serialization for index files" />
+        <package name="unittest" version="stdlib" usage="Testing framework" />
+        <package name="tempfile" version="stdlib" usage="Test isolation with TemporaryDirectory" />
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Python 3.12+ stdlib only (no new external dependencies beyond Epic 1)
+    - Maintain backward compatibility with Epic 1 split architecture
+    - Performance target: Index generation <30 seconds for 10,000 files (NFR001)
+    - Performance target: Lazy-loading <500ms latency per module request (NFR001)
+    - Core index size target: <100KB for 10,000 file codebases (NFR002)
+    - Compression target: 60-80% reduction for doc-heavy projects (FR002)
+    - Classification happens at index generation time, not query time (architecture decision from Story 2.1)
+    - Default tier for unmatched files is "standard" (safe fallback from Story 2.1)
+    - Tier counts tracked in stats for visibility (pattern from Story 2.1)
+    - Both split format (generate_split_index) and legacy format (build_index) must support tiered storage
+    - Configuration override (include_all_doc_tiers: true) for small projects where size isn't a concern
+    - All paths in index must be project-relative, not absolute
+    - Dense format optimization maintained (minified JSON, short keys)
+  </constraints>
+
+  <interfaces>
+    <interface name="classify_documentation" kind="function" signature="def classify_documentation(file_path: Path, config: Optional[Dict] = None) -> str" path="scripts/doc_classifier.py:47">
+      Returns tier classification: "critical", "standard", or "archive"
+      Reuse this function - DO NOT recreate classification logic
+    </interface>
+    <interface name="TIER_RULES" kind="constant" signature="Dict[str, List[str]]" path="scripts/doc_classifier.py:18-44">
+      Pattern rules for tier classification:
+      - critical: README*, ARCHITECTURE*, API*, CONTRIBUTING*, SECURITY*, docs/architecture/*, docs/api/*
+      - standard: docs/development/*, docs/setup/*, docs/guides/*, INSTALL*, SETUP*, docs/how-to/*
+      - archive: docs/tutorials/*, CHANGELOG*, docs/meetings/*, docs/archive/*, HISTORY*
+    </interface>
+    <interface name="load_detail_module" kind="function" signature="def load_detail_module(module_name: str, index_dir: Optional[Path] = None) -> Dict" path="scripts/loader.py:20">
+      Current returns: {module_id, version, files, call_graph_local}
+      Enhance to include: d_standard, d_archive sections when present
+    </interface>
+    <interface name="Core Index Schema" kind="json_schema" signature="PROJECT_INDEX.json v2.1-enhanced" path="docs/tech-spec-epic-2.md:78-119">
+      Add d_critical section to core index:
+      "d_critical": {
+        "README.md": ["Section1", "Section2"],
+        "ARCHITECTURE.md": ["System Architecture", "Component Design"]
+      }
+    </interface>
+    <interface name="Detail Module Schema" kind="json_schema" signature="PROJECT_INDEX.d/*.json v2.1-enhanced" path="docs/tech-spec-epic-2.md:122-154">
+      Add d_standard and d_archive sections:
+      "d_standard": {
+        "docs/auth-guide.md": ["Authentication Flow", "Session Management"]
+      },
+      "d_archive": {
+        "docs/auth-changelog.md": ["Version History", "Migration Notes"]
+      }
+    </interface>
+    <interface name="Configuration Schema" kind="json_schema" signature=".project-index.json" path="docs/.project-index.json.example">
+      Extend with:
+      "include_all_doc_tiers": false  // default: only critical in core index
+      When true: all tiers included in core index (small projects)
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use unittest framework following Story 2.1 patterns. Tests must use tempfile.TemporaryDirectory for isolation. Edge case coverage required: missing config, invalid formats, empty tiers. Integration tests with real markdown files validate end-to-end behavior. Performance validation: tiered storage operations <500ms. Assert compression ratio 60-80% for doc-heavy test projects. Verify backward compatibility: existing indices without tiered docs still work.
+    </standards>
+    <locations>
+      - scripts/test_tiered_storage.py (create new)
+      - scripts/test_doc_classifier.py (reference for patterns)
+      - scripts/test_loader.py (reference for loader testing patterns)
+      - scripts/test_configuration.py (reference for config testing patterns)
+    </locations>
+    <ideas>
+      <test ac="1" desc="Verify core index contains only critical tier docs">
+        Create temp project with mixed tier docs (README critical, guide standard, changelog archive).
+        Run generate_split_index(). Assert core index d_critical contains only README.
+        Assert standard/archive docs NOT in core index.
+      </test>
+      <test ac="2" desc="Verify detail modules contain standard and archive tiers">
+        Generate detail modules for test project.
+        Load scripts.json detail module. Assert d_standard contains guide docs.
+        Assert d_archive contains changelog docs. Verify organization by module.
+      </test>
+      <test ac="3" desc="Configuration override includes all tiers in core">
+        Set include_all_doc_tiers: true in config.
+        Run generate_split_index(). Assert core index d_critical contains critical docs.
+        Assert core index also contains d_standard and d_archive sections with all docs.
+      </test>
+      <test ac="4" desc="Agent loads critical docs by default, can request other tiers">
+        Load core index - verify d_critical present and accessible.
+        Call load_detail_module("scripts") - verify d_standard and d_archive sections returned.
+        Test new load_doc_tier() function to request specific tier from module.
+      </test>
+      <test ac="5" desc="Doc-heavy project achieves 60-80% compression">
+        Create test project: 100 markdown files (10 critical, 40 standard, 50 archive).
+        Measure baseline: index size with all docs in core (include_all_doc_tiers: true).
+        Measure tiered: index size with only critical in core (include_all_doc_tiers: false).
+        Assert: (baseline_size - tiered_size) / baseline_size >= 0.60 (60% compression minimum).
+      </test>
+      <test desc="Backward compatibility: existing indices work without tiered docs">
+        Load Epic 1 format index (no d_critical, d_standard, d_archive).
+        Verify loader.py handles gracefully (no errors).
+        Test generate_split_index on legacy project - creates tiered structure.
+      </test>
+      <test desc="Performance: tiered storage operations within 500ms target">
+        Generate index for 1000 file project with 200 markdown files.
+        Measure time for tier filtering and storage operations.
+        Assert total time < 500ms (lazy-loading performance target NFR001).
+      </test>
+    </ideas>
+  </tests>
+</story-context>

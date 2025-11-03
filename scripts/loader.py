@@ -297,3 +297,89 @@ def load_multiple_modules(
         )
 
     return results
+
+
+def load_doc_tier(
+    tier: str,
+    module_name: Optional[str] = None,
+    index_dir: Optional[Path] = None
+) -> Dict[str, Dict]:
+    """
+    Load documentation from specific tier (standard or archive).
+
+    If module_name is provided, loads docs from that module only.
+    If module_name is None, aggregates docs from all modules.
+
+    Args:
+        tier: Documentation tier ("standard" or "archive")
+        module_name: Optional module to load from (default: all modules)
+        index_dir: Optional custom directory (default: PROJECT_INDEX.d/)
+
+    Returns:
+        Dict mapping doc_path -> doc_content
+        Structure: {
+            "docs/guide.md": {
+                "sections": ["Introduction", "Setup"],
+                "tier": "standard"
+            }
+        }
+
+    Raises:
+        ValueError: Invalid tier name
+        FileNotFoundError: Module not found (if module_name specified)
+
+    Example:
+        >>> # Load all standard docs from scripts module
+        >>> docs = load_doc_tier("standard", "scripts")
+        >>> print(list(docs.keys()))
+        ['scripts/README.md', 'scripts/INSTALL.md']
+
+        >>> # Load all archive docs from all modules
+        >>> all_archive = load_doc_tier("archive")
+        >>> print(len(all_archive))
+        42
+    """
+    # Validate tier name
+    valid_tiers = {"standard", "archive"}
+    if tier not in valid_tiers:
+        raise ValueError(
+            f"Invalid tier '{tier}'. Must be one of: {', '.join(valid_tiers)}"
+        )
+
+    tier_key = f"doc_{tier}"
+
+    # Default to PROJECT_INDEX.d/ in current working directory
+    if index_dir is None:
+        index_dir = Path.cwd() / "PROJECT_INDEX.d"
+    elif isinstance(index_dir, str):
+        index_dir = Path(index_dir)
+
+    # Load from specific module
+    if module_name:
+        module_data = load_detail_module(module_name, index_dir)
+        return module_data.get(tier_key, {})
+
+    # Load from all modules (aggregate)
+    aggregated_docs = {}
+
+    # Find all module files in PROJECT_INDEX.d/
+    if not index_dir.exists():
+        raise FileNotFoundError(
+            f"Index directory not found: {index_dir}\n"
+            "Run project_index.py to generate the index first"
+        )
+
+    for module_file in index_dir.glob("*.json"):
+        try:
+            with open(module_file, 'r', encoding='utf-8') as f:
+                module_data = json.load(f)
+
+            # Extract tier docs from this module
+            tier_docs = module_data.get(tier_key, {})
+            aggregated_docs.update(tier_docs)
+        except (json.JSONDecodeError, OSError) as e:
+            # Log warning but continue processing other modules
+            logger.warning(f"Failed to load module {module_file.name}: {e}")
+            continue
+
+    return aggregated_docs

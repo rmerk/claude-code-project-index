@@ -4,6 +4,7 @@
   "threshold": 1000,
   "max_index_size": 1048576,
   "compression_level": "standard",
+  "include_all_doc_tiers": false,
   "doc_tiers": {
     "critical": [
       "README*",
@@ -25,6 +26,7 @@
     "threshold": "File count threshold for auto-detection (default: 1000, min: 1)",
     "max_index_size": "Maximum index size in bytes for single-file format (default: 1048576 = 1MB)",
     "compression_level": "Compression strategy: 'standard' (default) | 'aggressive'",
+    "include_all_doc_tiers": "Boolean: Include all doc tiers in core index (default: false). When false, only critical docs in core; standard/archive in detail modules. When true, all tiers included in core (small projects use case).",
     "doc_tiers": "Optional: Custom documentation classification rules. Patterns use glob syntax (e.g., *.md, docs/**/*). Custom patterns extend defaults. Tiers: critical (always loaded), standard (loaded on-demand), archive (lowest priority)",
     "validation": "Invalid values are ignored with warnings and defaults are used",
     "precedence": "CLI flags override config file, config file overrides defaults",

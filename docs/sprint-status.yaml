@@ -48,7 +48,7 @@ development_status:
 
   epic-2: backlog
   2-1-tiered-documentation-classification: done
-  2-2-tiered-documentation-storage: backlog
+  2-2-tiered-documentation-storage: done  # Code review follow-up complete: README documentation added
   2-3-git-metadata-extraction: backlog
   2-4-temporal-awareness-integration: backlog
   2-5-mcp-tool-detection: backlog
