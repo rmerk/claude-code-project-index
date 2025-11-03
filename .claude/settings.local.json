@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(tree:*)",
+      "Bash(test:*)",
+      "SlashCommand(/bmad:bmm:workflows:tech-spec)",
+      "Bash(python3:*)",
+      "Bash(__NEW_LINE__ echo \"\")",
+      "Read(//Users/rchoi/Developer/asure/asure.ptm.portal.web.ui.new/assureptmdashboard/**)",
+      "Bash(cat:*)",
+      "Bash(/dev/null)",
+      "Bash(git add:*)",
+      "Bash(git log:*)",
+      "Bash(%ad)",
+      "Bash(%s)",
+      "Bash(%an --date=short src/components/PtmGridPaginated.vue)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(curl:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

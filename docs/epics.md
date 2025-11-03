@@ -346,6 +346,58 @@ So that regeneration is fast for large codebases.
 
 ---
 
+**Story 2.10: MCP Server Implementation**
+
+As a developer using AI assistants,
+I want the project index exposed as an MCP (Model Context Protocol) server,
+So that AI agents can navigate and query large codebases through standardized tool interfaces.
+
+**Acceptance Criteria:**
+1. MCP server (`project_index_mcp.py`) implements 4 core tools:
+   - `project_index_load_core`: Load core index with file tree and module references
+   - `project_index_load_module`: Lazy-load specific detail module
+   - `project_index_search_files`: Search files by path pattern with pagination
+   - `project_index_get_file_info`: Get detailed file information
+2. All tools use Pydantic v2 models for input validation with Field constraints
+3. All tools support both JSON (machine-readable) and Markdown (human-readable) output formats
+4. Tool annotations properly set (readOnlyHint: true, destructiveHint: false, idempotentHint: true)
+5. Comprehensive docstrings with examples and error handling documentation
+6. Evaluation suite created with 10 realistic, verifiable test questions (mcp-builder Phase 4)
+7. Requirements.txt added with `mcp` (MCP Python SDK) dependency
+8. Installation and usage documentation added to README
+9. Server uses stdio transport for local Claude Desktop integration
+10. Integration with existing `scripts/loader.py` and `scripts/project_index.py` utilities
+
+**Prerequisites:** Epic 1 complete (split architecture), Story 2.9 (provides test data for evaluation)
+
+**Implementation Notes:**
+- Use `mcp-builder` Claude Code skill to guide implementation (4-phase process)
+- Follow Python implementation guide at `.claude/skills/mcp-builder/reference/python_mcp_server.md`
+- This introduces the first external dependency (MCP SDK) - architectural decision required
+- Leverage existing utilities from `scripts/` - don't duplicate logic
+- Start with minimal tool set (4 tools) - extended tools can be added in future stories
+
+---
+
+**Story 2.11: MCP Server Auto-Update** *(DEFERRED)*
+
+**Status**: DEFERRED to backlog
+
+**Rationale:**
+- MCP servers typically follow restart pattern, not auto-reload
+- Incremental updates (Story 2.9) already address fast regeneration
+- Adds complexity without proportional value for MVP
+- Could be added in future epic if user demand exists
+
+**Original Intent:**
+As a developer,
+I want the MCP server to automatically detect and reload index changes,
+So that agents always have up-to-date project information without manual restarts.
+
+**Decision**: Move to backlog. Revisit in Epic 3+ if users request this functionality.
+
+---
+
 ## Story Guidelines Reference
 
 **Story Format:**

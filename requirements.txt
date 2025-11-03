@@ -1,0 +1,41 @@
+# claude-code-project-index - External Dependencies
+#
+# Version: 2.0
+# Date: 2025-11-03
+#
+# IMPORTANT: This is the first time external dependencies are introduced.
+# Epic 1 functionality (split index, lazy loading) uses Python 3.12+ stdlib only.
+# Epic 2 introduces optional MCP server functionality that requires these dependencies.
+#
+# Installation:
+#   pip install -r requirements.txt
+#
+# For development:
+#   pip install -r requirements.txt
+#   pip install -r requirements-dev.txt  # (when created)
+
+# ==============================================================================
+# Epic 2: Story 2.10 - MCP Server Implementation
+# ==============================================================================
+
+# MCP Python SDK - Enables exposing project index as MCP tools for AI agents
+# Used by: project_index_mcp.py
+# Docs: https://github.com/modelcontextprotocol/python-sdk
+mcp>=1.0.0
+
+# Pydantic v2 - Input validation for MCP tools (transitive dependency via mcp)
+# Used by: project_index_mcp.py for Pydantic models
+# Docs: https://docs.pydantic.dev/
+pydantic>=2.0.0
+
+# ==============================================================================
+# Optional Dependencies (for future enhancements)
+# ==============================================================================
+
+# httpx - Async HTTP client (not currently required, but recommended for future)
+# Used by: MCP server if HTTP transport is added
+# httpx>=0.27.0
+
+# Note: Core indexing functionality (scripts/project_index.py, scripts/loader.py)
+# remains stdlib-only and does NOT require these dependencies.
+# Only the MCP server (project_index_mcp.py) requires external dependencies.

@@ -71,6 +71,7 @@ This epic enhances the **Index Generation Pipeline** and **Analysis Layer** esta
 | **Relevance Engine** | `scripts/relevance.py` (new) | Unified multi-signal scoring | Explicit refs, temporal data, keywords | Top-N ranked modules |
 | **Impact Analyzer** | `scripts/impact.py` (new) | Analyze downstream dependencies | Function name, call graph | List of callers (direct + indirect) |
 | **Incremental Updater** | `scripts/incremental.py` (new) | Selective index regeneration | Git diff, existing index | Updated core + affected detail modules |
+| **MCP Server** | `project_index_mcp.py` (new) | Expose index functionality as MCP tools for AI agents | MCP tool requests | JSON/Markdown tool responses |
 
 ### Data Models and Contracts
 
@@ -316,9 +317,9 @@ def incremental_update(last_index_path: str, project_root: str) -> tuple[str, li
    a. Apply classification rules (doc_classifier.classify_documentation)
    b. Assign tier: critical, standard, or archive
 4. During index generation:
-   a. Critical docs ’ core index (d_critical section)
-   b. Standard docs ’ detail modules (d_standard section)
-   c. Archive docs ’ detail modules (d_archive section)
+   a. Critical docs ï¿½ core index (d_critical section)
+   b. Standard docs ï¿½ detail modules (d_standard section)
+   c. Archive docs ï¿½ detail modules (d_archive section)
 5. Agent loads core index:
    a. Receives d_critical docs by default
    b. Can request d_standard/d_archive from detail modules if needed
@@ -430,11 +431,11 @@ def incremental_update(last_index_path: str, project_root: str) -> tuple[str, li
 ### Reliability/Availability
 
 **Graceful Degradation:**
-- Git unavailable ’ fall back to filesystem mtime
-- MCP tools unavailable ’ use detail modules from index
-- Tiered doc classification fails ’ default to "standard" tier
-- Impact analysis on invalid function ’ return empty result
-- Incremental update validation fails ’ trigger full regeneration
+- Git unavailable ï¿½ fall back to filesystem mtime
+- MCP tools unavailable ï¿½ use detail modules from index
+- Tiered doc classification fails ï¿½ default to "standard" tier
+- Impact analysis on invalid function ï¿½ return empty result
+- Incremental update validation fails ï¿½ trigger full regeneration
 
 **Backward Compatibility:**
 - Epic 2 format (v2.1) backward compatible with Epic 1 (v2.0)
@@ -464,7 +465,25 @@ def incremental_update(last_index_path: str, project_root: str) -> tuple[str, li
 
 ## Dependencies and Integrations
 
-**Python Standard Library (No New Dependencies)**
+**External Dependencies (NEW in Story 2.10)**
+
+âš ï¸ **IMPORTANT**: Story 2.10 introduces the FIRST external dependency for this project.
+
+| Package | Version | Purpose | Story | Required/Optional |
+|---------|---------|---------|-------|-------------------|
+| `mcp` | latest | MCP Python SDK for server implementation | 2.10 | Required for MCP server |
+| `pydantic` | ^2.0 | Input validation (via MCP SDK dependency) | 2.10 | Transitive dependency |
+
+**Installation:**
+```bash
+pip install mcp
+# OR install from source
+pip install git+https://github.com/modelcontextprotocol/python-sdk.git
+```
+
+**Architectural Decision**: This breaks the Python stdlib-only constraint from Epic 1, but enables MCP server functionality which provides significant value for AI-assisted development workflows.
+
+**Python Standard Library (Continued Usage)**
 
 | Stdlib Module | New Usage in Epic 2 | Version Required |
 |---------------|---------------------|------------------|
@@ -473,6 +492,8 @@ def incremental_update(last_index_path: str, project_root: str) -> tuple[str, li
 | `collections.defaultdict` | Call graph traversal (impact analysis) | Python 3.12+ |
 | `collections.deque` | BFS queue (impact analysis) | Python 3.12+ |
 | `re` | PR number extraction, doc pattern matching | Python 3.12+ |
+| `pathlib` | File path handling in MCP server | Python 3.12+ |
+| `json` | JSON serialization for MCP responses | Python 3.12+ |
 
 **System Dependencies:**
 - **Git** (optional but recommended) - For metadata extraction and incremental updates
@@ -483,7 +504,7 @@ def incremental_update(last_index_path: str, project_root: str) -> tuple[str, li
 - **MCP Read Tool** - For loading current file content
 - **MCP Grep Tool** - For live keyword search
 - **MCP Git Tool** - For real-time git operations
-- **Integration Pattern:** Runtime detection ’ capability-based routing ’ graceful fallback
+- **Integration Pattern:** Runtime detection ï¿½ capability-based routing ï¿½ graceful fallback
 
 **Claude Code Integration (Enhanced):**
 - **Subagent System** - index-analyzer.md enhanced with:
@@ -557,6 +578,27 @@ def incremental_update(last_index_path: str, project_root: str) -> tuple[str, li
 - **AC2.9.4:** Hash-based validation ensures index consistency after incremental update
 - **AC2.9.5:** Full regeneration option available (`/index --full`)
 
+**Story 2.10: MCP Server Implementation**
+- **AC2.10.1:** MCP server (`project_index_mcp.py`) implements 4 core tools with proper FastMCP registration
+- **AC2.10.2:** Tool `project_index_load_core` loads core index and returns JSON or Markdown format
+- **AC2.10.3:** Tool `project_index_load_module` lazy-loads specific detail modules by name
+- **AC2.10.4:** Tool `project_index_search_files` searches files with pagination (limit/offset)
+- **AC2.10.5:** Tool `project_index_get_file_info` returns detailed file information including git metadata
+- **AC2.10.6:** All tools use Pydantic v2 models for input validation with Field constraints
+- **AC2.10.7:** Tool annotations correctly set (readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false)
+- **AC2.10.8:** Comprehensive docstrings with Args, Returns, Examples, and Error Handling sections
+- **AC2.10.9:** Evaluation suite created with 10 realistic test questions (mcp-builder Phase 4)
+- **AC2.10.10:** Requirements.txt added with `mcp` dependency and installation documentation
+- **AC2.10.11:** Server integrates with existing `scripts/loader.py` and `scripts/project_index.py` utilities
+- **AC2.10.12:** Server uses stdio transport for local Claude Desktop integration
+- **AC2.10.13:** Error handling provides actionable messages with clear next steps
+- **AC2.10.14:** README updated with MCP server usage instructions
+
+**Story 2.11: MCP Server Auto-Update**
+- **STATUS:** DEFERRED to backlog
+- **RATIONALE:** MCP servers typically follow restart pattern; incremental updates (Story 2.9) already address fast regeneration; adds complexity without proportional value for MVP
+- **DECISION:** Move to backlog, revisit in Epic 3+ if user demand exists
+
 ## Traceability Mapping
 
 | AC | Spec Section | Component(s) | Test Idea |
@@ -570,6 +612,8 @@ def incremental_update(last_index_path: str, project_root: str) -> tuple[str, li
 | AC2.7.1-2.7.5 | APIs (Relevance Engine) | relevance.py | Unit test scoring variations |
 | AC2.8.1-2.8.5 | APIs (Impact Analysis) | impact.py | Test with sample call graph |
 | AC2.9.1-2.9.5 | APIs (Incremental), Workflows (Incremental) | incremental.py | Change files, verify selective regen |
+| AC2.10.1-2.10.14 | MCP Server Implementation | project_index_mcp.py | Evaluation suite with 10 test questions |
+| AC2.11 | DEFERRED | N/A | Moved to backlog |
 
 **Traceability to PRD Requirements:**
 

@@ -51,6 +51,64 @@ This helps Claude:
 - Place new code in the correct location
 - Avoid creating duplicate functions
 
+## NEW: MCP Server Support (Optional)
+
+**⚡ Epic 2 Feature** - Expose your project index as an MCP (Model Context Protocol) server for advanced AI agent integration.
+
+### What is MCP?
+
+MCP (Model Context Protocol) allows AI agents to interact with your project index through standardized tool interfaces. Instead of loading the entire index, agents can query exactly what they need through dedicated tools.
+
+### Quick Start
+
+```bash
+# Install MCP dependencies (first external dependency for this project)
+pip install -r requirements.txt
+
+# Run the MCP server
+python project_index_mcp.py
+```
+
+### Available Tools
+
+The MCP server provides 4 core tools:
+
+1. **`project_index_load_core`** - Load lightweight core index with file tree and module references
+2. **`project_index_load_module`** - Lazy-load specific detail modules (e.g., "scripts", "auth")
+3. **`project_index_search_files`** - Search for files by path pattern with pagination
+4. **`project_index_get_file_info`** - Get detailed information about a specific file
+
+### Integration with Claude Desktop
+
+Add to your Claude Desktop MCP configuration (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "project-index": {
+      "command": "python",
+      "args": ["/path/to/your/project/project_index_mcp.py"],
+      "env": {}
+    }
+  }
+}
+```
+
+### Benefits
+
+- **Faster queries** - Load only relevant modules instead of entire index
+- **Standardized interface** - Works with any MCP-compatible AI client
+- **Future-proof** - Built on Anthropic's MCP protocol standard
+- **Multiple output formats** - JSON for programmatic use, Markdown for readability
+
+### Requirements
+
+- Python 3.12+
+- MCP Python SDK (`pip install mcp`)
+- Pydantic v2 (auto-installed with MCP SDK)
+
+**Note:** The MCP server is optional. Core indexing functionality remains dependency-free and uses Python stdlib only.
+
 ## Three Ways to Use
 
 ### Small Projects - Direct Reference with `@PROJECT_INDEX.json`
@@ -168,10 +226,16 @@ For any issue, just describe it to Claude and let it fix the tool for you!
 
 ## Requirements
 
+### Core Indexing (No External Dependencies)
 - Python 3.8 or higher
 - Claude Code with hooks support
 - macOS or Linux
 - git and jq (for installation)
+
+### MCP Server (Optional - Requires External Dependencies)
+- Python 3.12 or higher
+- MCP Python SDK: `pip install -r requirements.txt`
+- See "MCP Server Support" section above for details
 
 ## Troubleshooting
 
