@@ -16,7 +16,13 @@
       "Bash(%an --date=short src/components/PtmGridPaginated.vue)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:github.com)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(python scripts/project_index.py:*)",
+      "Bash(python:*)",
+      "Bash(python3.12:*)",
+      "Bash(/opt/homebrew/bin/python3.12 -m pip install:*)",
+      "Bash(source:*)"
     ],
     "deny": [],
     "ask": []

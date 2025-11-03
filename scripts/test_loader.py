@@ -481,7 +481,8 @@ class TestIntegrationWithRealProject(unittest.TestCase):
         """Test batch loading real modules from project."""
         # Get list of actual modules
         module_files = list(self.index_dir.glob("*.json"))
-        module_names = [f.stem for f in module_files]
+        # Filter out invalid module names (e.g., those starting with dots)
+        module_names = [f.stem for f in module_files if not f.stem.startswith('.')]
 
         if len(module_names) > 0:
             result = load_multiple_modules(module_names, self.index_dir)

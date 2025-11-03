@@ -1,0 +1,267 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>3</storyId>
+    <title>Git Metadata Extraction</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-3-git-metadata-extraction.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer</asA>
+    <iWant>git metadata (commit, author, date, PR) extracted for each file</iWant>
+    <soThat>the system understands temporal context and recent changes</soThat>
+    <tasks>
+      - Implement Git Metadata Extraction Module (AC: #1, #2, #3)
+        - Create `scripts/git_metadata.py` module with `extract_git_metadata()` function
+        - Extract last commit hash, author, commit message, date using `git log -1`
+        - Extract lines changed using `git diff --numstat`
+        - Parse PR number from commit message using regex pattern `#(\d+)`
+        - Calculate recency_days from commit date to current date
+        - Implement graceful fallback to file system mtime when git unavailable
+        - Add comprehensive error handling for subprocess failures
+      - Integrate Git Metadata into Core Index Generation (AC: #4)
+        - Modify `scripts/project_index.py` - `generate_split_index()` function
+        - Add `git_metadata` section to core index schema (version 2.1-enhanced)
+        - Call `extract_git_metadata()` for each file during index generation
+        - Store git metadata dictionary in core index with structure from tech-spec
+        - Update core index stats to track git metadata extraction
+      - Performance Optimization (AC: #5)
+        - Batch git operations where possible to minimize subprocess calls
+        - Implement caching to avoid duplicate git queries for same files
+        - Measure git extraction overhead with performance test
+        - Verify <5 second overhead for realistic test project
+      - Testing (All ACs)
+        - Unit tests for `extract_git_metadata()` function
+        - Test commit hash, author, date, message extraction
+        - Test PR number extraction from commit messages
+        - Test lines changed extraction
+        - Test fallback behavior when git unavailable
+        - Test error handling for non-git directories
+        - Integration test: generate index with git metadata
+        - Performance test: measure extraction overhead
+        - Backward compatibility test: indices still work without git metadata
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. Git metadata extracted: last commit hash, author, commit message, date, lines changed
+    2. PR number extracted from commit message if present (e.g., "#247" in message)
+    3. Graceful fallback to file system timestamps when git unavailable
+    4. Git metadata included in core index for all files
+    5. Performance: git extraction adds <5 seconds to index generation
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic Technical Specification: Enhanced Intelligence & Developer Tools</title>
+        <section>Git Metadata Extractor (Services and Modules)</section>
+        <snippet>New module `scripts/git_metadata.py` responsible for extracting commit hash, author, date, PR info, and lines changed per file. Uses git log and diff commands with graceful fallback to filesystem mtime.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic Technical Specification: Enhanced Intelligence & Developer Tools</title>
+        <section>Enhanced Core Index Schema (Data Models)</section>
+        <snippet>Core index version 2.1-enhanced adds git_metadata section with per-file metadata including commit, author, date, message, pr, lines_changed, recency_days fields.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic Technical Specification: Enhanced Intelligence & Developer Tools</title>
+        <section>Git Metadata Extraction API</section>
+        <snippet>extract_git_metadata(file_path) function extracts git metadata using `git log -1 --format=%H|%ae|%aI|%s` for commit info and `git diff --numstat` for lines changed. Falls back to file system mtime when git unavailable.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 2.3: Git Metadata Extraction</section>
+        <snippet>Acceptance criteria: (1) Extract commit hash, author, message, date, lines changed, (2) Extract PR number from commit message, (3) Graceful fallback to filesystem timestamps, (4) Metadata in core index, (5) <5 second performance overhead</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture</title>
+        <section>Data Architecture</section>
+        <snippet>Core index structure defines PROJECT_INDEX.json schema with file tree, function signatures, imports, and git metadata sections for scalable codebase navigation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR003: Git Temporal Awareness</section>
+        <snippet>Git metadata extraction enables temporal awareness by tracking file recency, recent changes, and commit context to prioritize active development areas.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/2-2-tiered-documentation-storage.md</path>
+        <title>Story 2.2: Tiered Documentation Storage</title>
+        <section>Learnings from Previous Story - Module Creation Pattern</section>
+        <snippet>Create standalone module with single responsibility (e.g., doc_classifier.py), export main function, comprehensive docstrings with Args/Returns/Raises, full test coverage with edge cases.</snippet>
+      </doc>
+    </docs>
+
+    <code>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>generate_split_index</symbol>
+        <lines>209-454</lines>
+        <reason>Core function to modify for git metadata integration - adds git_metadata section to core index during generation</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>load_configuration</symbol>
+        <lines>78-137</lines>
+        <reason>Configuration loading pattern - reference for adding git-related config options if needed</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/doc_classifier.py</path>
+        <kind>module</kind>
+        <symbol>classify_documentation</symbol>
+        <lines>47-99</lines>
+        <reason>Example module from Story 2.1 showing standalone module pattern to follow - similar structure needed for git_metadata.py</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/index_utils.py</path>
+        <kind>utilities</kind>
+        <symbol>various</symbol>
+        <lines>1-1450</lines>
+        <reason>Shared utility functions for index generation - reference for subprocess patterns and error handling</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/loader.py</path>
+        <kind>module</kind>
+        <symbol>load_detail_module</symbol>
+        <lines>20-105</lines>
+        <reason>Shows graceful degradation pattern with try/except and warnings (lines 380-382 in Story 2.2 notes)</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/test_tiered_storage.py</path>
+        <kind>test</kind>
+        <symbol>TestTieredStorageAC5</symbol>
+        <lines>311-368</lines>
+        <reason>Example performance test pattern from Story 2.2 - create temp git repos for integration tests, measure timing</reason>
+      </artifact>
+    </code>
+
+    <dependencies>
+      <python>
+        <package name="subprocess" version="stdlib" purpose="Execute git commands"/>
+        <package name="datetime" version="stdlib" purpose="Parse commit dates and calculate recency"/>
+        <package name="pathlib" version="stdlib" purpose="Path manipulation"/>
+        <package name="os" version="stdlib" purpose="Filesystem operations for fallback mtime"/>
+        <package name="re" version="stdlib" purpose="Parse PR number from commit messages"/>
+        <package name="json" version="stdlib" purpose="Index serialization"/>
+        <package name="tempfile" version="stdlib" purpose="Test isolation with temp directories"/>
+        <package name="unittest" version="stdlib" purpose="Test framework"/>
+      </python>
+      <external>
+        <tool name="git" version=">=2.0" purpose="Extract commit metadata - graceful fallback if unavailable"/>
+      </external>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Python 3.12+ stdlib only (no new external dependencies beyond git)
+    - Graceful degradation when git unavailable (fallback to filesystem mtime)
+    - Performance target: <5 seconds overhead for git extraction on full index generation
+    - Subprocess timeout to prevent hangs (use timeout parameter)
+    - Version bump from "2.0-split" to "2.1-enhanced" in core index
+    - Backward compatibility: existing indices without git metadata must still work
+    - All paths in index must be project-relative (not absolute)
+    - Follow module creation pattern from Story 2.1/2.2 (standalone module, comprehensive tests)
+    - Integration with both generate_split_index() and build_index() for backward compat
+    - Stats tracking: add git metadata counts to core index stats section
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>extract_git_metadata</name>
+      <kind>function</kind>
+      <signature>extract_git_metadata(file_path: str) -> dict</signature>
+      <path>scripts/git_metadata.py</path>
+      <description>
+        Main extraction function for git metadata per file.
+
+        Returns dict with keys:
+        - commit: str (hash) or None
+        - author: str (email) or None
+        - date: str (ISO8601) or filesystem mtime
+        - message: str or None
+        - pr: str (number only) or None (extracted via regex #(\d+))
+        - lines_changed: int or None
+        - recency_days: int (days since commit/mtime to now)
+
+        Fallback: Returns filesystem mtime-based dict when git unavailable.
+        Error handling: Try/except subprocess.TimeoutExpired, FileNotFoundError, CalledProcessError
+      </description>
+    </interface>
+
+    <interface>
+      <name>Core Index git_metadata Section</name>
+      <kind>data structure</kind>
+      <signature>
+{
+  "git_metadata": {
+    "relative/file/path.py": {
+      "commit": "a3f2b1c",
+      "author": "developer@example.com",
+      "date": "2025-10-29T14:32:00Z",
+      "message": "Fix bug (#247)",
+      "pr": "247",
+      "lines_changed": 23,
+      "recency_days": 2
+    }
+  }
+}
+      </signature>
+      <path>PROJECT_INDEX.json</path>
+      <description>New section in core index for git metadata, indexed by project-relative file paths</description>
+    </interface>
+
+    <interface>
+      <name>Git Commands</name>
+      <kind>subprocess</kind>
+      <signature>
+git log -1 --format=%H|%ae|%aI|%s -- &lt;file_path&gt;
+git diff --numstat &lt;commit&gt;^ &lt;commit&gt; -- &lt;file_path&gt;
+      </signature>
+      <path>subprocess calls</path>
+      <description>
+        Git commands for metadata extraction:
+        - log: Extract commit hash, author email, ISO date, message
+        - diff: Extract lines added/deleted count
+        Parse format: pipe-delimited for log, space-delimited for diff
+      </description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Use unittest framework with tempfile.TemporaryDirectory for test isolation.
+      Follow patterns from test_tiered_storage.py and test_doc_classifier.py.
+      Create real temporary git repositories for integration tests using subprocess.run(['git', 'init']).
+      Test happy path + edge cases + error conditions (git unavailable, non-git directory, subprocess errors).
+      Performance validation: measure git extraction overhead, verify <5s for realistic test project.
+      Backward compatibility: verify indices work without git metadata section.
+      All tests should use descriptive names (e.g., test_extract_commit_hash_from_git_log).
+    </standards>
+
+    <locations>
+      scripts/test_git_metadata.py (new file to create)
+      Run via: python -m unittest scripts.test_git_metadata
+      Integration with existing test suite
+    </locations>
+
+    <ideas>
+      - AC#1: test_extract_commit_hash, test_extract_author_email, test_extract_commit_date, test_extract_commit_message, test_extract_lines_changed
+      - AC#2: test_parse_pr_number_from_message (test cases: "#123", "PR #456", "no PR", multiple PRs)
+      - AC#3: test_fallback_to_filesystem_mtime_when_git_unavailable, test_fallback_for_non_git_directory
+      - AC#4: test_git_metadata_in_core_index_structure, test_all_files_have_git_metadata
+      - AC#5: test_git_extraction_performance_under_5_seconds (create test repo with 100+ files)
+      - Edge cases: test_empty_commit_message, test_binary_files, test_deleted_files, test_subprocess_timeout
+      - Backward compat: test_indices_load_without_git_metadata, test_loader_handles_missing_git_metadata
+    </ideas>
+  </tests>
+</story-context>

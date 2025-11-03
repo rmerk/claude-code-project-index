@@ -31,6 +31,7 @@ from index_utils import (
     infer_directory_purpose, get_language_name, should_index_file
 )
 from doc_classifier import classify_documentation
+from git_metadata import extract_git_metadata
 
 # Limits to keep it fast and simple
 MAX_FILES = 10000
@@ -48,7 +49,7 @@ def detect_index_format(index_path: Path = None) -> str:
         index_path: Path to PROJECT_INDEX.json (defaults to cwd/PROJECT_INDEX.json)
 
     Returns:
-        "split" if PROJECT_INDEX.d/ exists and version="2.0-split"
+        "split" if PROJECT_INDEX.d/ exists and version is 2.x-split or 2.x-enhanced
         "legacy" if single-file format
     """
     if index_path is None:
@@ -65,7 +66,8 @@ def detect_index_format(index_path: Path = None) -> str:
         with open(index_path) as f:
             data = json.load(f)
             version = data.get("version", "1.0")
-            if version == "2.0-split":
+            # Split format: v2.0-split, v2.1-enhanced, or any future v2.x-* versions
+            if version.startswith("2.") and ("-split" in version or "-enhanced" in version):
                 return "split"
     except (FileNotFoundError, json.JSONDecodeError, Exception):
         # If index file doesn't exist or is corrupted, but directory exists,
@@ -221,9 +223,9 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
     root = Path(root_dir)
     git_cache = {}  # Cache for git metadata
 
-    # Core index structure (v2.0-split)
+    # Core index structure (v2.1-enhanced with git metadata)
     core_index = {
-        'version': '2.0-split',
+        'version': '2.1-enhanced',
         'at': datetime.now().isoformat(),
         'root': str(root),
         'tree': [],
@@ -233,7 +235,9 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
             'fully_parsed': {},
             'listed_only': {},
             'markdown_files': 0,
-            'doc_tiers': {'critical': 0, 'standard': 0, 'archive': 0}  # Tier counts
+            'doc_tiers': {'critical': 0, 'standard': 0, 'archive': 0},  # Tier counts
+            'git_files_tracked': 0,  # Files with git metadata extracted
+            'git_files_fallback': 0  # Files using filesystem mtime fallback
         },
         'f': {},  # Files with lightweight signatures
         'g': [],  # Global call graph (cross-module edges only)
@@ -381,6 +385,11 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
             git_meta = extract_git_metadata(file_path, root, git_cache)
             if git_meta.get('commit'):
                 file_entry['git'] = git_meta
+                core_index['stats']['git_files_tracked'] += 1
+            else:
+                # No commit means fallback to mtime was used
+                if git_meta.get('date'):  # Has mtime fallback data
+                    core_index['stats']['git_files_fallback'] += 1
 
             # Convert to lightweight signatures (name:line format)
             if extracted.get('functions'):
@@ -721,7 +730,9 @@ def build_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int
             'fully_parsed': {},
             'listed_only': {},
             'markdown_files': 0,
-            'doc_tiers': {'critical': 0, 'standard': 0, 'archive': 0}  # Tier counts
+            'doc_tiers': {'critical': 0, 'standard': 0, 'archive': 0},  # Tier counts
+            'git_files_tracked': 0,  # Files with git metadata (not supported in legacy format)
+            'git_files_fallback': 0  # Files using mtime fallback (not supported in legacy format)
         },
         'files': {},
         'dependency_graph': {}
@@ -1263,92 +1274,6 @@ def compress_if_needed(dense_index: Dict, target_size: int = MAX_INDEX_SIZE) -> 
     print(f"  Compressed from {len(index_json)} to {final_size} bytes")
     
     return dense_index
-
-
-def extract_git_metadata(file_path: Path, root_path: Path, cache: Dict) -> Dict:
-    """Extract git metadata for a file with caching.
-
-    Args:
-        file_path: Path to the file
-        root_path: Project root path
-        cache: Cache dict to store results
-
-    Returns:
-        Dict with commit_hash, author, author_email, date, or fallback to file mtime
-    """
-    import subprocess
-    from datetime import datetime
-
-    # Convert to relative path for cache key
-    try:
-        rel_path = str(file_path.relative_to(root_path))
-    except ValueError:
-        rel_path = str(file_path)
-
-    # Check cache first
-    if rel_path in cache:
-        return cache[rel_path]
-
-    metadata = {}
-
-    try:
-        # Get last commit info for this file
-        result = subprocess.run(
-            ['git', 'log', '-1', '--format=%H|%an|%ae|%aI', '--', str(file_path)],
-            cwd=str(root_path),
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
-
-        if result.returncode == 0 and result.stdout.strip():
-            parts = result.stdout.strip().split('|')
-            if len(parts) == 4:
-                metadata = {
-                    'commit': parts[0],
-                    'author': parts[1],
-                    'email': parts[2],
-                    'date': parts[3],
-                    'pr': None  # Placeholder for Epic 2, Story 2.3
-                }
-            else:
-                # Fallback to file mtime
-                metadata = _fallback_to_mtime(file_path)
-        else:
-            # File not tracked or git command failed
-            metadata = _fallback_to_mtime(file_path)
-
-    except (subprocess.TimeoutExpired, FileNotFoundError, Exception):
-        # Git not available or command failed
-        metadata = _fallback_to_mtime(file_path)
-
-    # Cache the result
-    cache[rel_path] = metadata
-    return metadata
-
-
-def _fallback_to_mtime(file_path: Path) -> Dict:
-    """Fallback to file modification time when git is unavailable."""
-    from datetime import datetime
-
-    try:
-        mtime = file_path.stat().st_mtime
-        dt = datetime.fromtimestamp(mtime)
-        return {
-            'commit': None,
-            'author': None,
-            'email': None,
-            'date': dt.isoformat(),
-            'pr': None
-        }
-    except:
-        return {
-            'commit': None,
-            'author': None,
-            'email': None,
-            'date': None,
-            'pr': None
-        }
 
 
 def organize_into_modules(files: List[Path], root_path: Path, depth: int = 1) -> Dict[str, List[str]]:
