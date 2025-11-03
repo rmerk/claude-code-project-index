@@ -791,6 +791,142 @@ Each directory can have its own `.project-index.json` - just run the indexer fro
 
 See `docs/.project-index.json.example` for a complete example.
 
+## Temporal Awareness
+
+**NEW in Epic 2** - The index-analyzer agent now prioritizes recently changed files to help you focus on active development areas.
+
+### What is Temporal Awareness?
+
+Temporal awareness uses git metadata to automatically identify and prioritize files based on when they were last changed. This helps you:
+
+- Quickly find recent changes without searching commit history
+- Focus debugging on recently modified code
+- Get faster answers when working on active features
+- Understand which parts of the codebase are "hot" (actively changing)
+
+### How It Works
+
+**Automatic Recency Weighting:**
+When you use the `-i` flag, the agent automatically gives higher priority to recently changed files:
+- Files changed in last 7 days: **5x weight boost**
+- Files changed in last 30 days: **2x weight boost**
+- Files older than 30 days: normal weight
+
+```bash
+# Agent automatically prioritizes recent files
+claude "analyze the auth system -i"
+# → Agent focuses on recently changed auth files first
+```
+
+**Temporal Queries (Fast Path):**
+Ask about recent changes directly - these queries use git metadata WITHOUT loading detail modules, giving you instant answers:
+
+```bash
+# Show files changed in last 7 days
+claude "show recent changes -i"
+
+# What changed recently?
+claude "what changed in the last week? -i"
+
+# Find recent updates
+claude "show me what's been updated -i"
+```
+
+**Recency Information in Responses:**
+The agent automatically includes when files were last changed:
+
+```
+- **File**: scripts/relevance.py 🕐 **Last changed 2 days ago**
+  - `score_module()` [line 75] - Multi-signal relevance scoring
+  - Introduced temporal weighting for recent files
+
+- **File**: agents/index-analyzer.md 🕐 **Last changed 5 days ago**
+  - Enhanced with temporal awareness capabilities
+```
+
+### Configuration
+
+You can customize temporal weighting through `.project-index.json`:
+
+```json
+{
+  "mode": "auto",
+  "threshold": 1000,
+  "temporal_weights": {
+    "explicit_file_ref": 10.0,
+    "temporal_recent": 5.0,
+    "temporal_medium": 2.0,
+    "keyword_match": 1.0
+  }
+}
+```
+
+**Temporal Weight Options:**
+- **`explicit_file_ref`** (default: 10.0) - Files explicitly mentioned by path (highest priority)
+- **`temporal_recent`** (default: 5.0) - Files changed in last 7 days
+- **`temporal_medium`** (default: 2.0) - Files changed in last 30 days
+- **`keyword_match`** (default: 1.0) - Files matching query keywords
+
+**Example Customization:**
+
+```json
+{
+  "temporal_weights": {
+    "temporal_recent": 8.0,
+    "temporal_medium": 3.0
+  }
+}
+```
+
+This configuration makes the agent even more aggressive about prioritizing recent changes.
+
+### When is Temporal Awareness Most Useful?
+
+**Debugging Production Issues:**
+```bash
+claude "find the bug in payment processing -i"
+# → Agent prioritizes recently changed payment code
+```
+
+**Reviewing Recent Work:**
+```bash
+claude "show recent changes -i"
+# → Instant list of files changed in last 7 days
+```
+
+**Understanding Active Features:**
+```bash
+claude "what's being worked on? -i"
+# → Agent identifies recently modified modules
+```
+
+**Focusing Code Reviews:**
+```bash
+claude "analyze recent auth changes -i"
+# → Agent loads and analyzes recently changed auth files
+```
+
+### Performance
+
+Temporal queries ("show recent changes") are **extremely fast** because they:
+- Use only the core index (no detail module loading)
+- Filter files directly from git metadata
+- Return results in milliseconds, even for large projects
+
+Regular queries also benefit from temporal awareness:
+- Relevance scoring completes in <100ms for 1,000 modules
+- Recent files automatically bubble to the top of results
+- No performance penalty for temporal weighting
+
+### Requirements
+
+Temporal awareness requires:
+- Git repository (uses `git log` for metadata)
+- Python 3.8+ (no external dependencies)
+- Core index with git metadata (automatically included)
+
+Files without git metadata (uncommitted changes, new files) are handled gracefully with normal priority.
+
 ## Backward Compatibility
 
 The indexer supports two format versions to balance performance and compatibility:

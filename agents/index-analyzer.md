@@ -72,52 +72,88 @@ Message format:
 
 When split architecture is detected, score modules based on query relevance to select top N modules to load.
 
-### Keyword Extraction:
-1. Extract key terms from user query (nouns, technical terms, file references)
-2. Clean keywords: lowercase, remove stopwords ("the", "a", "how", "does")
-3. Expand with synonyms: "auth" → ["auth", "authentication", "login", "session"]
+**IMPORTANT**: This agent now uses the `scripts/relevance.py` module for multi-signal relevance scoring with temporal awareness (Story 2.4).
 
-### Scoring Weights (from tech-spec):
-- **Module name matches keyword**: 10x weight
-  - Example: Query "how does loader work?" → module "scripts" (contains loader.py) = +10 points
-- **File path contains keyword**: 5x weight
-  - Example: File "scripts/loader.py" contains "loader" = +5 points per file
-- **Function name matches keyword**: 2x weight
-  - Example: Function "load_detail_module" contains "load" = +2 points per function
+### Query Analysis:
+1. **Detect temporal queries**: Phrases like "recent changes", "what changed", "show updates"
+   - If temporal query: Use git metadata to filter files by recency WITHOUT loading detail modules
+   - Return results directly from core index (fast temporal query path)
 
-### Scoring Process:
+2. **Extract query signals**:
+   - Explicit file references (e.g., "@scripts/loader.py", "in scripts/loader.py")
+   - Keywords: nouns, technical terms, directory names
+   - Temporal context: implicit recency preference
+
+3. **Build query dict for RelevanceScorer**:
 ```python
-# Pseudo-code for agent logic
-for module in core_index["modules"]:
-    score = 0
-
-    # Score module name
-    if any(keyword in module_id.lower() for keyword in query_keywords):
-        score += 10
-
-    # Score file paths in module
-    for file_path in module["files"]:
-        if any(keyword in file_path.lower() for keyword in query_keywords):
-            score += 5
-
-    # Score function names (from lightweight signatures in core index)
-    for func_name in module.get("functions", []):
-        if any(keyword in func_name.lower() for keyword in query_keywords):
-            score += 2
-
-    module_scores[module_id] = score
-
-# Sort modules by score (highest first)
-sorted_modules = sorted(module_scores.items(), key=lambda x: x[1], reverse=True)
+query = {
+    "text": "cleaned query text",
+    "explicit_refs": ["scripts/loader.py"],  # Normalized paths
+    "temporal_filter": True  # Set if temporal query detected
+}
 ```
 
+### Multi-Signal Relevance Scoring (via scripts/relevance.py):
+```python
+from scripts.relevance import RelevanceScorer, filter_files_by_recency
+
+# Initialize scorer with optional custom config
+config = load_configuration()  # Load .project-index.json if exists
+scorer = RelevanceScorer(config=config)
+
+# Extract git metadata from core index
+git_metadata = {}
+for file_path, file_data in core_index.get("f", {}).items():
+    if "git" in file_data:
+        git_metadata[file_path] = file_data["git"]
+
+# Temporal Query Path (AC2.4.3 - no detail module loading)
+if query.get("temporal_filter"):
+    # Extract all files from core index
+    all_files = list(core_index.get("f", {}).keys())
+
+    # Filter by recency (default: 7 days for "recent changes")
+    recent_files = filter_files_by_recency(all_files, days=7, git_metadata=git_metadata)
+
+    # Format response with recency information (AC2.4.4)
+    # Include: file path, recency_days, commit message snippet
+    return format_temporal_response(recent_files, git_metadata)
+
+# General Query Path (AC2.4.2 - weight recent files higher)
+# Score all modules using multi-signal algorithm
+modules = core_index.get("modules", {})
+scored_modules = scorer.score_all_modules(modules, query, git_metadata)
+
+# scored_modules is list of (module_name, score) tuples sorted by relevance
+# Select top N modules to load (default N=5)
+top_modules = scored_modules[:5]
+```
+
+### Scoring Signals (from relevance.py with configurable weights):
+- **Explicit file reference (10x weight)**: User @mentions or directly references file path
+  - Example: Query "@scripts/loader.py" → loader.py gets explicit ref score
+- **Temporal recent (5x weight)**: File changed in last 7 days (AC2.4.5 - configurable)
+  - Example: File with `recency_days: 2` gets 5x temporal boost
+- **Temporal medium (2x weight)**: File changed in last 30 days (AC2.4.5)
+  - Example: File with `recency_days: 20` gets 2x temporal boost
+- **Keyword match (1x weight)**: Query terms found in file paths
+  - Example: Query "loader" matches "scripts/loader.py"
+
+### Temporal Awareness Features (Story 2.4):
+- **AC2.4.1**: Files filtered by recency_days field from git metadata (7/30/90 day windows)
+- **AC2.4.2**: Recent files automatically weighted 5x higher in all queries
+- **AC2.4.3**: Temporal queries ("recent changes") use core index only - no detail loading
+- **AC2.4.4**: Responses include recency info: "scripts/main.py changed 2 days ago"
+- **AC2.4.5**: Weights configurable via .project-index.json temporal_weights section
+
 ### Edge Cases:
-- **No matches (all scores = 0)**: Load top 5 modules by recency (use `modified` timestamp from core index)
-- **All modules match equally**: Prioritize by size (smaller modules first for faster response)
-- **Explicit file reference in query**: If query mentions specific file path, load that module first (regardless of score)
+- **No matches (all scores = 0)**: Load top 5 modules by file count (larger modules likely more central)
+- **All modules match equally**: Temporal scoring breaks ties (prefer recent changes)
+- **Missing git metadata**: Files without git metadata receive no temporal boost (weight=0 for temporal signals)
+- **Explicit file reference**: Always load that module first (10x weight overrides all)
 
 ### Performance Target:
-- Relevance scoring must complete in <100ms (tech-spec requirement)
+- Relevance scoring must complete in <100ms for 1,000 modules (tested in test_relevance.py)
 
 ## LAZY-LOADING WORKFLOW
 
@@ -201,12 +237,15 @@ Structure your analysis based on architecture format:
 
 ### ESSENTIAL CODE PATHS
 [From detail modules - deep analysis with function bodies]
-- **File**: path/to/file.py (Module: [module_id])
+- **File**: path/to/file.py (Module: [module_id]) 🕐 **Last changed 2 days ago**
   - `function_name()` [line X] - Why this matters
   - **Function Body**: [actual code if relevant from detail module]
   - Called by: [list callers from call_graph_local]
   - Calls: [list callees from call_graph_local]
   - Dependencies: [imports from detail module]
+
+**Note**: Always include recency information when git metadata available (AC2.4.4).
+Example: "scripts/loader.py changed 5 days ago", "agents/index-analyzer.md changed 2 weeks ago"
 
 ### ARCHITECTURAL INSIGHTS
 [Deep insights combining core structure + detail analysis]
@@ -289,18 +328,34 @@ When verbose mode is enabled (typically via `-v` flag or logging level), provide
 📦 Loaded detail modules: scripts, bmad/bmm/workflows (5 modules total)
 
 🔍 Relevance Scoring Results (Top 10):
-  1. scripts (score: 25) - matched: loader, index
-  2. bmad/bmm/workflows (score: 15) - matched: workflow
-  3. agents (score: 8) - matched: agent
-  4. docs (score: 5) - matched: documentation
-  5. bmad/core (score: 3) - matched: core
+  1. scripts (score: 25) - matched: loader, index | 🕐 2 files changed in last 7 days
+  2. bmad/bmm/workflows (score: 15) - matched: workflow | 🕐 1 file changed in last 7 days
+  3. agents (score: 8) - matched: agent | 🕐 No recent changes
+  4. docs (score: 5) - matched: documentation | 🕐 3 files changed in last 30 days
+  5. bmad/core (score: 3) - matched: core | 🕐 No recent changes
   [... remaining modules with lower scores ...]
 
 💡 Module Selection Rationale:
   - Loaded top 5 modules (default N=5)
   - Query keywords extracted: ["loader", "index", "workflow", "agent"]
-  - Module "scripts" selected: contains loader.py (10x module name + 5x file path)
-  - Module "bmad/bmm/workflows" selected: directory name match (10x weight)
+  - Temporal weighting applied: recent(7d)=5x, medium(30d)=2x (from .project-index.json)
+  - Module "scripts" selected: keyword match (5x) + temporal recent (5x) = 10 points base
+  - Module "bmad/bmm/workflows" selected: directory name match (5x) + temporal boost
+```
+
+### Logging Temporal Query Path:
+```
+🕐 Temporal query detected: "show recent changes"
+📊 Filtering files by recency (7 days)...
+✅ Found 8 files changed in last 7 days (from git metadata)
+📦 No detail modules loaded (temporal queries use core index only)
+
+Recent Changes (last 7 days):
+  1. scripts/relevance.py (2 days ago) - "Add temporal awareness integration"
+  2. scripts/test_relevance.py (2 days ago) - "Add comprehensive relevance tests"
+  3. agents/index-analyzer.md (2 days ago) - "Integrate temporal scoring"
+  4. scripts/project_index.py (3 days ago) - "Fix git metadata extraction"
+  [... remaining recent files ...]
 ```
 
 ### Logging Fallback Behavior:

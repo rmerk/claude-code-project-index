@@ -1,0 +1,152 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>5</storyId>
+    <title>MCP Tool Detection</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-5-mcp-tool-detection.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>AI agent</asA>
+    <iWant>to detect which MCP tools are available</iWant>
+    <soThat>I can use live data sources when possible</soThat>
+    <tasks>
+      - Implement MCP Tool Detection Module (AC: #1, #2)
+        - Create `scripts/mcp_detector.py` module with MCP tool detection logic
+        - Implement `detect_mcp_tools()` function to probe for Read, Grep, Git tools
+        - Return capability map dict: `{"read": bool, "grep": bool, "git": bool}`
+        - Handle detection failures gracefully (return False for unavailable tools)
+        - Add comprehensive docstrings and type hints
+
+      - Integrate MCP Detection into Index-Analyzer Agent (AC: #1, #3, #4)
+        - Modify `agents/index-analyzer.md` to import and use `mcp_detector.py`
+        - Call `detect_mcp_tools()` at agent initialization
+        - Store capability map as agent context variable
+        - Log MCP availability status when verbose flag used
+        - Gracefully fall back to index-only mode when MCP unavailable
+        - Document MCP detection in agent initialization section
+
+      - Documentation and Configuration (AC: #5)
+        - Update README with MCP integration benefits section
+        - Explain how MCP tools enhance index functionality
+        - Provide examples of hybrid index + MCP workflows
+        - Document detection mechanism and capability map structure
+
+      - Testing (All ACs)
+        - Unit tests for `detect_mcp_tools()` function
+        - Test detection when all MCP tools available
+        - Test detection when some MCP tools unavailable (partial availability)
+        - Test detection when no MCP tools available (fallback mode)
+        - Integration test: Agent initializes with MCP detection
+        - Integration test: Agent logs MCP status in verbose mode
+        - Test graceful degradation to index-only mode
+        - Performance test: Detection completes in &lt;100ms
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. Agent detects MCP Read, Grep, Git tools at runtime
+    2. Agent capability map stored (which MCP tools are available)
+    3. Agent logs MCP availability status when verbose flag used
+    4. Graceful behavior when MCP tools unavailable (use index only)
+    5. Documentation explains MCP integration benefits
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/tech-spec-epic-2.md" title="Epic 2 Technical Specification" section="Services and Modules">
+        MCP Detector module (scripts/mcp_detector.py) - Detect available MCP tools at runtime, returning MCP capability map showing which tools (Read, Grep, Git) are available. Hybrid Query Router in agents/index-analyzer.md routes queries to index or MCP based on query type and MCP availability.
+      </doc>
+      <doc path="docs/tech-spec-epic-2.md" title="Epic 2 Technical Specification" section="System Architecture Alignment">
+        MCP Tool Detection as runtime capability discovery for Read, Grep, Git tools. Graceful degradation when git or MCP tools unavailable. Python 3.12+ stdlib only (no new external dependencies).
+      </doc>
+      <doc path="docs/epics.md" title="Epic Breakdown" section="Story 2.5: MCP Tool Detection">
+        As an AI agent, I want to detect which MCP tools are available, so that I can use live data sources when possible. 5 acceptance criteria covering runtime detection, capability map storage, logging, graceful fallback, and documentation.
+      </doc>
+      <doc path="docs/PRD.md" title="Product Requirements Document" section="User Journeys - Hybrid Intelligence">
+        Agent uses four relevance signals: explicit context (file refs) -> MCP Read if available; semantic context (keywords) -> MCP Grep if available; temporal context (git metadata) -> MCP Git if available; structural context (dependencies) -> always uses index. Hybrid intelligence: index provides architectural awareness, MCP provides real-time data.
+      </doc>
+      <doc path="agents/index-analyzer.md" title="Index Analyzer Agent" section="Relevance Scoring Algorithm">
+        Agent uses scripts/relevance.py module for multi-signal relevance scoring with temporal awareness (Story 2.4). Temporal queries detected via phrases like "recent changes" - uses git metadata without loading detail modules (fast path).
+      </doc>
+    </docs>
+    <code>
+      <file path="scripts/relevance.py" kind="module" symbol="filter_files_by_recency" lines="21-80" reason="Existing temporal filtering function - provides pattern for detection function structure with comprehensive docstrings, type hints, and error handling">
+      </file>
+      <file path="scripts/relevance.py" kind="module" symbol="RelevanceScorer" lines="83-238" reason="Multi-signal relevance scoring class - demonstrates pattern for configurable weights, capability detection, and graceful degradation that MCP detector should follow">
+      </file>
+      <file path="agents/index-analyzer.md" kind="agent" symbol="RELEVANCE SCORING ALGORITHM" lines="71-157" reason="Agent initialization section where MCP detection will be integrated - shows how to import scripts/relevance.py, call detection functions, store results, and log in verbose mode">
+      </file>
+      <file path="scripts/test_relevance.py" kind="test" symbol="TestFilterFilesByRecency" lines="26-141" reason="Test suite pattern using unittest framework with setUp/tearDown, multiple test cases for edge cases (missing data, empty results, boundary conditions), and performance validation">
+      </file>
+      <file path="scripts/git_metadata.py" kind="module" symbol="extract_git_metadata" lines="22-294" reason="Reference implementation for runtime environment detection - shows subprocess usage, timeout handling, graceful fallback patterns when tools unavailable">
+      </file>
+    </code>
+    <dependencies>
+      <python>
+        Python 3.12+ (stdlib only - no external dependencies)
+        - pathlib (Path objects)
+        - typing (Dict, List, Optional, Any type hints)
+        - json (config loading if needed)
+        - unittest (testing framework)
+        - unittest.mock (for mocking MCP tools in tests)
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - **Python stdlib only**: No new external dependencies - maintain project constraint
+    - **Performance**: Detection must complete in &lt;100ms (non-blocking initialization)
+    - **Graceful degradation**: Default to False for undetectable tools (safe fallback)
+    - **No subprocess/shell commands**: MCP detection should use API-based detection, not shell probes
+    - **Caching**: Cache detection results - don't re-probe on every query
+    - **Module creation pattern**: Follow established pattern from scripts/relevance.py and scripts/git_metadata.py
+    - **Testing pattern**: Use unittest framework with proper test isolation and edge case coverage
+    - **Documentation**: Comprehensive docstrings with Args/Returns/Examples per project standard
+  </constraints>
+
+  <interfaces>
+    <interface name="detect_mcp_tools" kind="function" signature="detect_mcp_tools() -> Dict[str, bool]" path="scripts/mcp_detector.py">
+      Main detection function that probes for MCP Read, Grep, Git tools.
+      Returns capability map: {"read": bool, "grep": bool, "git": bool}
+      Used by index-analyzer agent at initialization.
+    </interface>
+    <interface name="RelevanceScorer.__init__" kind="method" signature="__init__(self, config_path: Optional[Path] = None)" path="scripts/relevance.py:108-127">
+      Pattern for loading optional configuration - MCP detector may need similar config loading for detection behavior customization (timeouts, enabled tools, etc.)
+    </interface>
+    <interface name="Agent initialization" kind="workflow" signature="agents/index-analyzer.md initialization section" path="agents/index-analyzer.md:71-100">
+      Agent loads core index, performs format detection, initializes relevance scorer.
+      MCP detection should fit into this initialization flow: detect tools -> store capability map -> log availability -> use in query routing.
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+      Use Python unittest framework following established project patterns from scripts/test_relevance.py and scripts/test_git_metadata.py.
+      Each test class should inherit from unittest.TestCase with setUp/tearDown for test isolation.
+      Test file naming: scripts/test_mcp_detector.py (test_ prefix convention).
+      Include comprehensive docstrings describing test purpose.
+      Use unittest.mock for MCP tool simulation (Mock, patch).
+      Test coverage: happy path + edge cases + performance validation.
+      Performance requirement: Detection should complete in &lt;100ms (validated in performance test).
+    </standards>
+    <locations>
+      - scripts/test_mcp_detector.py (new test file to create)
+      - Follow existing test pattern: scripts/test_*.py files
+      - Run via: python -m unittest scripts.test_mcp_detector
+      - Or run all tests: python -m unittest discover scripts
+    </locations>
+    <ideas>
+      <test ac="1,2" idea="TestDetectMCPTools.test_all_tools_available - Mock environment with all MCP tools available, verify capability map returns {read: True, grep: True, git: True}"/>
+      <test ac="1,2" idea="TestDetectMCPTools.test_partial_availability - Mock environment with only Read and Grep available (Git missing), verify capability map returns {read: True, grep: True, git: False}"/>
+      <test ac="1,2,4" idea="TestDetectMCPTools.test_no_tools_available - Mock environment with no MCP tools, verify capability map returns {read: False, grep: False, git: False} and no exceptions thrown (graceful degradation)"/>
+      <test ac="3" idea="TestDetectMCPTools.test_detection_timeout - Simulate slow MCP tool response, verify detection times out and returns False for that tool (prevents blocking)"/>
+      <test ac="4" idea="TestDetectMCPTools.test_detection_exception_handling - Simulate detection failure (exception thrown), verify graceful fallback to False without crashing"/>
+      <test ac="1,2,3" idea="TestAgentIntegration.test_agent_initializes_with_mcp_detection - Integration test: Mock agent initialization, verify detect_mcp_tools() is called and capability map stored in agent context"/>
+      <test ac="3" idea="TestAgentIntegration.test_verbose_logging - Integration test: Run detection with verbose flag, verify MCP availability status logged to output (e.g., 'MCP Tools: Read=True, Grep=True, Git=False')"/>
+      <test ac="1,2" idea="TestPerformance.test_detection_under_100ms - Performance test: Run detect_mcp_tools() and verify completion time &lt;100ms (requirement from tech-spec and story AC)"/>
+    </ideas>
+  </tests>
+</story-context>

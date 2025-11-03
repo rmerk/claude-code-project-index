@@ -1,0 +1,319 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>2.4</storyId>
+    <title>Temporal Awareness Integration</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-4-temporal-awareness-integration.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>the agent to prioritize recently changed files</iWant>
+    <soThat>debugging and context retrieval focus on active development areas</soThat>
+    <tasks>
+      - Implement Temporal Filtering Functions (AC: #1)
+        - Create `scripts/relevance.py` module with temporal filtering logic
+        - Implement `filter_files_by_recency(files, days, git_metadata)` function
+        - Return list of files changed within specified time window (7/30/90 days)
+        - Use `recency_days` field from git metadata for filtering
+        - Handle files without git metadata gracefully (include with low priority)
+
+      - Implement Relevance Scoring Engine (AC: #2, #5)
+        - Create `RelevanceScorer` class in `scripts/relevance.py`
+        - Implement multi-signal scoring combining explicit refs, temporal context, keywords
+        - Define default weights: explicit_file_ref=10x, temporal_recent(7d)=5x, temporal_medium(30d)=2x, keyword_match=1x
+        - Implement `score_module(module, query, git_metadata)` method
+        - Make temporal weighting configurable via `.project-index.json` config
+        - Return scored modules sorted by relevance (highest first)
+
+      - Integrate Temporal Awareness into Index-Analyzer Agent (AC: #3, #4)
+        - Modify `agents/index-analyzer.md` to import and use `relevance.py`
+        - Add temporal query detection for phrases like "recent changes", "what changed"
+        - Use git metadata from core index to answer temporal queries without detail modules
+        - Include recency information in agent responses (e.g., "changed 2 days ago")
+        - Lazy-load top-N scored modules based on relevance scoring (default N=5)
+        - Log temporal scoring decisions when verbose flag used
+
+      - Configuration and Documentation (AC: #5)
+        - Add temporal weighting configuration to `.project-index.json` schema
+        - Document configuration options in README (temporal_weights section)
+        - Provide examples of temporal queries and expected responses
+        - Document how temporal scoring affects module loading priority
+
+      - Testing (All ACs)
+        - Unit tests for `filter_files_by_recency()` function
+        - Unit tests for `RelevanceScorer` class with various query types
+        - Test explicit file references receive highest score (10x)
+        - Test temporal scoring: 7-day=5x, 30-day=2x, keyword=1x
+        - Test configurable weights override defaults
+        - Integration test: Agent responds to "show recent changes" query
+        - Integration test: Agent includes recency in responses
+        - Test graceful handling of missing git metadata
+        - Performance test: Scoring 1,000 modules completes in <100ms
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. Agent identifies files changed in last 7/30/90 days from git metadata
+    2. Relevance scoring weights recent files higher in query results
+    3. Query "show recent changes" uses git metadata without loading detail modules
+    4. Agent mentions recency in responses ("auth/login.py changed 2 days ago")
+    5. Temporal weighting configurable (default: 7-day window = 5x weight, 30-day = 2x weight)
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic Technical Specification: Enhanced Intelligence & Developer Tools</title>
+        <section>Services and Modules</section>
+        <snippet>Temporal Scorer module (scripts/relevance.py) - Weight recent changes in scoring. Relevance Engine module - Unified multi-signal scoring system. Hybrid Query Router (agents/index-analyzer.md) - Route queries to index or MCP.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic Technical Specification: Enhanced Intelligence & Developer Tools</title>
+        <section>Relevance Scoring API</section>
+        <snippet>RelevanceScorer class with WEIGHTS: explicit_file_ref=10.0, temporal_recent=5.0 (7 days), temporal_medium=2.0 (30 days), keyword_match=1.0. Method score_module(module, query, git_metadata) calculates combined relevance score.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic Technical Specification: Enhanced Intelligence & Developer Tools</title>
+        <section>Temporal Awareness Workflow</section>
+        <snippet>Agent loads core index. If temporal query detected ("recent changes"), filter files by recency_days <= 7 and return WITHOUT loading detail modules. For general queries, apply relevance scoring to modules, weight recent files 5x higher, load top-N scored modules.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic Technical Specification: Enhanced Intelligence & Developer Tools</title>
+        <section>Acceptance Criteria AC2.4.1-2.4.5</section>
+        <snippet>AC2.4.1: Agent identifies files changed in last 7/30/90 days from git metadata. AC2.4.2: Relevance scoring weights recent files higher. AC2.4.3: Query "show recent changes" uses git metadata without loading detail modules. AC2.4.4: Agent mentions recency in responses. AC2.4.5: Temporal weighting configurable (default: 7-day window = 5x weight).</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown - Story 2.4</title>
+        <section>Story 2.4: Temporal Awareness Integration</section>
+        <snippet>Prerequisites: Story 2.3 (git metadata available). As a developer, I want the agent to prioritize recently changed files, so that debugging and context retrieval focus on active development areas.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR009: Git Metadata Integration</section>
+        <snippet>System shall use git metadata to enable temporal awareness and recency-based prioritization. FR007: Relevance scoring combining explicit file references, temporal context (recent changes), and semantic keyword matching.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation</title>
+        <section>Analysis Layer (Intelligence)</section>
+        <snippet>Index-analyzer subagent provides deep analysis, code relationship analysis, strategic recommendations. Will be enhanced with temporal awareness capabilities for prioritizing recent changes.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/2-3-git-metadata-extraction.md</path>
+        <title>Story 2.3: Git Metadata Extraction</title>
+        <section>Dev Agent Record</section>
+        <snippet>Completed story provides git metadata in core index (v2.1-enhanced). Git metadata fields available: commit, author, date, message, pr, lines_changed, recency_days. Git metadata accessible at .f["file_path"].git structure. Module creation pattern: standalone utility module with comprehensive tests.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>agents/index-analyzer.md</path>
+        <kind>agent</kind>
+        <symbol>index-analyzer</symbol>
+        <lines>1-100</lines>
+        <reason>Agent to be enhanced with temporal awareness. Currently has RELEVANCE SCORING ALGORITHM section (lines 71-100) that will be extended with temporal weighting. Needs integration with new relevance.py module.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/git_metadata.py</path>
+        <kind>module</kind>
+        <symbol>extract_git_metadata</symbol>
+        <lines>18-50</lines>
+        <reason>Provides foundation for temporal awareness. Extract git metadata function returns dict with recency_days field that will be used for temporal filtering and scoring. Pattern to follow for creating relevance.py module.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>generate_split_index</symbol>
+        <lines>210-454</lines>
+        <reason>Core index generation function. Git metadata extraction integrated here (line 382). Shows how new modules are imported and used. Core index contains git metadata that relevance.py will consume.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>load_configuration</symbol>
+        <lines>80-141</lines>
+        <reason>Configuration loading pattern. Shows how to load and parse .project-index.json config file. Will be used to load temporal_weights configuration for RelevanceScorer.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/loader.py</path>
+        <kind>module</kind>
+        <symbol>load_detail_module</symbol>
+        <lines>20-102</lines>
+        <reason>Lazy-loading implementation for detail modules. Index-analyzer will use this to load top-N scored modules after relevance scoring. Shows integration pattern with PROJECT_INDEX.d/ directory.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/test_git_metadata.py</path>
+        <kind>test</kind>
+        <symbol>TestExtractGitMetadata</symbol>
+        <lines>32-178</lines>
+        <reason>Testing pattern to follow. Shows comprehensive unittest structure: setUp/tearDown, temp directories, performance tests, edge cases. Template for scripts/test_relevance.py.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package>subprocess</package>
+        <version>stdlib</version>
+        <reason>No new subprocess usage expected in relevance.py (git metadata already extracted). Included for context as story builds on git metadata from Story 2.3.</reason>
+      </python>
+      <python>
+        <package>datetime</package>
+        <version>stdlib</version>
+        <reason>For calculating time deltas when filtering by recency (7/30/90 days). Used in filter_files_by_recency() function.</reason>
+      </python>
+      <python>
+        <package>pathlib</package>
+        <version>stdlib</version>
+        <reason>Path handling for file references in relevance scoring. Standard pattern in project.</reason>
+      </python>
+      <python>
+        <package>typing</package>
+        <version>stdlib</version>
+        <reason>Type hints for function signatures (Dict, List, Optional). Follow project pattern for comprehensive type annotations.</reason>
+      </python>
+      <python>
+        <package>json</package>
+        <version>stdlib</version>
+        <reason>Load core index JSON for git metadata access. Load .project-index.json for configuration.</reason>
+      </python>
+      <python>
+        <package>unittest</package>
+        <version>stdlib</version>
+        <reason>Testing framework for scripts/test_relevance.py. Project standard for test suites.</reason>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - **Python 3.12+ stdlib only**: No new external dependencies. Reuse existing patterns from git_metadata.py and project_index.py.
+    - **Performance**: Relevance scoring MUST complete in <100ms for 1,000 modules (tech-spec line 406). Use efficient algorithms, avoid O(n²) operations.
+    - **Graceful degradation**: Handle missing git metadata gracefully. Files without recency_days should receive low temporal score (weight=0), not crash scoring.
+    - **Backward compatibility**: Core index v2.1-enhanced format from Story 2.3. Git metadata available at .f["file"].git.recency_days.
+    - **Configuration**: Temporal weights must be configurable via .project-index.json. Provide sensible defaults (7d=5x, 30d=2x) but allow override.
+    - **Non-blocking**: Relevance scoring must not block index loading. Agent should degrade gracefully if relevance.py unavailable.
+    - **Testing**: Minimum 80% code coverage. Include performance tests (1,000 modules in <100ms), edge cases (missing metadata), integration tests (agent queries).
+    - **Documentation**: Update README with temporal awareness explanation, query examples, configuration guide.
+    - **Logging**: Use verbose mode for detailed scoring logs. Don't spam console in normal mode.
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>filter_files_by_recency</name>
+      <kind>function</kind>
+      <signature>def filter_files_by_recency(files: List[str], days: int, git_metadata: Dict) -> List[str]</signature>
+      <path>scripts/relevance.py</path>
+      <description>Filter files by recency threshold. Returns files changed within specified days (7/30/90). Uses git_metadata[file].recency_days for filtering.</description>
+    </interface>
+    <interface>
+      <name>RelevanceScorer</name>
+      <kind>class</kind>
+      <signature>class RelevanceScorer:
+    WEIGHTS = {"explicit_file_ref": 10.0, "temporal_recent": 5.0, "temporal_medium": 2.0, "keyword_match": 1.0}
+    def __init__(self, config: Optional[Dict] = None)
+    def score_module(self, module: Dict, query: Dict, git_metadata: Dict) -> float</signature>
+      <path>scripts/relevance.py</path>
+      <description>Multi-signal relevance scoring engine. Scores modules based on explicit refs (10x), temporal context (5x for 7d, 2x for 30d), and keywords (1x). Returns combined score. Configurable weights via .project-index.json.</description>
+    </interface>
+    <interface>
+      <name>Git Metadata Structure</name>
+      <kind>data-model</kind>
+      <signature>git_metadata: {
+  "file_path": {
+    "commit": str,
+    "author": str,
+    "date": str,
+    "message": str,
+    "pr": str | None,
+    "lines_changed": int,
+    "recency_days": int  # KEY FIELD for temporal awareness
+  }
+}</signature>
+      <path>PROJECT_INDEX.json (v2.1-enhanced)</path>
+      <description>Git metadata structure from Story 2.3. Located at .f["file_path"].git in core index. recency_days field is critical for temporal filtering and scoring.</description>
+    </interface>
+    <interface>
+      <name>Temporal Configuration Schema</name>
+      <kind>config</kind>
+      <signature>{
+  "mode": "split",
+  "threshold": 1000,
+  "temporal_weights": {
+    "explicit_file_ref": 10.0,
+    "temporal_recent": 5.0,
+    "temporal_medium": 2.0,
+    "keyword_match": 1.0
+  }
+}</signature>
+      <path>.project-index.json</path>
+      <description>Configuration schema extension for temporal weighting. Optional temporal_weights section allows override of default scoring weights. Loaded by RelevanceScorer.__init__().</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Follow project testing pattern established in scripts/test_git_metadata.py:
+      - Use unittest framework with TestCase classes
+      - Proper test isolation with setUp/tearDown methods
+      - Use tempfile.TemporaryDirectory for file system tests
+      - Descriptive test method names (test_filter_files_by_7_day_window)
+      - Comprehensive coverage: happy path + edge cases + performance validation
+      - Edge cases: missing git metadata, empty results, invalid inputs
+      - Performance tests: 1,000 modules in <100ms (AC requirement)
+      - Integration tests: End-to-end with actual core index structure
+      - Mock external dependencies where appropriate
+      - Minimum 80% code coverage target
+    </standards>
+    <locations>
+      - scripts/test_relevance.py - Primary test suite for relevance module
+      - Integration tests may extend existing test_index_analyzer_agent.py for agent enhancements
+      - Performance benchmarks in dedicated test class (TestPerformance)
+    </locations>
+    <ideas>
+      AC#1 (Temporal Filtering):
+      - test_filter_files_by_7_day_window - Verify 7-day filtering returns only recent files
+      - test_filter_files_by_30_day_window - Verify 30-day filtering
+      - test_filter_files_by_90_day_window - Verify 90-day filtering
+      - test_filter_handles_missing_git_metadata - Files without metadata handled gracefully
+      - test_filter_empty_results - No files match threshold returns empty list
+
+      AC#2 (Relevance Scoring):
+      - test_explicit_file_ref_highest_score - Explicit refs get 10x weight
+      - test_temporal_recent_7day_5x_weight - Files changed in 7 days get 5x weight
+      - test_temporal_medium_30day_2x_weight - Files changed in 30 days get 2x weight
+      - test_keyword_match_1x_weight - Keyword matches get 1x weight
+      - test_combined_scoring - Multiple signals combine correctly
+      - test_score_module_sorts_by_relevance - Top modules returned first
+
+      AC#3 (Agent Integration - Temporal Queries):
+      - test_agent_detects_recent_changes_query - "show recent changes" detected
+      - test_agent_responds_without_detail_modules - Uses core index only for temporal queries
+      - test_agent_filters_by_recency - Returns filtered file list
+
+      AC#4 (Agent Recency Mentions):
+      - test_agent_includes_recency_info - Response includes "changed N days ago"
+      - test_agent_mentions_multiple_recencies - Multiple files with different ages
+
+      AC#5 (Configuration):
+      - test_load_default_weights - Default weights used when no config
+      - test_load_custom_weights_from_config - Custom weights override defaults
+      - test_invalid_config_falls_back_to_defaults - Graceful handling of bad config
+
+      Performance:
+      - test_scoring_1000_modules_under_100ms - Performance requirement validation
+      - test_filtering_10000_files_under_1s - Large dataset performance
+
+      Integration:
+      - test_end_to_end_temporal_query - Full workflow from query to response
+      - test_integration_with_core_index - Real PROJECT_INDEX.json structure
+    </ideas>
+  </tests>
+</story-context>

@@ -50,8 +50,8 @@ development_status:
   2-1-tiered-documentation-classification: done
   2-2-tiered-documentation-storage: done  # Code review follow-up complete: README documentation added
   2-3-git-metadata-extraction: done  # ✅ APPROVED: Python 3.12 verified, all ACs met, all tests passing
-  2-4-temporal-awareness-integration: backlog
-  2-5-mcp-tool-detection: backlog
+  2-4-temporal-awareness-integration: done  # ✅ APPROVED: All 5 ACs met, 30/30 tests passing, production-ready
+  2-5-mcp-tool-detection: in-progress
   2-6-hybrid-query-strategy: backlog
   2-7-relevance-scoring-engine: backlog
   2-8-impact-analysis-tooling: backlog
