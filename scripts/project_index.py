@@ -27,9 +27,10 @@ from typing import Dict, List, Optional, Tuple
 from index_utils import (
     IGNORE_DIRS, PARSEABLE_LANGUAGES, CODE_EXTENSIONS, MARKDOWN_EXTENSIONS,
     DIRECTORY_PURPOSES, extract_python_signatures, extract_javascript_signatures,
-    extract_shell_signatures, extract_markdown_structure, infer_file_purpose, 
+    extract_shell_signatures, extract_markdown_structure, infer_file_purpose,
     infer_directory_purpose, get_language_name, should_index_file
 )
+from doc_classifier import classify_documentation
 
 # Limits to keep it fast and simple
 MAX_FILES = 10000
@@ -205,11 +206,12 @@ def generate_tree_structure(root_path: Path, max_depth: int = MAX_TREE_DEPTH) ->
 # These functions are now imported from index_utils
 
 
-def generate_split_index(root_dir: str) -> Tuple[Dict, int]:
+def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int]:
     """Generate lightweight core index in split format (v2.0-split).
 
     Args:
         root_dir: Project root directory
+        config: Optional configuration dict with doc_tiers and other settings
 
     Returns:
         Tuple of (core_index_dict, skipped_file_count)
@@ -230,7 +232,8 @@ def generate_split_index(root_dir: str) -> Tuple[Dict, int]:
             'total_directories': 0,
             'fully_parsed': {},
             'listed_only': {},
-            'markdown_files': 0
+            'markdown_files': 0,
+            'doc_tiers': {'critical': 0, 'standard': 0, 'archive': 0}  # Tier counts
         },
         'f': {},  # Files with lightweight signatures
         'g': [],  # Global call graph (cross-module edges only)
@@ -299,13 +302,20 @@ def generate_split_index(root_dir: str) -> Tuple[Dict, int]:
 
         rel_path = file_path.relative_to(root)
 
-        # Handle markdown files (only critical docs)
+        # Handle markdown files with tiered classification
         if file_path.suffix in MARKDOWN_EXTENSIONS:
-            # Only include critical documentation
-            if any(pattern in file_path.name.upper() for pattern in ['README', 'ARCHITECTURE', 'API']):
+            # Classify documentation tier
+            tier = classify_documentation(file_path, config)
+            core_index['stats']['doc_tiers'][tier] += 1
+
+            # Only include critical documentation in core index
+            if tier == 'critical':
                 doc_structure = extract_markdown_structure(file_path)
                 if doc_structure['sections']:
-                    core_index['d'][str(rel_path)] = doc_structure['sections'][:10]
+                    core_index['d'][str(rel_path)] = {
+                        'sections': doc_structure['sections'][:10],
+                        'tier': tier
+                    }
                     core_index['stats']['markdown_files'] += 1
             continue
 
@@ -412,6 +422,12 @@ def generate_split_index(root_dir: str) -> Tuple[Dict, int]:
                 rel_dir = str(dir_path.relative_to(root))
                 if rel_dir != '.':
                     core_index['dir_purposes'][rel_dir] = purpose
+
+    # Log tier classification summary
+    tier_counts = core_index['stats']['doc_tiers']
+    if sum(tier_counts.values()) > 0:
+        print(f"📚 Documentation tiers: {tier_counts['critical']} critical, "
+              f"{tier_counts['standard']} standard, {tier_counts['archive']} archive")
 
     # Build global call graph (cross-module edges only)
     # Note: Within-module edges will go to detail modules (Story 1.3)
@@ -591,7 +607,7 @@ def generate_detail_modules(
     return created_files
 
 
-def build_index(root_dir: str) -> Tuple[Dict, int]:
+def build_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int]:
     """Build the enhanced index with architectural awareness (legacy single-file format)."""
     root = Path(root_dir)
     index = {
@@ -609,7 +625,8 @@ def build_index(root_dir: str) -> Tuple[Dict, int]:
             'total_directories': 0,
             'fully_parsed': {},
             'listed_only': {},
-            'markdown_files': 0
+            'markdown_files': 0,
+            'doc_tiers': {'critical': 0, 'standard': 0, 'archive': 0}  # Tier counts
         },
         'files': {},
         'dependency_graph': {}
@@ -678,10 +695,15 @@ def build_index(root_dir: str) -> Tuple[Dict, int]:
         # Get relative path and language
         rel_path = file_path.relative_to(root)
         
-        # Handle markdown files specially
+        # Handle markdown files with tiered classification
         if file_path.suffix in MARKDOWN_EXTENSIONS:
+            # Classify documentation tier
+            tier = classify_documentation(file_path, config)
+            index['stats']['doc_tiers'][tier] += 1
+
             doc_structure = extract_markdown_structure(file_path)
             if doc_structure['sections'] or doc_structure['architecture_hints']:
+                doc_structure['tier'] = tier  # Add tier to structure
                 index['documentation_map'][str(rel_path)] = doc_structure
                 index['stats']['markdown_files'] += 1
             continue
@@ -754,7 +776,13 @@ def build_index(root_dir: str) -> Tuple[Dict, int]:
     
     index['stats']['total_files'] = file_count
     index['stats']['total_directories'] = dir_count
-    
+
+    # Log tier classification summary
+    tier_counts = index['stats']['doc_tiers']
+    if sum(tier_counts.values()) > 0:
+        print(f"📚 Documentation tiers: {tier_counts['critical']} critical, "
+              f"{tier_counts['standard']} standard, {tier_counts['archive']} archive")
+
     # Build dependency graph
     print("🔗 Building dependency graph...")
     dependency_graph = {}
@@ -1295,7 +1323,8 @@ def create_module_references(modules: Dict[str, List[str]], functions: Dict[str,
         module_refs[module_id] = {
             'file_count': len(file_list),
             'function_count': func_count,
-            'detail_path': f"PROJECT_INDEX.d/{module_id}.json"
+            'detail_path': f"PROJECT_INDEX.d/{module_id}.json",
+            'files': file_list  # Include file list for loader compatibility
         }
 
     return module_refs
@@ -1620,7 +1649,9 @@ def migrate_to_split_format(root_dir: str = '.', dry_run: bool = False) -> bool:
 
     try:
         # Use existing generate_split_index() function
-        core_index, total_size = generate_split_index(root_dir)
+        # Load config for tier classification
+        config = load_configuration(Path(root_dir) / '.project-index.json')
+        core_index, total_size = generate_split_index(root_dir, config)
 
         core_size = len(json.dumps(core_index, separators=(',', ':')))
         core_size_kb = core_size / 1024
@@ -1920,7 +1951,7 @@ Configuration File:
     if use_split_mode:
         # New split index format
         print("   Using split index format (v2.0-split)")
-        index, skipped_count = generate_split_index('.')
+        index, skipped_count = generate_split_index('.', config)
 
         # Check size
         index_json = json.dumps(index, separators=(',', ':'))
@@ -1937,7 +1968,7 @@ Configuration File:
         # Legacy single-file format
         print("   ℹ️  Using legacy single-file format (v1.0)")
         print("   📊 This format is fully supported and recommended for projects with <1000 files")
-        index, skipped_count = build_index('.')
+        index, skipped_count = build_index('.', config)
 
         # Convert to enhanced dense format (always)
         index = convert_to_enhanced_dense_format(index)

@@ -47,7 +47,7 @@ development_status:
   epic-1-retrospective: completed
 
   epic-2: backlog
-  2-1-tiered-documentation-classification: backlog
+  2-1-tiered-documentation-classification: done
   2-2-tiered-documentation-storage: backlog
   2-3-git-metadata-extraction: backlog
   2-4-temporal-awareness-integration: backlog

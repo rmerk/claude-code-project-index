@@ -1,0 +1,232 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>1</storyId>
+    <title>Tiered Documentation Classification</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-1-tiered-documentation-classification.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer</asA>
+    <iWant>the indexer to automatically classify documentation by importance</iWant>
+    <soThat>critical architectural docs are prioritized over tutorials and changelogs</soThat>
+    <tasks>
+- Implement Documentation Classifier Module (AC: #1, #2, #3)
+  - Create `scripts/doc_classifier.py` with classification logic
+  - Implement `classify_documentation()` function
+  - Define TIER_RULES constant with pattern matching rules
+  - Support glob patterns for flexible matching (*.md, docs/**/*)
+  - Default tier assignment for unmatched files (standard)
+- Add Configuration Support for Classification Rules (AC: #4)
+  - Extend `.project-index.json` schema with `doc_tiers` section
+  - Load custom tier rules from config file
+  - Merge custom rules with default TIER_RULES
+  - Validate tier rule format (pattern list validation)
+  - Document configuration format in README
+- Integrate Classifier with Index Generation (AC: #1, #2, #3)
+  - Import doc_classifier in scripts/project_index.py
+  - Call classify_documentation() for each markdown file during indexing
+  - Store tier assignment in file metadata
+  - Pass config to classifier from load_configuration()
+- Add Verbose Logging for Classification (AC: #5)
+  - Log tier assignments per file (verbose mode only)
+  - Report classification summary (counts per tier)
+  - Show tier distribution after index generation
+  - Format log output clearly (file path + tier)
+- Testing (All ACs)
+  - Unit tests for classify_documentation() with sample paths
+  - Test critical tier patterns (README*, ARCHITECTURE*, API*)
+  - Test standard tier patterns (docs/development/*, INSTALL*)
+  - Test archive tier patterns (CHANGELOG*, docs/tutorials/*)
+  - Test custom tier rules from config file
+  - Test default tier assignment (unmatched files)
+  - Integration test with actual markdown files
+  - Verify verbose logging output
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. Classification logic identifies critical docs (README*, ARCHITECTURE*, API*, CONTRIBUTING*)
+2. Classification identifies standard docs (development guides, setup docs)
+3. Classification identifies archive docs (tutorials, changelogs, meeting notes)
+4. Classification rules are configurable via config file
+5. Classification results logged during index generation (verbose mode)
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic 2 Technical Specification</title>
+        <section>Doc Classifier Module</section>
+        <snippet>Defines doc_classifier.py module with classify_documentation() function. Classification uses glob patterns to categorize markdown files into critical/standard/archive tiers. Default tier is "standard".</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic 2 Technical Specification</title>
+        <section>Tiered Documentation Classification Rules (lines 156-173)</section>
+        <snippet>TIER_RULES constant defines patterns: critical (README*, ARCHITECTURE*, API*), standard (docs/development/*, INSTALL*), archive (CHANGELOG*, docs/tutorials/*). Rules are configurable via config file.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic 2 Technical Specification</title>
+        <section>Classification API (lines 178-195)</section>
+        <snippet>classify_documentation(file_path, config) returns tier name. Uses pathlib pattern matching. Fallback to "standard" for unmatched files.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 2.1 (lines 196-210)</section>
+        <snippet>Story defines tiered classification with 5 acceptance criteria. Classification logic identifies critical/standard/archive docs. Configuration support required. Logging in verbose mode.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>FR001 - Tiered doc classification (line 33)</section>
+        <snippet>System shall classify markdown documentation into three tiers: critical, standard, and archive. Classification rules must be configurable.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation</title>
+        <section>Parser Layer (lines 108-122)</section>
+        <snippet>Parsing uses regex-based pattern matching. Extract functions follow extraction process: read file, pattern matching, extract signatures. Similar approach for classification patterns.</snippet>
+      </doc>
+      <doc>
+        <path>bmad/bmm/config.yaml</path>
+        <title>BMM Configuration</title>
+        <section>Core Configuration Values</section>
+        <snippet>Configuration file format proven. Uses {project-root} prefix for paths. Story 1.8 established .project-index.json config file pattern.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>load_configuration</symbol>
+        <lines>77-128</lines>
+        <reason>Existing configuration loading pattern to reuse. Handles .project-index.json parsing, validation, and graceful fallback. Story 2.1 extends config schema with doc_tiers section.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/index_utils.py</path>
+        <kind>module</kind>
+        <symbol>extract_python_signatures, extract_javascript_signatures</symbol>
+        <lines>161-544</lines>
+        <reason>Pattern matching and parsing reference. Uses regex for extraction. Similar approach for doc classification using pathlib.Path.match() for glob patterns.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/test_configuration.py</path>
+        <kind>test</kind>
+        <symbol>TestLoadConfiguration</symbol>
+        <lines>30-152</lines>
+        <reason>Testing pattern reference for configuration-related tests. Uses unittest with setUp/tearDown, tempfile for isolation, validates edge cases (missing file, invalid JSON, corrupted data).</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>build_index, generate_split_index</symbol>
+        <lines>594-888</lines>
+        <reason>Index generation functions where doc classification will be integrated. Call classify_documentation() during markdown file processing to assign tiers.</reason>
+      </artifact>
+      <artifact>
+        <path>docs/.project-index.json.example</path>
+        <kind>config</kind>
+        <symbol>N/A</symbol>
+        <lines>N/A</lines>
+        <reason>Example configuration file to extend with doc_tiers section. Demonstrates JSON schema structure and format.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <stdlib>pathlib (Path.match for glob patterns), json (config parsing), unittest (testing framework)</stdlib>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Python stdlib only - No external dependencies. Use pathlib.Path.match() for glob pattern matching instead of external glob library.</constraint>
+    <constraint>Configuration format must follow .project-index.json schema established in Story 1.8. Extend with doc_tiers section containing critical/standard/archive pattern lists.</constraint>
+    <constraint>Classification must happen during index generation (build_index/generate_split_index), not at query time, for performance.</constraint>
+    <constraint>Default tier is "standard" for unmatched files. Graceful fallback ensures all markdown files get classified even if patterns don't match.</constraint>
+    <constraint>Verbose logging only when verbose flag enabled. Classification summary (counts per tier) shown after index generation.</constraint>
+    <constraint>Integration must be minimal and non-breaking. Call doc_classifier module from project_index.py during markdown processing without disrupting existing functionality.</constraint>
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>classify_documentation</name>
+      <kind>function signature</kind>
+      <signature>def classify_documentation(file_path: Path, config: dict) -> str</signature>
+      <path>scripts/doc_classifier.py (to be created)</path>
+      <description>Main classification function. Takes file path and config dict. Returns tier name: "critical", "standard", or "archive". Uses TIER_RULES constant merged with custom config rules.</description>
+    </interface>
+    <interface>
+      <name>TIER_RULES</name>
+      <kind>constant</kind>
+      <signature>TIER_RULES: Dict[str, List[str]]</signature>
+      <path>scripts/doc_classifier.py (to be created)</path>
+      <description>Default tier classification rules. Dict with keys: critical, standard, archive. Values are lists of glob patterns. Example: {"critical": ["README*", "ARCHITECTURE*", "API*"], ...}</description>
+    </interface>
+    <interface>
+      <name>.project-index.json doc_tiers</name>
+      <kind>config schema</kind>
+      <signature>{ "doc_tiers": { "critical": [...], "standard": [...], "archive": [...] } }</signature>
+      <path>docs/.project-index.json.example (to be updated)</path>
+      <description>Configuration schema extension. Optional doc_tiers section with same structure as TIER_RULES. Custom patterns merged with defaults.</description>
+    </interface>
+    <interface>
+      <name>load_configuration</name>
+      <kind>function signature (existing)</kind>
+      <signature>def load_configuration(config_path: Optional[Path] = None) -> Dict[str, any]</signature>
+      <path>scripts/project_index.py:77</path>
+      <description>Existing config loader to reuse. Returns dict with all config values. Will include doc_tiers key if present in config file.</description>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>Testing uses Python unittest framework (stdlib). Pattern established in Story 1.8: create test_*.py files in scripts/ directory. Use setUp/tearDown for test isolation. Use tempfile.TemporaryDirectory for file-based tests to avoid side effects. Edge cases critical: missing files, invalid formats, corrupted data. Performance validation where relevant (e.g., &lt;100ms for classification). All tests should pass via python3 -m unittest discover pattern.</standards>
+    <locations>scripts/test_*.py (5 existing test files: test_configuration.py, test_loader.py, test_backward_compat.py, test_migration.py, test_index_analyzer_agent.py)</locations>
+    <ideas>
+      <test id="AC1-Critical-Patterns">
+        <ac>1</ac>
+        <description>Unit test for classify_documentation() with critical tier patterns: README.md, ARCHITECTURE.md, API.md, CONTRIBUTING.md, SECURITY.md, docs/architecture/design.md, docs/api/endpoints.md</description>
+        <approach>Create Path objects for each pattern. Call classify_documentation() with empty config. Assert tier == "critical" for all.</approach>
+      </test>
+      <test id="AC2-Standard-Patterns">
+        <ac>2</ac>
+        <description>Unit test for standard tier patterns: docs/development/setup.md, docs/guides/testing.md, INSTALL.md, SETUP.md, docs/how-to/deploy.md</description>
+        <approach>Create Path objects. Assert tier == "standard".</approach>
+      </test>
+      <test id="AC3-Archive-Patterns">
+        <ac>3</ac>
+        <description>Unit test for archive tier patterns: CHANGELOG.md, docs/tutorials/intro.md, docs/meetings/2024-01.md, docs/archive/old.md, HISTORY.md</description>
+        <approach>Create Path objects. Assert tier == "archive".</approach>
+      </test>
+      <test id="AC4-Custom-Config-Rules">
+        <ac>4</ac>
+        <description>Test custom tier rules from config file. Config with custom patterns overrides or extends TIER_RULES.</description>
+        <approach>Create config dict with doc_tiers. Test that custom patterns take precedence. Test merge behavior (custom + defaults).</approach>
+      </test>
+      <test id="AC4-Invalid-Config">
+        <ac>4</ac>
+        <description>Test invalid config handling: missing doc_tiers, invalid pattern format, wrong data types.</description>
+        <approach>Pass invalid config. Assert graceful fallback to TIER_RULES defaults. No exceptions raised.</approach>
+      </test>
+      <test id="AC5-Verbose-Logging">
+        <ac>5</ac>
+        <description>Integration test with project_index.py. Enable verbose mode. Verify classification logs appear. Check summary shows tier counts.</description>
+        <approach>Mock verbose flag. Capture log output. Assert tier assignments logged per file. Assert summary shows counts.</approach>
+      </test>
+      <test id="Default-Tier-Fallback">
+        <ac>1,2,3</ac>
+        <description>Test default tier assignment for unmatched files: random.md, notes.txt, data.json</description>
+        <approach>Call classify_documentation() with files matching no patterns. Assert tier == "standard" (default fallback).</approach>
+      </test>
+      <test id="Integration-Real-Files">
+        <ac>1,2,3,4,5</ac>
+        <description>Integration test with actual markdown files in temp directory. Create README.md, docs/development/guide.md, CHANGELOG.md. Run classification. Verify correct tiers assigned.</description>
+        <approach>Use tempfile.TemporaryDirectory. Create directory structure with sample markdown files. Call classify_documentation() for each. Assert correct tier per file type.</approach>
+      </test>
+    </ideas>
+  </tests>
+</story-context>
