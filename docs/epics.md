@@ -1,9 +1,9 @@
 # claude-code-project-index - Epic Breakdown
 
 **Author:** Ryan
-**Date:** 2025-10-31
+**Date:** 2025-11-04
 **Project Level:** 2
-**Target Scale:** 14-19 stories across 2 epics
+**Target Scale:** 19-24 stories across 3 epics
 
 ---
 
@@ -21,6 +21,7 @@ Each epic includes:
 **Epic Sequencing Principles:**
 - Epic 1 establishes foundational infrastructure and split architecture
 - Epic 2 builds on Epic 1's infrastructure to add intelligent features
+- Epic 3 transforms Epic 2's features into production-ready tooling
 - Stories within epics are vertically sliced and sequentially ordered
 - No forward dependencies - each story builds only on previous work
 
@@ -395,6 +396,161 @@ I want the MCP server to automatically detect and reload index changes,
 So that agents always have up-to-date project information without manual restarts.
 
 **Decision**: Move to backlog. Revisit in Epic 3+ if users request this functionality.
+
+---
+
+## Epic 3: Production Readiness for Claude Code CLI
+
+**Expanded Goal:**
+
+Transform Epic 2's powerful features into production-ready tooling by delivering a polished installation experience, validated performance on real-world projects, comprehensive documentation, version management, and multi-tool MCP support. This epic addresses the production-readiness gaps identified in the Epic 2 retrospective, ensuring that users can deploy the tool confidently to medium-large projects with Claude Code CLI, Cursor IDE, and Claude Desktop.
+
+**Value Delivery:**
+
+- Production-grade installation with smart config presets
+- Validated performance on medium projects (500+ files)
+- Claude Code-first documentation approach
+- Version management and update checking
+- Multi-tool MCP support (Claude Code > Cursor > Claude Desktop priority)
+
+**Story Breakdown:**
+
+**Story 3.1: Installation Integration with Smart Config Presets**
+
+As a developer installing the project index tool,
+I want a seamless installation that auto-detects my project size and creates optimal config presets,
+So that I get production-ready defaults without manual configuration.
+
+**Acceptance Criteria:**
+1. `install.sh` installs Python dependencies from `requirements.txt` (including `mcp` and `pydantic`)
+2. `project_index_mcp.py` copied to installation directory with correct permissions
+3. Three config templates created in `~/.claude-code-project-index/templates/`:
+   - `small.json` (<100 files, threshold: 100, single-file mode)
+   - `medium.json` (100-5000 files, threshold: 500, split mode, tiered docs, relevance scoring enabled)
+   - `large.json` (5000+ files, threshold: 1000, aggressive optimization)
+4. First `/index` run auto-detects project size and creates `.project-index.json` with preset metadata
+5. Subsequent `/index` runs detect if project crossed preset boundaries and prompt user for config upgrade
+6. Backup created (`.project-index.json.backup`) before any automatic config changes
+7. Support `--upgrade-to=preset` flag for manual preset upgrades
+8. Support `--no-prompt` flag for CI/automation environments
+9. `uninstall.sh` removes all MCP-related files and config templates
+10. Installation validation test verifies MCP imports work correctly
+
+**Prerequisites:** Epic 2 complete (MCP server code exists)
+
+---
+
+**Story 3.2: Performance Validation on Medium Projects**
+
+As a developer,
+I want validated performance metrics on medium-sized projects,
+So that I know the tool will work efficiently on my real-world codebases.
+
+**Acceptance Criteria:**
+1. Benchmark 3 real-world medium projects (500-5000 files each):
+   - One Python project
+   - One JavaScript/TypeScript project
+   - One polyglot project (multiple languages)
+2. Measure and document:
+   - Index generation time (full and incremental)
+   - MCP tool call latency (load_core, load_module, search_files, get_file_info)
+   - Token usage per MCP tool call
+   - Memory usage during indexing and MCP serving
+3. Identify and fix any performance bottlenecks discovered
+4. Document performance characteristics in README (expected times per project size)
+5. Create performance regression tests to catch future degradation
+6. Validate incremental update performance (should be <10% of full generation time)
+
+**Prerequisites:** Story 3.1 (installation working), Epic 2 complete (all features implemented)
+
+---
+
+**Story 3.3: Comprehensive Documentation with Claude Code Focus**
+
+As a developer new to the project index tool,
+I want clear, comprehensive documentation with Claude Code as the primary workflow,
+So that I can get started quickly and troubleshoot issues independently.
+
+**Acceptance Criteria:**
+1. **README.md enhanced with:**
+   - Quick start section (Claude Code workflow first)
+   - Performance characteristics table (project size → expected times)
+   - Smart config presets explanation
+   - MCP server setup (Claude Code > Cursor > Claude Desktop order)
+2. **Troubleshooting guide created (`docs/troubleshooting.md`):**
+   - FAQ with common issues and solutions
+   - Installation validation steps
+   - MCP server debugging tips
+   - Clear error message reference
+3. **Best practices guide created (`docs/best-practices.md`):**
+   - When to use which features (tiered docs, relevance scoring, incremental updates)
+   - Configuration tuning guidance (thresholds, weights)
+   - Real-world usage patterns
+4. **Migration guide enhanced (`docs/migration.md`):**
+   - v0.1.x → v0.2.x upgrade path (Epic 1)
+   - v0.2.x → v0.3.x upgrade path (Epic 2)
+   - Breaking changes clearly highlighted
+5. **MCP configuration guide created (`docs/mcp-setup.md`):**
+   - Claude Code CLI configuration (primary, most detailed)
+   - Cursor IDE configuration (secondary)
+   - Claude Desktop configuration (tertiary)
+   - Auto-detection behavior documented
+
+**Prerequisites:** Story 3.1 (installation complete), Story 3.2 (performance data available)
+
+---
+
+**Story 3.4: Version Management System**
+
+As a developer,
+I want version tracking and update checking,
+So that I know when updates are available and can manage upgrades easily.
+
+**Acceptance Criteria:**
+1. `--version` flag displays current version (e.g., `v0.3.0`)
+2. Version stored in `~/.claude-code-project-index/VERSION` file
+3. `install.sh --upgrade` mechanism downloads and installs latest version
+4. Update checking on `/index` run (checks GitHub releases, shows message if newer version available)
+5. Update checking respects `--no-update-check` flag for CI/automation
+6. `CHANGELOG.md` created with all Epic 1, 2, 3 changes documented
+7. Breaking changes clearly marked in CHANGELOG with migration notes
+8. Version compatibility warnings when index format mismatches installed version
+9. Rollback capability: `install.sh --rollback` restores previous version from backup
+10. Release tagging process documented for maintainers
+
+**Prerequisites:** Story 3.1 (installation infrastructure), Story 3.3 (CHANGELOG content)
+
+---
+
+**Story 3.5: Multi-Tool MCP Support**
+
+As a developer using Claude Code CLI, Cursor IDE, or Claude Desktop,
+I want the MCP server to work seamlessly with my preferred tool,
+So that I can use project index features in my existing workflow.
+
+**Acceptance Criteria:**
+1. **Claude Code CLI configuration (Priority 1):**
+   - Auto-detect `~/.config/claude-code/mcp.json` during install
+   - Generate correct stdio transport configuration
+   - Test MCP server with Claude Code CLI environment
+   - Document Claude Code-specific setup steps (most detailed)
+2. **Cursor IDE configuration (Priority 2):**
+   - Auto-detect Cursor config location during install
+   - Generate Cursor-compatible MCP configuration
+   - Test MCP server with Cursor IDE
+   - Document Cursor-specific setup steps
+3. **Claude Desktop configuration (Priority 3):**
+   - Auto-detect `~/Library/Application Support/Claude/` (macOS) during install
+   - Generate Claude Desktop-compatible configuration
+   - Test MCP server with Claude Desktop
+   - Document Desktop-specific setup steps
+4. `install.sh` detects all three tools and offers configuration for detected tools
+5. Manual configuration option for tools not auto-detected
+6. Validation command to test MCP server connection for each tool
+7. Documentation explains differences and trade-offs between tools
+8. All three tools use same MCP server implementation (stdio transport)
+
+**Prerequisites:** Story 3.1 (MCP server installed), Story 3.3 (documentation structure ready)
 
 ---
 

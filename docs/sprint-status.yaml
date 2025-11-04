@@ -1,4 +1,4 @@
-# generated: 2025-11-02
+# generated: 2025-11-04
 # project: claude-code-project-index
 # project_key: claude-code-project-index
 # tracking_system: file-system
@@ -8,27 +8,28 @@
 # ==================
 # Epic Status:
 #   - backlog: Epic exists in epic file but not contexted
-#   - contexted: Next epic tech context created by *epic-tech-context (required)
+#   - contexted: Epic tech context created (required before drafting stories)
 #
 # Story Status:
 #   - backlog: Story only exists in epic file
-#   - drafted: Story file created in stories folder by *create-story
-#   - ready-for-dev: Draft approved and story context created by *story-ready
-#   - in-progress: Developer actively working on implementation by *dev-story
-#   - review: Implementation complete, ready for review by *code-review
-#   - done: Story completed by *story-done
+#   - drafted: Story file created in stories folder
+#   - ready-for-dev: Draft approved and story context created
+#   - in-progress: Developer actively working on implementation
+#   - review: Under SM review (via code-review workflow)
+#   - done: Story completed
 #
 # Retrospective Status:
 #   - optional: Can be completed but not required
-#   - completed: Retrospective has been done by *retrospective
+#   - completed: Retrospective has been done
 #
 # WORKFLOW NOTES:
 # ===============
 # - Epics should be 'contexted' before stories can be 'drafted'
-# - SM typically drafts next story ONLY after previous one is 'done' to incorporate learnings
-# - Dev moves story to 'review', dev reviews, then Dev moves to 'done'
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically drafts next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
 
-generated: 2025-11-02
+generated: 2025-11-04
 project: claude-code-project-index
 project_key: claude-code-project-index
 tracking_system: file-system
@@ -46,16 +47,23 @@ development_status:
   1-8-configuration-and-documentation: done
   epic-1-retrospective: completed
 
-  epic-2: backlog
+  epic-2: contexted
   2-1-tiered-documentation-classification: done
-  2-2-tiered-documentation-storage: done  # Code review follow-up complete: README documentation added
-  2-3-git-metadata-extraction: done  # ✅ APPROVED: Python 3.12 verified, all ACs met, all tests passing
-  2-4-temporal-awareness-integration: done  # ✅ APPROVED: All 5 ACs met, 30/30 tests passing, production-ready
-  2-5-mcp-tool-detection: done  # ✅ APPROVED: All 5 ACs met, 26/26 tasks verified, 18/18 tests passing, production-ready
-  2-6-hybrid-query-strategy: done  # ✅ APPROVED: All 5 ACs met, 26/26 tasks verified, 20/20 tests passing, production-ready
-  2-7-relevance-scoring-engine: done  # ✅ APPROVED: All 5 ACs met, 21/21 tasks verified, 30/30 tests passing, production-ready
-  2-8-impact-analysis-tooling: done  # ✅ APPROVED: All 5 ACs met, 26/26 tasks verified, 28/28 tests passing, production-ready
-  2-9-incremental-index-updates: done  # ✅ APPROVED: All 5 ACs met, 42/42 tasks verified, 13/13 tests passing, production-ready
-  2-10-mcp-server-implementation: done  # ✅ APPROVED: All 14 ACs verified, all 7 review fixes confirmed, 40+ tests passing, production-ready
-  # 2-11-mcp-server-auto-update: DEFERRED to backlog (not essential for Epic 2 MVP)
-  epic-2-retrospective: optional
+  2-2-tiered-documentation-storage: done
+  2-3-git-metadata-extraction: done
+  2-4-temporal-awareness-integration: done
+  2-5-mcp-tool-detection: done
+  2-6-hybrid-query-strategy: done
+  2-7-relevance-scoring-engine: done
+  2-8-impact-analysis-tooling: done
+  2-9-incremental-index-updates: done
+  2-10-mcp-server-implementation: done
+  epic-2-retrospective: completed
+
+  epic-3: contexted
+  3-1-installation-integration-with-smart-config-presets: drafted
+  3-2-performance-validation-on-medium-projects: backlog
+  3-3-comprehensive-documentation-with-claude-code-focus: backlog
+  3-4-version-management-system: backlog
+  3-5-multi-tool-mcp-support: backlog
+  epic-3-retrospective: optional

@@ -1,9 +1,9 @@
 # claude-code-project-index Product Requirements Document (PRD)
 
 **Author:** Ryan
-**Date:** 2025-10-31
+**Date:** 2025-11-04 (Updated with Epic 3)
 **Project Level:** 2
-**Target Scale:** 5-15 stories across 1-2 epics
+**Target Scale:** 19-24 stories across 3 epics
 
 ---
 
@@ -203,7 +203,18 @@ Recent brainstorming sessions identified three key opportunities: tiered documen
   - Incremental index updates
   - Impact analysis tooling (downstream dependency analysis via call graph)
 
-**Total: 2 epics, 14-19 stories** (upper end of Level 2, approaching Level 3)
+**Epic 3: Production Readiness for Claude Code CLI**
+- Goal: Deliver production-grade installation, upgrade experience, and comprehensive documentation for real-world Claude Code CLI usage
+- Estimated stories: 5 stories (7-12 days)
+- Value: Transforms Epic 2's features into production-ready tooling with validated performance, multi-IDE support, and complete documentation
+- Key deliverables:
+  - Smart installation with config presets and auto-upgrade prompts
+  - Performance validation on medium projects (500+ files)
+  - Comprehensive documentation (Claude Code-first approach)
+  - Version management system with update checking
+  - Multi-tool MCP support (Claude Code > Cursor > Claude Desktop)
+
+**Total: 3 epics, 19-24 stories** (solidly Level 2, touching Level 3)
 
 > **Note:** Detailed epic breakdown with full story specifications is available in [epics.md](./epics.md)
 
