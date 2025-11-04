@@ -1,0 +1,382 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>7</storyId>
+    <title>relevance-scoring-engine</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-7-relevance-scoring-engine.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>AI agent</asA>
+    <iWant>a unified relevance scoring system</iWant>
+    <soThat>I load the most relevant modules regardless of query type</soThat>
+    <tasks>
+- [ ] Implement Multi-Signal Relevance Scorer (AC: #1, #2, #3, #4)
+  - [ ] Create `RelevanceScorer` class in `scripts/relevance.py` with configurable weights
+  - [ ] Implement explicit file reference scoring (weight: 10x baseline)
+  - [ ] Implement temporal scoring using git metadata recency (weight: 2-5x based on 7/30/90 day windows)
+  - [ ] Implement semantic keyword matching scoring (weight: 1x baseline)
+  - [ ] Add configuration loading from config file for weight customization
+  - [ ] Support combined scoring (multiple signals for same file)
+
+- [ ] Integrate Scorer into Index-Analyzer Agent (AC: #5)
+  - [ ] Import `RelevanceScorer` into `agents/index-analyzer.md`
+  - [ ] Initialize scorer with weights from configuration
+  - [ ] Score all modules from core index based on user query
+  - [ ] Sort modules by descending relevance score
+  - [ ] Load top-N modules (N configurable, default: 5)
+  - [ ] Log scoring decisions in verbose mode (show per-module scores and reasoning)
+
+- [ ] Testing (All ACs)
+  - [ ] Unit tests for explicit file reference scoring (AC: #1)
+  - [ ] Unit tests for temporal scoring (7/30/90 day windows) (AC: #2)
+  - [ ] Unit tests for semantic keyword matching (AC: #3)
+  - [ ] Unit tests for configurable weights and custom configurations (AC: #4)
+  - [ ] Unit tests for top-N module selection (AC: #5)
+  - [ ] Integration test: Agent scores modules and loads top-N
+  - [ ] Integration test: Combined scoring (file ref + temporal + semantic)
+  - [ ] Verify scoring algorithm performance (<100ms for 1000 modules)
+
+- [ ] Documentation (AC: #4, #5)
+  - [ ] Document relevance scoring algorithm with formula
+  - [ ] Document scoring weights and defaults (10x, 2-5x, 1x)
+  - [ ] Document configuration options for weight customization
+  - [ ] Provide examples of queries and corresponding relevance scores
+  - [ ] Update README with relevance scoring explanation
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. Explicit file references receive highest score (weight: 10x)
+2. Temporal context (recent changes) receive high score (weight: 2-5x)
+3. Semantic keyword matching receives medium score (weight: 1x)
+4. Scoring algorithm documented and configurable
+5. Agent loads top-N scored modules (N configurable, default: 5)
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+<!-- Tech-Spec: Relevance Engine Architecture -->
+<doc>
+  <path>docs/tech-spec-epic-2.md</path>
+  <title>Epic Technical Specification: Enhanced Intelligence & Developer Tools</title>
+  <section>Services and Modules - Relevance Engine</section>
+  <snippet>Relevance Engine (scripts/relevance.py) - Unified multi-signal scoring that takes explicit refs, temporal data, keywords as inputs and returns top-N ranked modules. Handles explicit file reference scoring (10x weight), temporal context scoring (2-5x weight), and semantic keyword matching (1x weight).</snippet>
+</doc>
+
+<!-- Tech-Spec: Enhanced Core Index with Git Metadata -->
+<doc>
+  <path>docs/tech-spec-epic-2.md</path>
+  <title>Epic Technical Specification: Enhanced Intelligence & Developer Tools</title>
+  <section>Data Models and Contracts - Enhanced Core Index Schema</section>
+  <snippet>Core index includes git_metadata section with commit hash, author, date, message, PR number, lines_changed, and recency_days fields per file. This temporal data enables recency-based relevance scoring for prioritizing recently modified files.</snippet>
+</doc>
+
+<!-- Epics: Story 2.7 Requirements -->
+<doc>
+  <path>docs/epics.md</path>
+  <title>Epic Breakdown</title>
+  <section>Story 2.7: Relevance Scoring Engine</section>
+  <snippet>Unified relevance scoring combines explicit file references (10x weight), temporal context from recent changes (2-5x weight), and semantic keyword matching (1x baseline). Agent loads top-N scored modules (configurable, default: 5) to focus on most relevant code.</snippet>
+</doc>
+
+<!-- Architecture: Analysis Layer Intelligence -->
+<doc>
+  <path>docs/architecture.md</path>
+  <title>Project Architecture</title>
+  <section>Analysis Layer - Intelligence Components</section>
+  <snippet>Analysis layer includes relevance scoring engine that intelligently prioritizes modules using multi-signal scoring (explicit references, temporal recency, semantic keywords). Integrates with hybrid query router to determine which modules to load from index or MCP tools.</snippet>
+</doc>
+
+<!-- Story 2.4: Temporal Awareness Foundation -->
+<doc>
+  <path>docs/stories/2-4-temporal-awareness-integration.md</path>
+  <title>Story 2.4: Temporal Awareness Integration</title>
+  <section>Dev Notes - Architecture Alignment</section>
+  <snippet>Temporal awareness provides git metadata (recency_days field) used for relevance scoring. Filter functions identify files changed in 7/30/90 day windows. Recency multipliers: 7-day = 5x, 30-day = 2x, 90-day = 1x baseline.</snippet>
+</doc>
+
+<!-- Story 2.6: Query Classification Foundation -->
+<doc>
+  <path>docs/stories/2-6-hybrid-query-strategy.md</path>
+  <title>Story 2.6: Hybrid Query Strategy</title>
+  <section>Dev Notes - Query Type Routing</section>
+  <snippet>Query classification identifies 4 types: explicit file ref, semantic search, temporal query, structural query. Classification logic uses pattern matching on user prompts to detect file paths, keywords, and temporal indicators. Provides foundation for relevance signal prioritization.</snippet>
+</doc>
+    </docs>
+
+    <code>
+<!-- Existing relevance.py (partial implementation from Story 2.4) -->
+<artifact>
+  <path>scripts/relevance.py</path>
+  <kind>module</kind>
+  <symbol>filter_files_by_recency</symbol>
+  <lines>25-80</lines>
+  <reason>Existing temporal filtering function - provides foundation for temporal scoring. Needs extension with RelevanceScorer class that includes explicit and semantic signals.</reason>
+</artifact>
+
+<!-- Git metadata extraction (Story 2.3) -->
+<artifact>
+  <path>scripts/git_metadata.py</path>
+  <kind>module</kind>
+  <symbol>extract_git_metadata</symbol>
+  <lines>22-75</lines>
+  <reason>Provides git metadata (recency_days) required for temporal scoring component. Returns dict with commit, author, date, message, PR, lines_changed, recency_days.</reason>
+</artifact>
+
+<!-- MCP detector for routing context (Story 2.5) -->
+<artifact>
+  <path>scripts/mcp_detector.py</path>
+  <kind>module</kind>
+  <symbol>detect_mcp_tools, get_cached_capabilities</symbol>
+  <lines>24-165</lines>
+  <reason>Provides MCP capability map used by hybrid router. Relevance scorer integrates with routing decisions to prioritize signal types based on available data sources.</reason>
+</artifact>
+
+<!-- Loader module for detail module loading -->
+<artifact>
+  <path>scripts/loader.py</path>
+  <kind>module</kind>
+  <symbol>load_detail_module, load_multiple_modules</symbol>
+  <lines>20-235</lines>
+  <reason>Loads detail modules from split index. Will be modified to accept prioritized module list from relevance scorer (top-N selection) instead of loading all modules.</reason>
+</artifact>
+
+<!-- Index-analyzer agent (integration point) -->
+<artifact>
+  <path>agents/index-analyzer.md</path>
+  <kind>agent</kind>
+  <symbol>PRIMARY DIRECTIVE, HYBRID QUERY ROUTING</symbol>
+  <lines>9-309</lines>
+  <reason>Integration point for relevance scoring. Agent PRIMARY DIRECTIVE will add scoring step after hybrid routing. Query classification logic (lines 89-114) provides signal priority mapping for scorer.</reason>
+</artifact>
+
+<!-- Test pattern from Story 2.6 -->
+<artifact>
+  <path>scripts/test_hybrid_routing.py</path>
+  <kind>test</kind>
+  <symbol>TestQueryClassification, TestPerformance</symbol>
+  <lines>32-495</lines>
+  <reason>Test suite pattern to follow: multiple test classes (classification, strategies, integration, performance), unittest.mock for mocking, performance validation (<50ms requirement).</reason>
+</artifact>
+
+<!-- Configuration file -->
+<artifact>
+  <path>bmad/bmm/config.yaml</path>
+  <kind>config</kind>
+  <symbol>project_name, tech_docs, dev_story_location</symbol>
+  <lines>1-17</lines>
+  <reason>Will add relevance_scoring section with weights (explicit: 10.0, temporal: 1.0, semantic: 1.0), top_n (default: 5), and temporal_windows (7d: 5.0, 30d: 2.0, 90d: 1.0).</reason>
+</artifact>
+    </code>
+
+    <dependencies>
+<!-- Python Standard Library -->
+<ecosystem name="python-stdlib">
+  <package>pathlib</package>
+  <package>json</package>
+  <package>typing</package>
+  <package>unittest</package>
+  <package>unittest.mock</package>
+</ecosystem>
+
+<!-- Project Dependencies -->
+<ecosystem name="project-modules">
+  <package>scripts.git_metadata - extract_git_metadata for temporal data</package>
+  <package>scripts.loader - load_detail_module, load_multiple_modules for top-N loading</package>
+  <package>scripts.mcp_detector - get_cached_capabilities for routing context</package>
+  <package>scripts.project_index - core index structure and module references</package>
+</ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+1. **Python 3.12+ stdlib only** - No external dependencies beyond existing project modules (git_metadata, loader, mcp_detector)
+
+2. **Multi-signal scoring algorithm** - Must combine 3 signals with configurable weights:
+   - Explicit file reference: 10x baseline (highest priority)
+   - Temporal recency: 2-5x multiplier based on 7/30/90 day windows
+   - Semantic keyword: 1x baseline
+
+3. **Performance requirement** - Scoring 1000 modules must complete in <100ms (tech-spec requirement)
+
+4. **Configuration-driven weights** - Load scoring weights from bmad/bmm/config.yaml, allow runtime override for testing
+
+5. **Top-N selection** - Default top_n = 5 modules, configurable via config. Use efficient sorting (O(N log N) acceptable for <1000 modules)
+
+6. **Integration with hybrid router** - Relevance scoring happens AFTER query classification and routing decision. Scorer uses query type to prioritize signals.
+
+7. **Verbose logging format** - Follow pattern from Story 2.6: "🎯 Relevance Scoring" with per-module scores, signal breakdown, and selection rationale
+
+8. **Graceful degradation** - If git metadata unavailable, temporal signal = 0. If query classification fails, use default weights. Scorer always returns results.
+
+9. **Backward compatibility** - Maintain existing filter_files_by_recency function from Story 2.4. Add RelevanceScorer as new class alongside existing functions.
+
+10. **Test coverage** - All 5 acceptance criteria must have dedicated unit tests. Integration tests with mocked core index and git metadata. Performance test validates <100ms requirement.
+  </constraints>
+
+  <interfaces>
+<!-- RelevanceScorer class interface (to be implemented) -->
+<interface>
+  <name>RelevanceScorer</name>
+  <kind>Python class</kind>
+  <signature>
+class RelevanceScorer:
+    def __init__(self, core_index: dict, git_metadata: dict, config: dict):
+        """
+        Initialize scorer with index data and configuration.
+
+        Args:
+            core_index: Core index dict with modules, f_signatures, git_metadata
+            git_metadata: Git metadata dict mapping file paths to metadata
+            config: Configuration dict with weights, top_n, temporal_windows
+        """
+
+    def score_module(self, module_id: str, query: str) -> float:
+        """
+        Calculate relevance score for single module.
+
+        Args:
+            module_id: Module identifier (e.g., "auth", "database")
+            query: User query string
+
+        Returns:
+            Relevance score (float, higher = more relevant)
+        """
+
+    def score_all_modules(self, query: str) -> List[Tuple[str, float]]:
+        """
+        Score all modules and return sorted by relevance.
+
+        Args:
+            query: User query string
+
+        Returns:
+            List of (module_id, score) tuples, sorted descending by score
+        """
+  </signature>
+  <path>scripts/relevance.py</path>
+</interface>
+
+<!-- Integration with loader.py -->
+<interface>
+  <name>load_multiple_modules (modified)</name>
+  <kind>Python function</kind>
+  <signature>
+def load_multiple_modules(
+    module_names: List[str],
+    core_index: dict,
+    index_dir: Path = None
+) -> dict:
+    """
+    Load multiple detail modules by name (modified to accept prioritized list).
+
+    Args:
+        module_names: List of module IDs to load (in priority order from scorer)
+        core_index: Core index with module references
+        index_dir: Path to PROJECT_INDEX.d directory
+
+    Returns:
+        Dict mapping module_id to loaded module data
+    """
+  </signature>
+  <path>scripts/loader.py</path>
+</interface>
+
+<!-- Integration with index-analyzer.md -->
+<interface>
+  <name>Agent Relevance Scoring Step</name>
+  <kind>Agent workflow integration</kind>
+  <signature>
+RELEVANCE SCORING (Story 2.7)
+
+After query classification and routing decision:
+1. Load core index and git metadata
+2. Initialize RelevanceScorer with config weights
+3. Call scorer.score_all_modules(user_query)
+4. Extract top_n modules from sorted results (default: 5)
+5. Pass prioritized module list to hybrid router for loading
+6. If verbose: Log per-module scores with signal breakdown
+  </signature>
+  <path>agents/index-analyzer.md</path>
+</interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+**Testing Framework**: Python unittest (stdlib)
+
+**Test Organization Pattern** (from Story 2.6):
+- Multiple test classes organized by feature area
+- TestExplicitScoring, TestTemporalScoring, TestSemanticScoring, TestConfigurableWeights, TestTopNSelection
+- TestIntegration for end-to-end scoring with mocked index
+- TestPerformance for <100ms validation
+
+**Mocking Strategy**:
+- unittest.mock.patch for config file loading
+- Mock core index structure with sample modules
+- Mock git metadata with various recency_days values
+- Mock query strings for each signal type
+
+**Assertions**:
+- Exact score calculations verified (explicit: 10x, temporal: 2-5x, semantic: 1x)
+- Top-N selection returns correct count and order
+- Performance measured with time.perf_counter() <100ms
+- Graceful degradation when git metadata missing
+
+**Coverage Requirements**:
+- All 5 acceptance criteria tested
+- Each signal type (explicit, temporal, semantic) tested independently
+- Combined scoring tested (multiple signals active)
+- Edge cases: empty index, no matches, all signals = 0
+    </standards>
+
+    <locations>
+- scripts/test_relevance.py (create new file, following test_hybrid_routing.py pattern)
+- Test classes: TestExplicitScoring, TestTemporalScoring, TestSemanticScoring, TestConfigurableWeights, TestTopNSelection, TestIntegration, TestPerformance
+    </locations>
+
+    <ideas>
+**AC #1: Explicit file reference scoring (10x weight)**
+- Test explicit file path in query → score = 10.0 (if only signal active)
+- Test partial path match (e.g., "auth/login" matches "src/auth/login.py")
+- Test no explicit match → explicit_signal = 0
+
+**AC #2: Temporal scoring (2-5x weight)**
+- Test file changed 2 days ago (7-day window) → temporal_signal = 5.0
+- Test file changed 15 days ago (30-day window) → temporal_signal = 2.0
+- Test file changed 60 days ago (90-day window) → temporal_signal = 1.0
+- Test file changed 200 days ago (beyond 90-day) → temporal_signal = 0
+- Test missing git metadata → temporal_signal = 0 (graceful degradation)
+
+**AC #3: Semantic keyword scoring (1x weight)**
+- Test query "auth login" → semantic_signal = 2 for module with both keywords
+- Test query "database" → semantic_signal = 1 for module with one keyword
+- Test no keyword matches → semantic_signal = 0
+
+**AC #4: Configurable algorithm**
+- Test custom weights loaded from config (explicit: 20.0, temporal: 3.0, semantic: 2.0)
+- Test default weights when config missing
+- Test weight override via init parameter
+- Verify formula: final_score = (explicit_weight * explicit_signal) + (temporal_weight * temporal_signal) + (semantic_weight * semantic_signal)
+
+**AC #5: Top-N module selection**
+- Test top_n = 5 returns 5 modules (default)
+- Test top_n = 3 returns 3 modules (configurable)
+- Test fewer modules than top_n → return all available
+- Test modules sorted by descending score
+
+**Integration Tests:**
+- Combined scoring: explicit + temporal + semantic signals all active
+- Agent integration: Mock core index, query, verify top-N loaded
+- Routing integration: Query classification → signal prioritization → scoring
+
+**Performance Tests:**
+- Score 1000 modules in <100ms (tech-spec requirement)
+- Verify O(N log N) sorting performance acceptable
+    </ideas>
+  </tests>
+</story-context>

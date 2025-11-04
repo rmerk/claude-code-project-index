@@ -1,0 +1,377 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>2.10</storyId>
+    <title>MCP Server Implementation</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-10-mcp-server-implementation.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer using AI assistants</asA>
+    <iWant>the project index exposed as an MCP (Model Context Protocol) server</iWant>
+    <soThat>AI agents can navigate and query large codebases through standardized tool interfaces</soThat>
+    <tasks>
+- Setup MCP Server Foundation (AC: #1, #10)
+  - Create `requirements.txt` with `mcp` dependency (first external dependency for project)
+  - Install MCP SDK: `pip install mcp`
+  - Create `project_index_mcp.py` in project root
+  - Import FastMCP and configure stdio transport
+  - Set up basic server structure with @mcp.tool() decorators
+  - Document Python version requirement (3.12+) and MCP SDK version
+
+- Define Pydantic v2 Input Models (AC: #6)
+  - Create `LoadCoreIndexInput` model with format field (json|markdown)
+  - Create `LoadModuleInput` model with module_name and format fields
+  - Create `SearchFilesInput` model with query, limit, offset fields with validation
+  - Create `GetFileInfoInput` model with file_path field
+  - Add Field() constraints: format validation, limit range (1-100), offset >= 0
+  - Add docstrings to all Pydantic models
+
+- Implement Tool 1: project_index_load_core (AC: #2)
+  - Load PROJECT_INDEX.json from project root
+  - Support JSON output format (return dict directly)
+  - Support Markdown output format (format as human-readable markdown)
+  - Handle file not found error with clear message
+  - Handle JSON parse error with actionable guidance
+  - Set tool annotations: readOnlyHint=true, destructiveHint=false, idempotentHint=true
+  - Write comprehensive docstring with Examples and Error Handling sections
+
+- Implement Tool 2: project_index_load_module (AC: #3)
+  - Integrate with `scripts/loader.py:load_detail_module()`
+  - Load module from PROJECT_INDEX.d/{module_name}.json
+  - Support JSON and Markdown output formats
+  - Handle module not found error (suggest available modules)
+  - Handle split architecture not detected (suggest running /index)
+  - Set tool annotations correctly
+  - Write comprehensive docstring
+
+- Implement Tool 3: project_index_search_files (AC: #4)
+  - Load core index to get file tree
+  - Filter files by query string (path pattern matching)
+  - Implement pagination with limit (default 20, max 100) and offset (default 0)
+  - Return list of matching file paths with pagination metadata
+  - Support JSON and Markdown formats
+  - Handle empty results with helpful suggestions
+  - Set tool annotations correctly
+  - Write comprehensive docstring
+
+- Implement Tool 4: project_index_get_file_info (AC: #5)
+  - Integrate with `scripts/loader.py:load_detail_by_path()`
+  - Load file details including functions, classes, imports
+  - Include git metadata (commit, author, date, recency) if available
+  - Support JSON and Markdown formats
+  - Handle file not found error (suggest similar paths)
+  - Handle file not indexed error
+  - Set tool annotations correctly
+  - Write comprehensive docstring
+
+- Error Handling and Validation (AC: #13)
+  - Wrap all tool implementations with try/except blocks
+  - Provide actionable error messages (what to do next)
+  - Validate file paths exist before loading
+  - Validate format parameter (json|markdown)
+  - Handle missing index gracefully (suggest /index)
+  - Log errors for debugging (verbose mode)
+
+- Integration with Existing Utilities (AC: #11)
+  - Import and use `scripts/loader.py` functions (load_detail_module, load_detail_by_path)
+  - Import and use `scripts/project_index.py` functions if needed
+  - Reuse existing JSON parsing and error handling patterns
+  - Ensure no code duplication (DRY principle)
+  - Test integration with split and legacy index formats
+
+- Create Evaluation Suite (AC: #9)
+  - Write 10 realistic test questions covering all 4 tools
+  - Question 1: Load core index and identify project structure
+  - Question 2: Lazy-load specific module (e.g., "scripts")
+  - Question 3: Search for files matching pattern (e.g., "*test*.py")
+  - Question 4: Get detailed info for specific file with git metadata
+  - Question 5: Paginated search (limit 5, offset 10)
+  - Question 6: Markdown format output for human readability
+  - Question 7: Error handling - request non-existent module
+  - Question 8: Error handling - invalid file path
+  - Question 9: Multi-step workflow - search then get details
+  - Question 10: Performance - load core index multiple times (caching)
+  - Document expected outputs and validation criteria
+
+- Documentation (AC: #14)
+  - Add "MCP Server" section to README
+  - Document installation: `pip install mcp`
+  - Document Claude Desktop integration (stdio transport)
+  - Provide usage examples for all 4 tools
+  - Document input validation constraints
+  - Document error messages and troubleshooting
+  - Link to MCP documentation and mcp-builder skill
+  - Document architectural decision: First external dependency
+
+- Testing (All ACs)
+  - Manual test: Start MCP server via stdio
+  - Manual test: Connect from Claude Desktop
+  - Manual test: Execute all 4 tools with valid inputs
+  - Manual test: Test error handling with invalid inputs
+  - Manual test: Test both JSON and Markdown output formats
+  - Manual test: Test pagination (limit/offset)
+  - Manual test: Run evaluation suite (10 questions)
+  - Verify tool annotations in Claude Desktop tool list
+  - Test performance (tool latency <500ms per tech-spec)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. MCP server (`project_index_mcp.py`) implements 4 core tools with proper FastMCP registration
+2. Tool `project_index_load_core` loads core index and returns JSON or Markdown format
+3. Tool `project_index_load_module` lazy-loads specific detail modules by name
+4. Tool `project_index_search_files` searches files with pagination (limit/offset)
+5. Tool `project_index_get_file_info` returns detailed file information including git metadata
+6. All tools use Pydantic v2 models for input validation with Field constraints
+7. Tool annotations correctly set (readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false)
+8. Comprehensive docstrings with Args, Returns, Examples, and Error Handling sections
+9. Evaluation suite created with 10 realistic test questions (mcp-builder Phase 4)
+10. Requirements.txt added with `mcp` dependency and installation documentation
+11. Server integrates with existing `scripts/loader.py` and `scripts/project_index.py` utilities
+12. Server uses stdio transport for local Claude Desktop integration
+13. Error handling provides actionable messages with clear next steps
+14. README updated with MCP server usage instructions
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>User Journeys - Agent Intelligence with MCP Integration</section>
+        <snippet>Describes how agents intelligently combine index structure (architectural awareness) with real-time MCP tools (Read, Grep, Git) for hybrid intelligence. Index provides navigation/structure, MCP provides fresh content/metadata. Four relevance signals: explicit context (file refs), semantic (keywords), temporal (git), structural (dependencies).</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic 2 Technical Specification</title>
+        <section>MCP Server Module Design</section>
+        <snippet>Specifies MCP server architecture with 4 core tools (load_core, load_module, search_files, get_file_info), Pydantic v2 input models, FastMCP registration, stdio transport for Claude Desktop integration. First external dependency: mcp SDK. Performance target: tool latency <500ms. Integrates with scripts/loader.py utilities.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic 2 Technical Specification</title>
+        <section>External Dependencies</section>
+        <snippet>CRITICAL architectural decision: Story 2.10 introduces FIRST external dependency for project. Breaks Python stdlib-only constraint from Epic 1. Requires mcp SDK (latest) and pydantic v2 (transitive). Installation via pip install mcp. MCP server is optional for core functionality.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 2.10 Acceptance Criteria</section>
+        <snippet>Defines 14 acceptance criteria: (1) 4 tools with FastMCP, (2-5) tool implementations (load_core, load_module, search_files, get_file_info), (6) Pydantic v2 validation, (7) proper annotations, (8) comprehensive docstrings, (9) 10-question evaluation suite, (10) requirements.txt, (11) integration with existing utilities, (12) stdio transport, (13) actionable error messages, (14) README documentation.</snippet>
+      </doc>
+      <doc>
+        <path>README.md</path>
+        <title>Project README</title>
+        <section>MCP Server Support</section>
+        <snippet>Documents MCP server as Epic 2 feature. Describes 4 core tools, Claude Desktop integration via stdio transport, installation with pip install mcp, benefits (faster queries, lazy-loading, standardized interface), requirements (Python 3.12+, MCP SDK, Pydantic v2). Notes MCP server is optional, core functionality remains dependency-free.</snippet>
+      </doc>
+      <doc>
+        <path>docs/spike-mcp-server-implementation.md</path>
+        <title>MCP Server Implementation Spike</title>
+        <section>Proof-of-Concept and Key Findings</section>
+        <snippet>Validates MCP server feasibility using mcp-builder skill. POC demonstrates 4 tools with FastMCP, Pydantic validation, JSON/Markdown formats. Key findings: mcp-builder provides 4-phase process (research, implementation, review, evaluation), first external dependency required, DRY utilities pattern (_load_json_file, _handle_error, _format_markdown helpers), async/await throughout.</snippet>
+      </doc>
+      <doc>
+        <path>.claude/skills/mcp-builder/reference/python_mcp_server.md</path>
+        <title>Python MCP Server Implementation Guide</title>
+        <section>Best Practices and Patterns</section>
+        <snippet>Provides FastMCP patterns: @mcp.tool decorator, Pydantic v2 models with model_config (str_strip_whitespace, validate_assignment, extra='forbid'), Field constraints (min_length, ge, le), tool annotations (readOnlyHint, idempotentHint, destructiveHint, openWorldHint), server naming ({service}_mcp), tool naming (snake_case with service prefix to avoid conflicts).</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/2-5-mcp-tool-detection.md</path>
+        <title>Story 2.5 - MCP Tool Detection</title>
+        <section>MCP Detection Implementation</section>
+        <snippet>Implemented runtime detection of MCP tools (Read, Grep, Git) with detect_mcp_tools() function in scripts/mcp_detector.py. Caching for performance (<100ms first call, <10ms cached). Environment-based detection without subprocess calls. Graceful fallback when tools unavailable.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>project_index_mcp.py</path>
+        <kind>mcp_server</kind>
+        <symbol>POC implementation</symbol>
+        <lines>1-471</lines>
+        <reason>Proof-of-concept MCP server with all 4 tools implemented. Demonstrates FastMCP patterns, Pydantic v2 models (LoadCoreIndexInput, LoadModuleInput, SearchFilesInput, GetFileInfoInput), shared utilities (_load_json_file, _handle_error, _format_core_index_markdown), async/await throughout. Needs refinement for production: integrate with scripts/loader.py, add comprehensive docstrings, implement evaluation suite.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/loader.py</path>
+        <kind>utility</kind>
+        <symbol>load_detail_module</symbol>
+        <lines>19-100</lines>
+        <reason>REUSE for Tool 2 (project_index_load_module). Provides module loading with validation (module_name format, required fields), error handling (FileNotFoundError, JSONDecodeError, ValueError), performance <500ms target. Avoid duplicating this logic in MCP server.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/loader.py</path>
+        <kind>utility</kind>
+        <symbol>find_module_for_file</symbol>
+        <lines>103-197</lines>
+        <reason>Helper for Tool 4 (project_index_get_file_info). Maps file_path to module_id by searching core index modules. Returns module containing file or raises ValueError. Enables file-based queries without knowing module structure.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/loader.py</path>
+        <kind>utility</kind>
+        <symbol>load_detail_by_path</symbol>
+        <lines>195-230</lines>
+        <reason>REUSE for Tool 4 (project_index_get_file_info). Combines find_module_for_file + load_detail_module to load file details from file_path. Single-function solution for file info retrieval.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/loader.py</path>
+        <kind>utility</kind>
+        <symbol>load_multiple_modules</symbol>
+        <lines>233-310</lines>
+        <reason>Batch loading pattern with graceful failure handling. Useful reference for handling partial failures, logging warnings. May inspire future MCP tool enhancements (batch operations).</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/test_incremental.py</path>
+        <kind>test</kind>
+        <symbol>Test organization pattern</symbol>
+        <lines>1-50</lines>
+        <reason>Demonstrates unittest structure: multiple test classes by feature (TestChangeDetection, TestDependencyGraph, etc.), setUp/tearDown with temp directories, git repository initialization for integration tests. Follow this pattern for MCP server tests if automated testing added.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/test_loader.py</path>
+        <kind>test</kind>
+        <symbol>Loader utility tests</symbol>
+        <lines>1-500</lines>
+        <reason>Comprehensive tests for loader.py functions (load_detail_module, find_module_for_file, load_detail_by_path, load_multiple_modules). Reference for expected behavior, edge cases, error handling of utilities that MCP server will integrate with.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package name="mcp" version="latest" required="true" notes="MCP Python SDK - FIRST external dependency for project. Install via: pip install mcp" />
+        <package name="pydantic" version="^2.0" required="true" notes="Transitive dependency via MCP SDK. Used for input validation with Field constraints, model_config, field_validator decorators." />
+        <package name="json" version="stdlib" required="true" notes="JSON parsing for PROJECT_INDEX.json and detail modules. Use stdlib json module for efficiency." />
+        <package name="pathlib" version="stdlib" required="true" notes="Cross-platform path handling. All file operations use Path objects." />
+        <package name="typing" version="stdlib" required="true" notes="Type hints for parameters, returns. Use Optional, List, Dict, Any from typing module." />
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - **First External Dependency**: This is the FIRST external dependency for the project. Previously 100% Python stdlib. Document this architectural decision clearly in README and requirements.txt comments.
+    - **DRY Principle**: MUST integrate with existing scripts/loader.py utilities. DO NOT reimplement load_detail_module(), find_module_for_file(), or load_detail_by_path(). Import and use these functions directly.
+    - **Async/Await Required**: All MCP tool functions MUST use async/await (FastMCP requirement). Use async def for all @mcp.tool decorated functions.
+    - **Pydantic v2 Validation**: All input models MUST use Pydantic v2 patterns: model_config (not nested Config class), field_validator (not deprecated validator), model_dump() (not deprecated dict()).
+    - **Tool Annotations**: All tools MUST set readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False (all tools are read-only, safe, repeatable, local operations).
+    - **Error Handling**: Provide actionable error messages with clear next steps (pattern from Story 2.9). Examples: "Module not found → Available modules: [list]", "Index not found → Run /index to generate", "Invalid format → Use 'json' or 'markdown'".
+    - **Performance Target**: Tool latency <500ms per call (NFR001 from tech-spec line 60). Optimize: cache core index in memory, efficient JSON parsing, minimize file I/O, fail fast on errors.
+    - **Response Formats**: Support both JSON (machine-readable, default) and Markdown (human-readable) formats. Use ResponseFormat enum (Literal["json", "markdown"]).
+    - **Stdio Transport**: Server MUST use stdio transport for local Claude Desktop integration (not HTTP). Configure via FastMCP("project_index_mcp") with default stdio.
+    - **Comprehensive Docstrings**: All tools require Args, Returns, Examples, and Error Handling sections in docstrings (mcp-builder Phase 1 requirement).
+    - **Python 3.12+ Required**: Project uses Python 3.12+ stdlib features. Document in requirements.txt and README.
+    - **Optional Dependency**: MCP server is OPTIONAL. Core indexing functionality must remain dependency-free. Document MCP as optional enhancement, not required component.
+    - **No Testing Infrastructure Yet**: AC #9 requires evaluation suite (10 test questions), NOT automated unit tests. Use mcp-builder Phase 4 evaluation format (XML-based realistic questions).
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>load_detail_module</name>
+      <kind>function</kind>
+      <signature>def load_detail_module(module_name: str, index_dir: Optional[Path] = None) -> Dict</signature>
+      <path>scripts/loader.py:19-100</path>
+      <notes>Import and use directly in Tool 2 (project_index_load_module). Validates module_name, loads from PROJECT_INDEX.d/{module_name}.json, returns dict with module_id, version, files, call_graph_local. Raises FileNotFoundError, JSONDecodeError, ValueError.</notes>
+    </interface>
+    <interface>
+      <name>load_detail_by_path</name>
+      <kind>function</kind>
+      <signature>def load_detail_by_path(file_path: str, core_index: Dict, index_dir: Optional[Path] = None) -> Dict</signature>
+      <path>scripts/loader.py:195-230</path>
+      <notes>Import and use directly in Tool 4 (project_index_get_file_info). Resolves file_path to module_id using core index, loads detail module. Single-function solution for file info queries.</notes>
+    </interface>
+    <interface>
+      <name>find_module_for_file</name>
+      <kind>function</kind>
+      <signature>def find_module_for_file(file_path: str, core_index: Dict) -> str</signature>
+      <path>scripts/loader.py:103-197</path>
+      <notes>Helper function for resolving file paths to module IDs. Used internally by load_detail_by_path. May be useful for error messages (suggest which module contains similar files).</notes>
+    </interface>
+    <interface>
+      <name>FastMCP @mcp.tool decorator</name>
+      <kind>decorator</kind>
+      <signature>@mcp.tool(name: str, annotations: Dict[str, Any])</signature>
+      <path>MCP Python SDK</path>
+      <notes>Decorator for registering tools with FastMCP server. Automatically generates tool descriptions from docstrings, inputSchema from Pydantic models. Requires async def functions. See .claude/skills/mcp-builder/reference/python_mcp_server.md for patterns.</notes>
+    </interface>
+    <interface>
+      <name>Pydantic BaseModel</name>
+      <kind>class</kind>
+      <signature>class InputModel(BaseModel): model_config = ConfigDict(...); field: Type = Field(...)</signature>
+      <path>Pydantic v2</path>
+      <notes>Base class for all input validation models. Use model_config for configuration, Field() for constraints (min_length, ge, le, pattern), field_validator for custom validation. All 4 tools require Pydantic input models.</notes>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+MCP Server testing follows mcp-builder Phase 4 evaluation approach (NOT automated unit tests). Create evaluation suite with 10 realistic, verifiable test questions in XML format. Each question tests specific tool functionality with expected outputs. Manual testing via Claude Desktop integration to validate tools work correctly. Reference: .claude/skills/mcp-builder/reference/evaluation.md for evaluation format.
+
+Previous stories (2.1-2.9) use Python unittest framework with test files in scripts/test_*.py. If automated tests are added later, follow this pattern: TestClass per feature area, setUp/tearDown for temp directories, comprehensive edge case coverage, performance benchmarks. See scripts/test_loader.py for loader utility test examples, scripts/test_incremental.py for git-based integration test patterns.
+    </standards>
+    <locations>
+- **Evaluation Suite**: Embedded in project_index_mcp.py docstring or separate file (e.g., evaluation.xml)
+- **Manual Testing**: Via Claude Desktop with MCP server configured in claude_desktop_config.json
+- **Future Automated Tests**: scripts/test_mcp_server.py (if created, follows unittest pattern from other test files)
+    </locations>
+    <ideas>
+**Evaluation Suite (AC #9) - 10 Test Questions:**
+
+1. **Tool 1 - Load Core Index (JSON)**
+   - Query: "Use project_index_load_core to load the core index in JSON format"
+   - Expected: Returns PROJECT_INDEX.json with version, at, root, tree, modules, stats fields
+   - Validates: JSON parsing, file loading, default format
+
+2. **Tool 1 - Load Core Index (Markdown)**
+   - Query: "Load core index in Markdown format for human readability"
+   - Expected: Returns formatted Markdown with sections (Statistics, Available Modules)
+   - Validates: Markdown formatting, response_format parameter
+
+3. **Tool 2 - Load Module by Name**
+   - Query: "Load the 'scripts' detail module"
+   - Expected: Returns module with module_id='scripts', version, files, functions
+   - Validates: Integration with scripts/loader.py, module loading
+
+4. **Tool 3 - Search Files (Basic)**
+   - Query: "Search for all Python test files (pattern: *test*.py)"
+   - Expected: Returns list of matching files (test_loader.py, test_incremental.py, etc.)
+   - Validates: Pattern matching, file tree search
+
+5. **Tool 3 - Search Files (Pagination)**
+   - Query: "Search for all Python files with limit=5, offset=10"
+   - Expected: Returns 5 results starting from 11th match, includes pagination metadata (total, limit, offset)
+   - Validates: Pagination logic, limit/offset constraints
+
+6. **Tool 4 - Get File Info**
+   - Query: "Get detailed information about scripts/loader.py"
+   - Expected: Returns file details with functions (load_detail_module, find_module_for_file), imports, git metadata
+   - Validates: Integration with load_detail_by_path, git metadata inclusion
+
+7. **Error Handling - Module Not Found**
+   - Query: "Load module 'nonexistent'"
+   - Expected: Returns error message with actionable guidance: "Module 'nonexistent' not found. Available modules: [list]"
+   - Validates: Error handling, helpful suggestions
+
+8. **Error Handling - File Not Indexed**
+   - Query: "Get info for 'completely/fake/path.py'"
+   - Expected: Returns error: "File not found in index. Run /index to update."
+   - Validates: File validation, actionable error messages
+
+9. **Multi-Tool Workflow**
+   - Query: "Use search_files to find loader utilities, then get_file_info for one result"
+   - Expected: Search returns loader files, get_file_info returns details for selected file
+   - Validates: Tool composition, cross-tool workflows
+
+10. **Performance - Repeated Calls**
+    - Query: "Call load_core 3 times in succession"
+    - Expected: All calls complete in <500ms each (caching should improve 2nd/3rd calls)
+    - Validates: Performance target, caching behavior
+
+**Additional Manual Tests:**
+- Claude Desktop integration: Configure MCP server, verify tools appear in tool list
+- Tool annotations: Verify readOnlyHint, idempotentHint visible in Claude Desktop
+- Both formats: Test all tools with format="json" and format="markdown"
+- Split vs legacy: Test with both PROJECT_INDEX.d/ (split) and single-file index
+- Edge cases: Empty results, invalid parameters, missing index file
+    </ideas>
+  </tests>
+</story-context>

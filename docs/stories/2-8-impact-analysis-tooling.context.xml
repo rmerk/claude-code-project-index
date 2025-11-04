@@ -1,0 +1,291 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>2.8</storyId>
+    <title>Impact Analysis Tooling</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-8-impact-analysis-tooling.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer</asA>
+    <iWant>to understand what breaks if I change a function</iWant>
+    <soThat>I can refactor safely and predict downstream impacts</soThat>
+    <tasks>
+      - Implement Impact Analyzer Core (AC: #1, #2, #3)
+        * Create `scripts/impact.py` module with `analyze_impact()` function
+        * Implement BFS traversal for reverse call graph (who calls this function)
+        * Support both direct callers (depth=1) and indirect callers (depth=2+)
+        * Add configurable max_depth parameter (default: 10 levels)
+        * Handle circular dependencies gracefully (detect cycles, avoid infinite loops)
+        * Return structured impact report with direct_callers, indirect_callers, depth_reached, total_affected
+
+      - Integrate with Both Index Formats (AC: #4)
+        * Load call graph from split architecture (core index `g` field + detail module call graphs)
+        * Load call graph from single-file legacy format (PROJECT_INDEX.json `g` field)
+        * Detect which format is in use and adapt automatically
+        * Merge local call graphs from multiple detail modules when using split format
+        * Build reverse call graph (callers map) from bidirectional edges
+
+      - Add File Path and Line Number Mapping (AC: #3)
+        * Map function names to file paths using index `f` sections
+        * Extract line numbers from function signatures (e.g., "login:42" → line 42)
+        * Include both caller and callee file:line information in impact report
+        * Format output: "src/auth/login.py:42 (login) calls validate"
+        * Handle functions not found in index gracefully (return empty result with message)
+
+      - Integrate with Index-Analyzer Agent (AC: #1, #5)
+        * Update `agents/index-analyzer.md` with impact analysis capability
+        * Add query detection pattern: "what depends on", "who calls", "impact of changing"
+        * Invoke impact analyzer when dependency query detected
+        * Format impact report for user: direct callers, indirect callers, total affected
+        * Provide actionable recommendations: "Refactoring `login()` will affect 6 functions across 3 files"
+
+      - Testing (All ACs)
+        * Unit tests: analyze_impact() with synthetic call graphs (3-level deep graph)
+        * Unit tests: Circular dependency detection and handling
+        * Unit tests: Function not found case (graceful empty result)
+        * Integration test: Load split architecture index, run impact analysis
+        * Integration test: Load single-file legacy index, run impact analysis
+        * Integration test: Deep traversal (5+ levels) with real project call graph
+        * Performance test: Impact analysis on 10,000 function call graph <500ms
+        * Edge case: Empty call graph, isolated functions (no callers)
+
+      - Documentation (AC: #5)
+        * Add "Impact Analysis" section to README
+        * Document query patterns: "what depends on <function>", "who calls <function>"
+        * Provide examples with sample output (direct + indirect callers)
+        * Explain max_depth parameter and circular dependency handling
+        * Document integration with relevance scoring (Story 2.7 foundation)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    AC #1: Query "what depends on &lt;function&gt;" shows all callers from call graph
+    AC #2: Impact analysis traverses multiple levels (direct + indirect callers)
+    AC #3: Impact report includes file paths and line numbers
+    AC #4: Works with both single-file and split architecture indices
+    AC #5: Documentation includes impact analysis usage examples
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic 2 Technical Specification</title>
+        <section>Impact Analyzer API (lines 267-285)</section>
+        <snippet>Defines analyze_impact() function that performs BFS traversal on call graph to find direct and indirect callers. Returns structured report with file paths, line numbers, depth_reached, and total_affected count.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic 2 Technical Specification</title>
+        <section>Impact Analysis Workflow (lines 372-381)</section>
+        <snippet>Workflow: User queries "What depends on function X?" → Load core index and call graph → Call analyze_impact() → BFS traversal for direct + indirect callers → Return formatted impact report with file paths.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic 2 Technical Specification</title>
+        <section>Performance Requirements (line 406)</section>
+        <snippet>Impact analysis must complete in &lt;500ms for 10,000 function call graph. BFS traversal is O(V+E) complexity where V=functions, E=edges.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 2.8: Impact Analysis Tooling (lines 315-327)</section>
+        <snippet>User story: As a developer, I want to understand what breaks if I change a function, so that I can refactor safely and predict downstream impacts. Five acceptance criteria covering query interface, multi-level traversal, file paths with line numbers, dual format support, and documentation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation</title>
+        <section>Call Graph Construction (lines 229-237)</section>
+        <snippet>Bidirectional call graph construction: For each function, identify calls in body and build both forward (function → calls) and reverse (called_by → function) graphs. Stored in index 'g' field as edge list.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Epic 2: Enhanced Intelligence &amp; Developer Tools</section>
+        <snippet>Epic 2 includes impact analysis tooling as a developer productivity enhancement. Leverages call graph from Epic 1 to enable downstream dependency analysis for safe refactoring decisions.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/2-7-relevance-scoring-engine.md</path>
+        <title>Story 2.7 - Relevance Scoring Engine</title>
+        <section>Integration Points</section>
+        <snippet>Story 2.7 provides foundation for Story 2.8: Relevance scoring can prioritize high-impact functions. Pattern established: RelevanceScorer class with configurable weights, multi-signal scoring, agent integration in index-analyzer.md lines 362-448.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>scripts/index_utils.py</path>
+        <kind>utility module</kind>
+        <symbol>build_call_graph</symbol>
+        <lines>132-158</lines>
+        <reason>Existing function that builds bidirectional call graph from functions/classes. Returns calls_map (forward) and called_by_map (reverse). Impact analyzer needs reverse graph pattern - reuse this approach.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/loader.py</path>
+        <kind>utility module</kind>
+        <symbol>load_detail_module</symbol>
+        <lines>20-101</lines>
+        <reason>Loads detail modules from PROJECT_INDEX.d/ by module name. Returns module with call_graph_local field. Impact analyzer must load and merge call graphs from multiple modules in split architecture.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/loader.py</path>
+        <kind>utility module</kind>
+        <symbol>find_module_for_file</symbol>
+        <lines>104+</lines>
+        <reason>Maps file paths to module names using core index. Needed for mapping function names to file paths in impact report.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/relevance.py</path>
+        <kind>service module</kind>
+        <symbol>RelevanceScorer class</symbol>
+        <lines>83-127</lines>
+        <reason>Pattern to follow for impact analyzer implementation: configurable class with DEFAULT_WEIGHTS, __init__ with config loading, docstrings with examples. Story 2.7 established this pattern successfully.</reason>
+      </artifact>
+      <artifact>
+        <path>agents/index-analyzer.md</path>
+        <kind>agent definition</kind>
+        <symbol>PRIMARY DIRECTIVE</symbol>
+        <lines>9-20</lines>
+        <reason>Agent integration point. Impact analysis must be added after relevance scoring step (Story 2.7 added at lines 362-448). Follow query detection → feature invocation → logging pattern.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>indexer module</kind>
+        <symbol>generate_core_index</symbol>
+        <lines>211+</lines>
+        <reason>Generates call graph in core index 'g' field. Impact analyzer consumes this data. Understanding generation process helps with parsing edge list format.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem>Python 3.12+</ecosystem>
+      <note>Impact analysis uses Python stdlib only (no external dependencies). MCP server (Story 2.10) introduced first external deps (mcp, pydantic) but those are not required for core functionality.</note>
+      <python>
+        <package>typing</package>
+        <version>stdlib (3.12+)</version>
+        <usage>Type hints for Dict, List, Tuple, Optional, Any in impact.py module</usage>
+      </python>
+      <python>
+        <package>collections</package>
+        <version>stdlib (3.12+)</version>
+        <usage>deque for BFS queue, defaultdict for reverse call graph construction</usage>
+      </python>
+      <python>
+        <package>json</package>
+        <version>stdlib (3.12+)</version>
+        <usage>Load core index and detail modules</usage>
+      </python>
+      <python>
+        <package>pathlib</package>
+        <version>stdlib (3.12+)</version>
+        <usage>Path handling for file operations</usage>
+      </python>
+      <python>
+        <package>unittest</package>
+        <version>stdlib (3.12+)</version>
+        <usage>Test framework for scripts/test_impact.py test suite</usage>
+      </python>
+      <python>
+        <package>re</package>
+        <version>stdlib (3.12+)</version>
+        <usage>Pattern matching for function signature parsing (extracting line numbers)</usage>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - **Python stdlib only**: No external dependencies. Use stdlib modules (typing, collections, json, pathlib) following Epic 1/2 architectural constraint.
+    - **Dual format support**: Must work with both split architecture (v2.0-split) and legacy single-file (v1.0) indices. Detect format and adapt.
+    - **Performance requirement**: Impact analysis must complete in &lt;500ms for 10,000 function call graph (tech-spec line 406). Use O(V+E) BFS traversal.
+    - **Graceful degradation**: Handle missing functions, empty call graphs, circular dependencies without crashing. Return structured empty results with clear messages.
+    - **Integration pattern from Story 2.7**: Follow RelevanceScorer class pattern - configurable weights, clear docstrings, unit tests organized by feature area.
+    - **Agent integration**: Add IMPACT ANALYSIS section to agents/index-analyzer.md after RELEVANCE SCORING section (after line ~448). Follow query detection pattern.
+    - **Configuration pattern**: Add impact_analysis section to bmad/bmm/config.yaml following relevance_scoring structure (lines 19-30).
+    - **Project-relative paths**: All file paths in output must be project-relative (e.g., "scripts/auth.py" not absolute paths).
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>analyze_impact</name>
+      <kind>function signature</kind>
+      <signature>def analyze_impact(function_name: str, call_graph: List[List[str]], max_depth: int = 10) -> Dict[str, Any]</signature>
+      <path>scripts/impact.py (to be created)</path>
+    </interface>
+    <interface>
+      <name>build_reverse_call_graph</name>
+      <kind>function signature</kind>
+      <signature>def build_reverse_call_graph(call_graph: List[List[str]]) -> Dict[str, List[str]]</signature>
+      <path>scripts/impact.py (to be created)</path>
+    </interface>
+    <interface>
+      <name>load_detail_module</name>
+      <kind>existing function</kind>
+      <signature>def load_detail_module(module_name: str, index_dir: Optional[Path] = None) -> Dict</signature>
+      <path>scripts/loader.py</path>
+    </interface>
+    <interface>
+      <name>Core Index 'g' field</name>
+      <kind>data structure</kind>
+      <signature>"g": [["caller_func", "callee_func"], ...] # Edge list format</signature>
+      <path>PROJECT_INDEX.json or core index</path>
+    </interface>
+    <interface>
+      <name>Detail Module 'call_graph_local' field</name>
+      <kind>data structure</kind>
+      <signature>"call_graph_local": [["caller", "callee"], ...] # Per-module edges</signature>
+      <path>PROJECT_INDEX.d/{module}.json</path>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+      Testing framework: Python unittest (stdlib). Pattern established in Stories 2.3-2.7: Create scripts/test_impact.py with multiple test classes organized by feature area. Each test class uses unittest.TestCase with descriptive test methods (test_feature_scenario format). Include docstrings explaining what each test validates. Run tests: python3 -m unittest scripts/test_impact.py -v. Performance tests must validate &lt;500ms requirement for 10,000 function call graph. Mock/stub external dependencies using unittest.mock. Follow pattern from test_relevance.py: 30 tests organized in 6 test classes (unit tests, integration tests, performance tests, edge cases).
+    </standards>
+    <locations>
+      - scripts/test_impact.py (primary test file to create)
+      - scripts/ (all test files follow test_*.py pattern)
+      - Test organization: TestImpactAnalyzer (core BFS logic), TestCircularDependencies (cycle detection), TestFilePathMapping (function to file:line mapping), TestDualFormatSupport (split vs legacy), TestIntegration (end-to-end with real index), TestPerformance (500ms validation)
+    </locations>
+    <ideas>
+      AC #1 Test Ideas:
+      - Unit test: analyze_impact() with synthetic 3-level call graph (A calls B calls C calls D)
+      - Verify direct callers returned correctly (depth=1)
+      - Verify function not in graph returns empty result with clear message
+
+      AC #2 Test Ideas:
+      - Unit test: Multi-level traversal up to max_depth=10
+      - Test direct vs indirect caller separation (depth=1 vs depth&gt;1)
+      - Integration test: Deep traversal (5+ levels) with real project call graph
+      - Verify depth_reached field in result
+
+      AC #3 Test Ideas:
+      - Unit test: Map function names to file paths using index 'f' sections
+      - Test line number extraction from signatures (e.g., "login:42" → line 42)
+      - Verify output format: "src/auth/login.py:42 (login) calls validate"
+      - Edge case: Function not found in index (graceful empty result)
+
+      AC #4 Test Ideas:
+      - Integration test: Load split architecture (core + detail modules), run impact analysis
+      - Integration test: Load legacy single-file index, run impact analysis
+      - Test call graph merging from multiple detail modules
+      - Verify auto-detection of index format (split vs legacy)
+
+      AC #5 Test Ideas:
+      - Documentation test: Verify README has "Impact Analysis" section
+      - Test query pattern detection in agent integration
+      - Verify usage examples in README match actual API
+
+      Performance Test Ideas:
+      - Generate synthetic 10,000 function call graph
+      - Run analyze_impact() and measure execution time
+      - Assert completion time &lt;500ms (tech-spec requirement)
+      - Test with varying graph depths (1, 5, 10 levels)
+
+      Edge Case Test Ideas:
+      - Circular dependency: A → B → C → A (verify cycle detection)
+      - Empty call graph (no edges)
+      - Isolated function (no callers, no callees)
+      - Multiple paths to same caller (verify deduplication)
+    </ideas>
+  </tests>
+</story-context>

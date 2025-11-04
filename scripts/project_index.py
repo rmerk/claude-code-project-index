@@ -1856,6 +1856,16 @@ Configuration File:
         action='store_true',
         help='Skip detail module generation (core index only)'
     )
+    parser.add_argument(
+        '--incremental',
+        action='store_true',
+        help='Use incremental update (only regenerate changed files)'
+    )
+    parser.add_argument(
+        '--full',
+        action='store_true',
+        help='Force full regeneration (skip incremental update)'
+    )
 
     # Legacy compatibility flags (hidden from help)
     parser.add_argument('--format', dest='format_legacy', help=argparse.SUPPRESS)
@@ -1966,6 +1976,74 @@ Configuration File:
         target_size_bytes = MAX_INDEX_SIZE
 
     print("   Analyzing project structure and documentation...")
+
+    # Check for incremental update option (Story 2.9)
+    use_incremental = False
+    index_path = Path('PROJECT_INDEX.json')
+
+    if args.full:
+        # User explicitly requested full regeneration
+        print("   Full regeneration mode (via --full flag)")
+        use_incremental = False
+    elif args.incremental:
+        # User explicitly requested incremental
+        print("   Incremental update mode (via --incremental flag)")
+        use_incremental = True
+    elif index_path.exists():
+        # Auto-detection: Use incremental if index exists and git available
+        try:
+            # Check if git is available
+            subprocess.run(
+                ['git', 'rev-parse', '--git-dir'],
+                cwd=Path('.'),
+                capture_output=True,
+                timeout=5,
+                check=True
+            )
+            # Check if split format (incremental only works with split format)
+            if use_split_mode:
+                use_incremental = True
+                print("   Auto-detected incremental update mode (existing index + git + split format)")
+            else:
+                print("   Full regeneration (single-file format doesn't support incremental)")
+        except (subprocess.CalledProcessError, FileNotFoundError, subprocess.TimeoutExpired):
+            print("   Full regeneration (git not available for incremental)")
+    else:
+        print("   Full regeneration (no existing index)")
+
+    # Attempt incremental update if enabled
+    if use_incremental:
+        try:
+            from incremental import incremental_update
+
+            print("\n🔄 Running incremental update...")
+            updated_index_path, updated_modules = incremental_update(
+                index_path,
+                Path('.'),
+                verbose=True
+            )
+
+            if updated_modules:
+                print(f"✅ Incremental update successful!")
+                print(f"   Updated {len(updated_modules)} modules")
+
+                # Load the updated index for summary
+                with open(index_path, 'r') as f:
+                    index = json.load(f)
+
+                # Print summary and exit
+                print_summary(index, 0)
+                print(f"\n💾 Updated: {index_path}")
+                print("\n✨ Index incrementally updated - ready to use!")
+                sys.exit(0)
+            else:
+                print("ℹ️  No changes detected - index is up to date")
+                sys.exit(0)
+
+        except (FileNotFoundError, ValueError, subprocess.CalledProcessError) as e:
+            print(f"\n⚠️  Incremental update failed: {e}")
+            print("   Falling back to full regeneration...")
+            use_incremental = False
 
     # Build index using appropriate method
     if use_split_mode:

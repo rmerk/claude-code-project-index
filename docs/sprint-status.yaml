@@ -51,11 +51,11 @@ development_status:
   2-2-tiered-documentation-storage: done  # Code review follow-up complete: README documentation added
   2-3-git-metadata-extraction: done  # ✅ APPROVED: Python 3.12 verified, all ACs met, all tests passing
   2-4-temporal-awareness-integration: done  # ✅ APPROVED: All 5 ACs met, 30/30 tests passing, production-ready
-  2-5-mcp-tool-detection: in-progress
-  2-6-hybrid-query-strategy: backlog
-  2-7-relevance-scoring-engine: backlog
-  2-8-impact-analysis-tooling: backlog
-  2-9-incremental-index-updates: backlog
-  2-10-mcp-server-implementation: backlog  # UPDATED: Fully defined with 14 ACs, POC created
+  2-5-mcp-tool-detection: done  # ✅ APPROVED: All 5 ACs met, 26/26 tasks verified, 18/18 tests passing, production-ready
+  2-6-hybrid-query-strategy: done  # ✅ APPROVED: All 5 ACs met, 26/26 tasks verified, 20/20 tests passing, production-ready
+  2-7-relevance-scoring-engine: done  # ✅ APPROVED: All 5 ACs met, 21/21 tasks verified, 30/30 tests passing, production-ready
+  2-8-impact-analysis-tooling: done  # ✅ APPROVED: All 5 ACs met, 26/26 tasks verified, 28/28 tests passing, production-ready
+  2-9-incremental-index-updates: done  # ✅ APPROVED: All 5 ACs met, 42/42 tasks verified, 13/13 tests passing, production-ready
+  2-10-mcp-server-implementation: done  # ✅ APPROVED: All 14 ACs verified, all 7 review fixes confirmed, 40+ tests passing, production-ready
   # 2-11-mcp-server-auto-update: DEFERRED to backlog (not essential for Epic 2 MVP)
   epic-2-retrospective: optional

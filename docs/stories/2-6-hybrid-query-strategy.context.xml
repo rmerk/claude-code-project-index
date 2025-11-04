@@ -1,0 +1,200 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>6</storyId>
+    <title>Hybrid Query Strategy</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-6-hybrid-query-strategy.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer</asA>
+    <iWant>the agent to intelligently combine index and MCP data</iWant>
+    <soThat>I get pre-computed structure plus real-time content</soThat>
+    <tasks>
+- [ ] Implement Hybrid Query Router (AC: #1, #2, #3, #4)
+  - [ ] Create query type classification logic (explicit file ref, semantic search, temporal query, structural query)
+  - [ ] Implement MCP Read routing: index navigation + MCP for current content
+  - [ ] Implement MCP Grep routing: index structure + MCP for live keyword search
+  - [ ] Implement MCP Git routing: MCP for real-time git + index for context
+  - [ ] Implement fallback routing: detail modules from index when MCP unavailable
+  - [ ] Add routing decision logging for verbose mode
+
+- [ ] Integrate Hybrid Router into Index-Analyzer Agent (AC: #1-5)
+  - [ ] Import hybrid query router logic into `agents/index-analyzer.md`
+  - [ ] Update PRIMARY DIRECTIVE to include hybrid routing step
+  - [ ] Call router after MCP detection to determine query strategy
+  - [ ] Execute query using selected strategy (MCP + index or index-only)
+  - [ ] Log data source selection in verbose mode (AC: #5)
+  - [ ] Document hybrid query workflow in agent instructions
+
+- [ ] Testing (All ACs)
+  - [ ] Unit tests for query type classification
+  - [ ] Test MCP Read routing: verify index navigation + MCP content loading
+  - [ ] Test MCP Grep routing: verify index structure + live keyword search
+  - [ ] Test MCP Git routing: verify real-time git data + architectural context
+  - [ ] Test fallback routing: verify detail module loading when MCP unavailable
+  - [ ] Integration test: Agent uses hybrid strategy with mocked MCP tools
+  - [ ] Integration test: Agent falls back to index-only when MCP detection fails
+  - [ ] Verify verbose logging shows data source decisions
+
+- [ ] Documentation (AC: #5)
+  - [ ] Update README with hybrid query strategy explanation
+  - [ ] Document query routing rules and decision tree
+  - [ ] Provide examples of hybrid queries for each query type
+  - [ ] Explain when to use MCP vs index data sources
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. With MCP Read: Agent uses index for navigation, MCP for current file content
+2. With MCP Grep: Agent uses index for structure, MCP for live keyword search
+3. With MCP Git: Agent uses MCP for real-time git data, index for architectural context
+4. Without MCP: Agent uses detail modules from index (fallback behavior)
+5. Agent explains which data sources were used (verbose mode)
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic 2 Technical Specification</title>
+        <section>Workflow 3: Hybrid Query Strategy with MCP Integration (lines 345-370)</section>
+        <snippet>Defines 4 query routing scenarios (A-D): Explicit File Refs + MCP Read, Semantic Query + MCP Grep, Temporal Query + MCP Git, and No MCP fallback. Each scenario specifies when to use index vs MCP tools for optimal hybrid intelligence.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic 2 Technical Specification</title>
+        <section>Acceptance Criteria AC2.6.1-2.6.5 (lines 553-558)</section>
+        <snippet>Story 2.6 must implement: (1) MCP Read routing for file content, (2) MCP Grep routing for live keyword search, (3) MCP Git routing for real-time git data, (4) fallback to detail modules without MCP, (5) verbose logging of data source decisions.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 2.6: Hybrid Query Strategy (lines 281-295)</section>
+        <snippet>User story: As a developer, I want the agent to intelligently combine index and MCP data, so that I get pre-computed structure plus real-time content. Prerequisites: Story 2.5 (MCP detection available).</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation</title>
+        <section>Analysis Layer (Intelligence)</section>
+        <snippet>Index-analyzer agent enhanced with MCP-aware intelligence. Agent performs deep analysis, code relationship analysis, and strategic recommendations by combining static index structure with dynamic MCP tool queries.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/2-5-mcp-tool-detection.md</path>
+        <title>Story 2.5: MCP Tool Detection (Complete)</title>
+        <section>Implementation Complete</section>
+        <snippet>MCP detection module `scripts/mcp_detector.py` provides capability map: {"read": bool, "grep": bool, "git": bool}. Detection completes in <100ms, cached retrieval <10ms. Agent integration in `agents/index-analyzer.md` establishes foundation for hybrid routing in Story 2.6.</snippet>
+      </doc>
+      <doc>
+        <path>README.md</path>
+        <title>Project Index for Claude Code</title>
+        <section>MCP Tool Detection & Hybrid Intelligence (lines 112-193)</section>
+        <snippet>Explains hybrid intelligence concept: combining pre-computed index (fast structure/navigation) with real-time MCP tools (fresh content). Documents when MCP tools are available (Claude Code environment) and query strategy adaptation per query type.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>agents/index-analyzer.md</path>
+        <kind>agent</kind>
+        <symbol>index-analyzer agent</symbol>
+        <lines>all</lines>
+        <reason>Target agent for hybrid query routing implementation. Already includes MCP detection (Story 2.5). Must add query type classification and routing logic for 4 scenarios.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/mcp_detector.py</path>
+        <kind>module</kind>
+        <symbol>detect_mcp_tools, get_cached_capabilities</symbol>
+        <lines>24-101, 150-163</lines>
+        <reason>Provides capability map input for routing decisions. Functions: detect_mcp_tools() returns {"read": bool, "grep": bool, "git": bool}, get_cached_capabilities() for fast subsequent access.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/loader.py</path>
+        <kind>module</kind>
+        <symbol>load_detail_module, load_multiple_modules</symbol>
+        <lines>20-103, 236-269</lines>
+        <reason>Used in fallback routing (Scenario D) when MCP unavailable. Loads detail modules from split index for index-only queries.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/relevance.py</path>
+        <kind>module</kind>
+        <symbol>RelevanceScorer, filter_files_by_recency</symbol>
+        <lines>83-207, 25-58</lines>
+        <reason>Temporal awareness for query classification. RelevanceScorer provides multi-signal scoring that will inform routing decisions in Story 2.7.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package name="unittest" version="stdlib">Testing framework for routing tests</package>
+        <package name="unittest.mock" version="stdlib">MCP tool mocking for integration tests</package>
+        <package name="pathlib" version="stdlib">Path handling for file operations</package>
+        <package name="typing" version="stdlib">Type hints for routing functions</package>
+        <package name="json" version="stdlib">Index and capability map parsing</package>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+- **Agent Integration Only**: No new modules created. All routing logic implemented within `agents/index-analyzer.md`
+- **Graceful Degradation**: Must work perfectly when MCP tools unavailable (fallback to index-only)
+- **Performance**: Query routing decision must complete in <50ms (adds minimal overhead)
+- **Backward Compatibility**: Must not break existing index-only workflows
+- **No External Dependencies**: Uses stdlib only + existing project utilities
+- **Query Classification**: Must accurately classify query type (explicit/semantic/temporal/structural)
+- **Verbose Logging**: Must explain routing decisions when verbose flag used
+- **Testing Requirements**: All 4 routing scenarios must have integration tests with mocked MCP
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>detect_mcp_tools</name>
+      <kind>function signature</kind>
+      <signature>def detect_mcp_tools() -> dict[str, bool]</signature>
+      <path>scripts/mcp_detector.py:24</path>
+      <description>Returns capability map indicating which MCP tools are available. Keys: "read", "grep", "git". Values: True if available, False otherwise.</description>
+    </interface>
+    <interface>
+      <name>get_cached_capabilities</name>
+      <kind>function signature</kind>
+      <signature>def get_cached_capabilities() -> dict[str, bool]</signature>
+      <path>scripts/mcp_detector.py:150</path>
+      <description>Fast cached retrieval of capability map. Returns copy to prevent external mutation. Use this in routing logic to avoid repeated detection.</description>
+    </interface>
+    <interface>
+      <name>load_detail_module</name>
+      <kind>function signature</kind>
+      <signature>def load_detail_module(module_name: str, index_dir: Path = DEFAULT) -> dict</signature>
+      <path>scripts/loader.py:20</path>
+      <description>Lazy-loads specific detail module by name. Used in fallback routing when MCP unavailable. Returns module dict or raises exception if not found.</description>
+    </interface>
+    <interface>
+      <name>RelevanceScorer.score_module</name>
+      <kind>method signature</kind>
+      <signature>def score_module(self, module: dict, query: dict, git_metadata: dict) -> float</signature>
+      <path>scripts/relevance.py:134</path>
+      <description>Multi-signal relevance scoring for module selection. Weights: explicit refs (10x), temporal recent (5x), temporal medium (2x), keywords (1x). Used for module prioritization in all routing scenarios.</description>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+Project uses Python `unittest` framework with comprehensive test coverage. Testing pattern established in Story 2.5: use `unittest.mock` for MCP tool mocking (patch environment variables), test all scenarios (happy path + edge cases), validate performance requirements (<100ms for routing decisions), and ensure proper test isolation with setUp/tearDown. Integration tests should simulate actual agent query execution with mocked MCP availability.
+    </standards>
+    <locations>
+      <location>scripts/test_*.py</location>
+      <location>scripts/test_mcp_detector.py (reference for MCP mocking patterns)</location>
+      <location>scripts/test_index_analyzer_agent.py (agent integration tests)</location>
+    </locations>
+    <ideas>
+      <idea ac="1">Test MCP Read routing: Mock capability_map["read"]=True, verify agent uses index for navigation then MCP Read tool for file content loading</idea>
+      <idea ac="2">Test MCP Grep routing: Mock capability_map["grep"]=True, verify agent uses index for structure then MCP Grep for live keyword search</idea>
+      <idea ac="3">Test MCP Git routing: Mock capability_map["git"]=True, verify agent uses MCP Git for real-time git data and index for architectural context</idea>
+      <idea ac="4">Test fallback routing: Mock capability_map with all False, verify agent loads detail modules from index (Scenario D)</idea>
+      <idea ac="5">Test verbose logging: Enable verbose flag, verify agent logs data source decisions for each routing scenario</idea>
+      <idea ac="all">Test query type classification: Verify accurate classification of explicit file refs, semantic searches, temporal queries, structural queries</idea>
+      <idea ac="all">Integration test: Run agent with mocked MCP availability, test all 4 routing scenarios end-to-end</idea>
+      <idea ac="all">Performance test: Validate routing decision completes in <50ms (minimal overhead requirement)</idea>
+    </ideas>
+  </tests>
+</story-context>

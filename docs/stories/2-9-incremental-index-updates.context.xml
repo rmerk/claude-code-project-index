@@ -1,0 +1,234 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>2</epicId>
+    <storyId>2.9</storyId>
+    <title>Incremental Index Updates</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-03</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/2-9-incremental-index-updates.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>to update only changed files in the index</iWant>
+    <soThat>regeneration is fast for large codebases</soThat>
+    <tasks>
+      - Implement Changed File Detection (AC: #1): Extract timestamp, git diff, filter tracked files, handle git unavailable, log changes
+      - Identify Affected Modules and Dependencies (AC: #2): Map to modules, build dependency graph, find direct dependencies, expand to module granularity
+      - Selective Regeneration Logic (AC: #2, #3): Regenerate affected modules only, update core index (file tree, git metadata, module refs, stats), preserve unchanged modules
+      - Hash-Based Validation (AC: #4): Compute module hashes, store in core index, validate consistency, detect corruption, fallback to full regen
+      - Full Regeneration Option (AC: #5): Add --full/--incremental flags, auto-detection, log mode decisions, document usage
+      - Integration with Existing Index Generation (AC: #2, #3): Refactor project_index.py, create incremental.py, reuse parser functions, integrate git_metadata.py
+      - Testing (All ACs): Unit tests (change detection, dependency graph, selective regen, hash validation), integration tests (10/50/100 files), performance test (&lt;10s for 100 files), edge cases
+      - Documentation (AC: #5): Add README section, document flags, explain auto-detection, provide examples, document hash validation
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. Detect changed files via git diff since last index generation
+    2. Regenerate detail modules only for changed files + direct dependencies
+    3. Update core index with new metadata for affected files
+    4. Hash-based validation ensures index consistency after incremental update
+    5. Full regeneration option available (/index --full)
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic 2 Technical Specification</title>
+        <section>Incremental Update API (lines 288-306)</section>
+        <snippet>Defines incremental_update() function signature with 6-step process: load existing index timestamp, git diff for changed files, identify affected modules, regenerate detail modules, update core index, validate hash consistency.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic 2 Technical Specification</title>
+        <section>Workflow 5: Incremental Index Update (lines 383-395)</section>
+        <snippet>Describes workflow: check existing index, git diff for changes, identify affected modules, regenerate selectively, update core index, validate, report "3 files changed, 2 modules updated in 2s".</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-2.md</path>
+        <title>Epic 2 Technical Specification</title>
+        <section>Performance Requirements (line 407)</section>
+        <snippet>Incremental Update: Update 100 changed files + dependencies in &lt;10 seconds. Expected performance: ~3-8 seconds for 100 file changes.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 2.9: Incremental Index Updates (lines 332-344)</section>
+        <snippet>Acceptance criteria defined: detect changed files via git diff, regenerate detail modules only for changed files + dependencies, update core index metadata, hash validation ensures consistency, full regeneration option with /index --full.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Project Architecture</title>
+        <section>Index Generation Pipeline</section>
+        <snippet>Describes 6-phase index generation: file discovery, language detection, signature extraction, documentation parsing, call graph construction, serialization. Incremental updates reuse phases 3-6 for affected files only.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>scripts/git_metadata.py</path>
+        <kind>module</kind>
+        <symbol>extract_git_metadata</symbol>
+        <lines>18-74</lines>
+        <reason>Provides git metadata extraction foundation for timestamp-based change detection. Function signature: extract_git_metadata(file_path, root_path, cache) returns dict with commit, author, date, pr, lines_changed, recency_days.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/git_metadata.py</path>
+        <kind>module</kind>
+        <symbol>_extract_from_git</symbol>
+        <lines>77-139</lines>
+        <reason>Internal git command execution for extracting commit metadata. Uses git log with format %H|%ae|%aI|%s and git diff --numstat for lines changed. Handles timeout and subprocess errors gracefully.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/impact.py</path>
+        <kind>module</kind>
+        <symbol>build_reverse_call_graph</symbol>
+        <lines>24-58</lines>
+        <reason>BFS traversal pattern for dependency analysis. Builds reverse graph (callee → callers) using defaultdict for O(1) lookups. Reusable pattern for identifying files that import changed files.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/impact.py</path>
+        <kind>module</kind>
+        <symbol>analyze_impact</symbol>
+        <lines>61-166</lines>
+        <reason>BFS traversal implementation with cycle detection using visited set. Demonstrates pattern for expanding direct dependencies to transitive closure. Handles circular dependencies gracefully.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>detect_index_format</symbol>
+        <lines>42-77</lines>
+        <reason>Auto-detection of split vs legacy index format. Checks for PROJECT_INDEX.d/ directory and version field. Incremental updates should use this to determine if split format is available.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>load_configuration</symbol>
+        <lines>80-141</lines>
+        <reason>Configuration loading pattern from .project-index.json. Demonstrates structure for adding incremental_updates config section with auto_incremental, full_regen_threshold, validate_hashes flags.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/index_utils.py</path>
+        <kind>module</kind>
+        <symbol>extract_python_signatures, extract_javascript_signatures, extract_shell_signatures</symbol>
+        <lines>74+</lines>
+        <reason>Parser functions for extracting function/class signatures from source files. Reuse these during selective module regeneration to avoid code duplication.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/index_utils.py</path>
+        <kind>module</kind>
+        <symbol>should_index_file</symbol>
+        <lines>1386+</lines>
+        <reason>File filtering logic using .gitignore patterns. Reuse to filter git diff results to only tracked project files, excluding ignored files.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/loader.py</path>
+        <kind>module</kind>
+        <symbol>load_detail_module, find_module_for_file</symbol>
+        <lines>20-199</lines>
+        <reason>Module loading functions for accessing detail modules. Use to load existing modules when building dependency graph and mapping changed files to containing modules.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package name="collections" version="stdlib">deque, defaultdict for BFS queue and reverse graph construction</package>
+        <package name="subprocess" version="stdlib">git command execution for diff and metadata extraction</package>
+        <package name="datetime" version="stdlib">Timestamp parsing and recency calculation</package>
+        <package name="pathlib" version="stdlib">Path manipulation for module and file operations</package>
+        <package name="hashlib" version="stdlib">SHA256 hashing for module integrity validation</package>
+        <package name="json" version="stdlib">Index serialization and loading</package>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - **Python 3.12+ stdlib only**: No external dependencies beyond stdlib. Use subprocess for git, hashlib for validation, json for index serialization.
+    - **Graceful degradation**: If git unavailable, fall back to full regeneration with clear messaging. If validation fails, trigger automatic full regeneration.
+    - **Module-level granularity**: Regenerate entire modules, not individual files, to maintain call graph consistency within modules.
+    - **Backward compatibility**: Support both split architecture (selective updates) and legacy single-file format (fall back to full regen).
+    - **Performance target**: &lt;10 seconds for 100 changed files (tech-spec NFR line 407). Optimize git operations (single diff call), minimize module reloads.
+    - **Hash validation required**: Compute SHA256 hash for each regenerated module, store in core index module_hashes field, validate before saving.
+    - **Preserve structure**: Maintain all existing core index fields, update only affected sections (file tree, git metadata, module references, stats).
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>incremental_update</name>
+      <kind>function signature</kind>
+      <signature>def incremental_update(last_index_path: str, project_root: str) -> tuple[str, list[str]]</signature>
+      <path>scripts/incremental.py (to be created)</path>
+      <description>Main entry point for incremental update. Returns (updated_index_path, updated_module_paths).</description>
+    </interface>
+    <interface>
+      <name>detect_changed_files</name>
+      <kind>function signature</kind>
+      <signature>def detect_changed_files(timestamp: str, project_root: str) -> list[str]</signature>
+      <path>scripts/incremental.py (to be created)</path>
+      <description>Execute git diff --name-only since timestamp to find changed files. Returns list of project-relative file paths.</description>
+    </interface>
+    <interface>
+      <name>identify_affected_modules</name>
+      <kind>function signature</kind>
+      <signature>def identify_affected_modules(changed_files: list[str], core_index: dict) -> set[str]</signature>
+      <path>scripts/incremental.py (to be created)</path>
+      <description>Map changed files to containing detail modules and expand to include dependencies. Returns set of module names to regenerate.</description>
+    </interface>
+    <interface>
+      <name>compute_module_hash</name>
+      <kind>function signature</kind>
+      <signature>def compute_module_hash(module_path: Path) -> str</signature>
+      <path>scripts/incremental.py (to be created)</path>
+      <description>Compute SHA256 hash of module JSON content for integrity validation. Returns "sha256:&lt;hash&gt;" string.</description>
+    </interface>
+    <interface>
+      <name>validate_index_integrity</name>
+      <kind>function signature</kind>
+      <signature>def validate_index_integrity(core_index: dict, module_dir: Path) -> bool</signature>
+      <path>scripts/incremental.py (to be created)</path>
+      <description>Validate hash consistency for all modules. Returns True if all hashes match, False triggers full regeneration.</description>
+    </interface>
+    <interface>
+      <name>extract_git_metadata</name>
+      <kind>existing function (reuse)</kind>
+      <signature>def extract_git_metadata(file_path: Path, root_path: Path, cache: Optional[Dict] = None) -> Dict</signature>
+      <path>scripts/git_metadata.py</path>
+      <description>Extract git metadata for changed files to update core index. Use cache parameter to avoid duplicate git queries.</description>
+    </interface>
+    <interface>
+      <name>build_reverse_call_graph</name>
+      <kind>existing function (reuse pattern)</kind>
+      <signature>def build_reverse_call_graph(call_graph: List[List[str]]) -> Dict[str, List[str]]</signature>
+      <path>scripts/impact.py</path>
+      <description>Pattern for building dependency graphs. Adapt for import dependencies: build graph of which files import which modules.</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Python unittest framework for all test suites. Test organization follows Story 2.8 pattern: multiple test classes organized by feature area (TestChangeDetection, TestDependencyGraph, TestSelectiveRegen, TestHashValidation, TestPerformance, TestEdgeCases). Each test class contains 3-5 focused unit tests. Integration tests use real git repository fixtures. Performance tests validate &lt;10s requirement for 100 files with realistic timing measurements. Mock git commands using unittest.mock for unit tests, use tempfile.TemporaryDirectory for integration tests with real git repos.
+    </standards>
+    <locations>
+      - scripts/test_incremental.py (new test suite to be created)
+      - Follow pattern from scripts/test_impact.py (28 tests in 8 classes)
+      - Follow pattern from scripts/test_git_metadata.py for git mocking
+    </locations>
+    <ideas>
+      - AC#1: Unit test detect_changed_files with mocked git diff output (10/50/100 files changed)
+      - AC#1: Unit test graceful fallback when git unavailable (subprocess.CalledProcessError)
+      - AC#2: Unit test identify_affected_modules with sample core index and changed file list
+      - AC#2: Unit test dependency graph construction from imports and call graph (forward + backward traversal)
+      - AC#3: Integration test selective regeneration updates only affected modules (verify unchanged modules preserved)
+      - AC#3: Integration test core index updates (file tree, git metadata, module refs, stats) after incremental update
+      - AC#4: Unit test compute_module_hash produces consistent SHA256 hashes
+      - AC#4: Unit test validate_index_integrity detects corrupted modules (tampered hash)
+      - AC#4: Integration test automatic fallback to full regeneration when validation fails
+      - AC#5: Unit test auto-detection logic (existing index + git available = incremental, else full)
+      - AC#5: Integration test --full flag forces full regeneration even when incremental possible
+      - Performance: Integration test 100 changed files updated in &lt;10s with realistic git repo
+      - Edge case: No existing index triggers full regeneration (not incremental)
+      - Edge case: All files changed (incremental vs full performance comparison, threshold logic)
+    </ideas>
+  </tests>
+</story-context>
