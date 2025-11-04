@@ -348,17 +348,25 @@ async def project_index_load_module(params: LoadModuleInput) -> str:
                 lines.append("## Files")
                 for file_path, file_info in data['files'].items():
                     lines.append(f"### {file_path}")
-                    lines.append(f"- Language: {file_info.get('lang', 'unknown')}")
+                    lines.append(f"- Language: {file_info.get('language', 'unknown')}")
 
-                    if 'funcs' in file_info:
-                        lines.append(f"- Functions: {len(file_info['funcs'])}")
-                        for func in file_info['funcs'][:5]:  # Show first 5
-                            lines.append(f"  - `{func}`")
-                        if len(file_info['funcs']) > 5:
-                            lines.append(f"  - ... and {len(file_info['funcs']) - 5} more")
+                    # Handle functions list (each is a dict with 'name', 'signature', etc.)
+                    if 'functions' in file_info and file_info['functions']:
+                        lines.append(f"- Functions: {len(file_info['functions'])}")
+                        for func in file_info['functions'][:5]:  # Show first 5
+                            func_name = func.get('name', 'unknown')
+                            func_sig = func.get('signature', '')
+                            lines.append(f"  - `{func_name}{func_sig}`")
+                        if len(file_info['functions']) > 5:
+                            lines.append(f"  - ... and {len(file_info['functions']) - 5} more")
 
-                    if 'classes' in file_info:
-                        lines.append(f"- Classes: {len(file_info.get('classes', {}).keys())}")
+                    # Handle classes list (each is a dict with 'name', 'methods', etc.)
+                    if 'classes' in file_info and file_info['classes']:
+                        lines.append(f"- Classes: {len(file_info['classes'])}")
+                        for cls in file_info['classes'][:3]:  # Show first 3
+                            lines.append(f"  - `{cls.get('name', 'unknown')}`")
+                        if len(file_info['classes']) > 3:
+                            lines.append(f"  - ... and {len(file_info['classes']) - 3} more")
 
                     if 'imports' in file_info:
                         lines.append(f"- Imports: {len(file_info['imports'])}")
@@ -550,41 +558,58 @@ async def project_index_get_file_info(params: GetFileInfoInput) -> str:
             return error_msg
 
         if params.response_format == ResponseFormat.MARKDOWN:
+            # Extract the actual file data from the module structure
+            actual_file_info = file_info.get('files', {}).get(file_path, {})
+
             lines = [f"# File: {file_path}", ""]
-            lines.append(f"**Language**: {file_info.get('lang', 'unknown')}")
+            lines.append(f"**Language**: {actual_file_info.get('language', 'unknown')}")
+            lines.append(f"**Module**: {file_info.get('module_id', 'N/A')}")
 
             # Git metadata from Story 2.3 (AC #5)
-            if 'git' in file_info:
-                git_meta = file_info['git']
+            if 'git' in actual_file_info:
+                git_meta = actual_file_info['git']
                 lines.append(f"**Last Modified**: {git_meta.get('date', 'N/A')} ({git_meta.get('recency_days', 'N/A')} days ago)")
                 lines.append(f"**Author**: {git_meta.get('author', 'N/A')}")
                 lines.append("")
 
-            if 'funcs' in file_info and file_info['funcs']:
+            # Handle functions list (each is a dict with 'name', 'signature', 'line', etc.)
+            if 'functions' in actual_file_info and actual_file_info['functions']:
                 lines.append("## Functions")
-                for func_def in file_info['funcs']:
-                    lines.append(f"- `{func_def}`")
+                for func in actual_file_info['functions']:
+                    func_name = func.get('name', 'unknown')
+                    func_sig = func.get('signature', '')
+                    func_line = func.get('line', '')
+                    lines.append(f"- `{func_name}{func_sig}` (line {func_line})")
+                    if func.get('doc'):
+                        lines.append(f"  - {func.get('doc')}")
                 lines.append("")
 
-            if 'classes' in file_info and file_info['classes']:
+            # Handle classes list (each is a dict with 'name', 'methods', etc.)
+            if 'classes' in actual_file_info and actual_file_info['classes']:
                 lines.append("## Classes")
-                for class_name, class_info in file_info['classes'].items():
-                    lines.append(f"### {class_name}")
-                    if 'methods' in class_info:
-                        for method in class_info['methods']:
-                            lines.append(f"  - `{method}`")
-                lines.append("")
+                for cls in actual_file_info['classes']:
+                    cls_name = cls.get('name', 'unknown')
+                    lines.append(f"### {cls_name}")
+                    if cls.get('doc'):
+                        lines.append(f"_{cls.get('doc')}_")
+                    if 'methods' in cls and cls['methods']:
+                        lines.append("**Methods:**")
+                        for method in cls['methods']:
+                            method_name = method.get('name', 'unknown')
+                            method_sig = method.get('signature', '')
+                            lines.append(f"  - `{method_name}{method_sig}`")
+                    lines.append("")
 
-            if 'imports' in file_info and file_info['imports']:
+            if 'imports' in actual_file_info and actual_file_info['imports']:
                 lines.append("## Imports")
-                for imp in file_info['imports'][:15]:  # Show first 15
+                for imp in actual_file_info['imports'][:15]:  # Show first 15
                     lines.append(f"- `{imp}`")
-                if len(file_info['imports']) > 15:
-                    lines.append(f"- ... and {len(file_info['imports']) - 15} more")
+                if len(actual_file_info['imports']) > 15:
+                    lines.append(f"- ... and {len(actual_file_info['imports']) - 15} more")
                 lines.append("")
 
-            if 'git' in file_info:
-                git_meta = file_info['git']
+            if 'git' in actual_file_info:
+                git_meta = actual_file_info['git']
                 lines.append("## Git Details")
                 lines.append(f"- **Commit**: `{git_meta.get('commit', 'N/A')[:8]}`")
                 lines.append(f"- **Message**: {git_meta.get('message', 'N/A')}")
