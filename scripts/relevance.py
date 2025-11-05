@@ -105,6 +105,34 @@ class RelevanceScorer:
         "keyword_match": 1.0,        # Semantic match
     }
 
+    # Keyword-to-module-type mapping (Story 4.3)
+    # Maps query keywords to module type patterns they should boost
+    DEFAULT_KEYWORD_BOOSTS = {
+        "component": ["components"],
+        "vue component": ["components"],
+        "react component": ["components"],
+        "view": ["views"],
+        "page": ["views"],
+        "route": ["views"],
+        "api": ["api"],
+        "endpoint": ["api"],
+        "service": ["api"],
+        "store": ["stores"],
+        "state": ["stores"],
+        "vuex": ["stores"],
+        "pinia": ["stores"],
+        "redux": ["stores"],
+        "composable": ["composables"],
+        "hook": ["composables"],
+        "util": ["utils"],
+        "helper": ["utils"],
+        "test": ["tests", "test"],
+        "spec": ["tests", "test"]
+    }
+
+    # Keyword boost multiplier (applied when keyword matches module type)
+    KEYWORD_BOOST_MULTIPLIER = 2.0  # 2x boost for keyword matches
+
     def __init__(self, config: Optional[Dict[str, Any]] = None):
         """
         Initialize RelevanceScorer with optional custom weights.
@@ -119,12 +147,177 @@ class RelevanceScorer:
             >>> scorer = RelevanceScorer(config=custom_config)  # Custom weights
         """
         self.weights = self.DEFAULT_WEIGHTS.copy()
+        self.keyword_boosts = self.DEFAULT_KEYWORD_BOOSTS.copy()
+        self.boost_multiplier = self.KEYWORD_BOOST_MULTIPLIER
 
         # Load custom weights from config if provided
         if config and "temporal_weights" in config:
             custom_weights = config["temporal_weights"]
             if isinstance(custom_weights, dict):
                 self.weights.update(custom_weights)
+
+        # Load custom keyword boosts from config if provided
+        if config and "keyword_boosts" in config:
+            custom_boosts = config["keyword_boosts"]
+            if isinstance(custom_boosts, dict):
+                self.keyword_boosts.update(custom_boosts)
+
+        # Load custom boost multiplier if provided
+        if config and "boost_multiplier" in config:
+            multiplier = config["boost_multiplier"]
+            if isinstance(multiplier, (int, float)) and multiplier > 0:
+                self.boost_multiplier = float(multiplier)
+
+    def _parse_module_name(self, module_id: str) -> Dict[str, str]:
+        """
+        Parse multi-level module name into components.
+
+        Splits module ID on "-" to extract parent, child, and grandchild components.
+        Supports three organizational levels:
+        - Monolithic: "project"
+        - Two-level: "project-src"
+        - Three-level: "project-src-components"
+
+        Args:
+            module_id: Module identifier string (e.g., "assureptmdashboard-src-components")
+
+        Returns:
+            Dict with module name components:
+            {
+                "parent": str,           # Always present (first component)
+                "child": Optional[str],  # Present for 2+ level splits
+                "grandchild": Optional[str]  # Present for 3-level splits
+            }
+
+        Examples:
+            >>> scorer = RelevanceScorer()
+            >>> scorer._parse_module_name("assureptmdashboard")
+            {'parent': 'assureptmdashboard'}
+            >>> scorer._parse_module_name("assureptmdashboard-src")
+            {'parent': 'assureptmdashboard', 'child': 'src'}
+            >>> scorer._parse_module_name("assureptmdashboard-src-components")
+            {'parent': 'assureptmdashboard', 'child': 'src', 'grandchild': 'components'}
+        """
+        parts = module_id.split("-")
+        result = {"parent": parts[0]}
+
+        if len(parts) >= 2:
+            result["child"] = parts[1]
+
+        if len(parts) >= 3:
+            # Join remaining parts for grandchild (handles cases like "src-components-forms")
+            result["grandchild"] = "-".join(parts[2:])
+
+        return result
+
+    def _detect_module_type(self, module_id: str) -> str:
+        """
+        Detect module type from module name components.
+
+        Analyzes the parsed module name (especially child/grandchild components)
+        to determine the module type. Used for keyword-based score boosting.
+
+        Args:
+            module_id: Module identifier (e.g., "project-src-components")
+
+        Returns:
+            Module type string: "components", "views", "api", "stores",
+            "composables", "utils", "tests", or "generic"
+
+        Examples:
+            >>> scorer = RelevanceScorer()
+            >>> scorer._detect_module_type("project-src-components")
+            'components'
+            >>> scorer._detect_module_type("project-src-api")
+            'api'
+            >>> scorer._detect_module_type("project-tests")
+            'tests'
+            >>> scorer._detect_module_type("scripts")
+            'generic'
+        """
+        # Parse module name to get components
+        parsed = self._parse_module_name(module_id)
+
+        # Check grandchild first (most specific), then child, then parent
+        components_to_check = []
+        if "grandchild" in parsed:
+            components_to_check.append(parsed["grandchild"])
+        if "child" in parsed:
+            components_to_check.append(parsed["child"])
+        components_to_check.append(parsed["parent"])
+
+        # Module type patterns (in priority order - check full word boundaries)
+        type_patterns = [
+            ("components", ["component"]),  # Will match "component" or "components"
+            ("views", ["view", "page", "route"]),
+            ("api", ["api", "service", "endpoint"]),
+            ("stores", ["store", "state", "vuex", "pinia", "redux"]),
+            ("composables", ["composable", "hook"]),
+            ("utils", ["util", "helper", "lib"]),
+            ("tests", ["test", "spec", "__tests__"])
+        ]
+
+        # Check each component against type patterns
+        for component in components_to_check:
+            component_lower = component.lower()
+            for type_name, patterns in type_patterns:
+                for pattern in patterns:
+                    if pattern in component_lower:
+                        return type_name
+
+        return "generic"
+
+    def _boost_by_keywords(
+        self,
+        base_score: float,
+        module_id: str,
+        query_text: str
+    ) -> float:
+        """
+        Apply keyword-based score boosting for module type matching.
+
+        If query contains keywords that match the module's type (e.g., "component"
+        keyword for a "components" module), apply a multiplier boost to the base score.
+
+        Args:
+            base_score: Base relevance score before keyword boosting
+            module_id: Module identifier (e.g., "project-src-components")
+            query_text: Query text to extract keywords from
+
+        Returns:
+            Boosted score if keyword matches module type, else base_score unchanged
+
+        Examples:
+            >>> scorer = RelevanceScorer()
+            >>> # Query "fix component" should boost "project-src-components" module
+            >>> scorer._boost_by_keywords(10.0, "project-src-components", "fix component")
+            20.0  # 2x boost applied
+            >>> # Query "api endpoint" should boost "project-src-api" module
+            >>> scorer._boost_by_keywords(10.0, "project-src-api", "api endpoint")
+            20.0
+            >>> # Non-matching query doesn't boost
+            >>> scorer._boost_by_keywords(10.0, "project-src-components", "database query")
+            10.0  # No boost
+        """
+        if not query_text or base_score == 0:
+            return base_score
+
+        # Detect module type
+        module_type = self._detect_module_type(module_id)
+
+        if module_type == "generic":
+            return base_score
+
+        # Normalize query text for matching
+        query_lower = query_text.lower()
+
+        # Check if any keywords in query match this module type
+        for keyword, module_types in self.keyword_boosts.items():
+            if keyword in query_lower and module_type in module_types:
+                # Apply boost multiplier
+                return base_score * self.boost_multiplier
+
+        return base_score
 
     def score_module(
         self,
@@ -208,6 +401,8 @@ class RelevanceScorer:
         """
         Score all modules and return sorted by relevance (highest first).
 
+        Applies keyword boosting based on module type matching query keywords.
+
         Args:
             modules: Dict mapping module names to module dicts
             query: Query dict (see score_module for structure)
@@ -228,10 +423,17 @@ class RelevanceScorer:
             True
         """
         scored = []
+        query_text = query.get("text", "")
+
         for module_name, module_data in modules.items():
-            score = self.score_module(module_data, query, git_metadata)
-            if score > 0:
-                scored.append((module_name, score))
+            # Calculate base score from file-level signals
+            base_score = self.score_module(module_data, query, git_metadata)
+
+            # Apply keyword boosting based on module type (Story 4.3)
+            final_score = self._boost_by_keywords(base_score, module_name, query_text)
+
+            if final_score > 0:
+                scored.append((module_name, final_score))
 
         # Sort by score descending (highest first)
         scored.sort(key=lambda x: x[1], reverse=True)

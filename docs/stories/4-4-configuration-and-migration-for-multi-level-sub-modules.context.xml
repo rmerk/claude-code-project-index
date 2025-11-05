@@ -1,0 +1,133 @@
+<story-context id="4-4-configuration-and-migration-for-multi-level-sub-modules" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>4.4</storyId>
+    <title>Configuration and Migration for Multi-Level Sub-Modules</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-04</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/4-4-configuration-and-migration-for-multi-level-sub-modules.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer</asA>
+    <iWant>control over multi-level sub-module behavior and smooth migration</iWant>
+    <soThat>I can optimize for my project's specific structure (especially Vite patterns)</soThat>
+    <tasks>
+      - Task 1: Implement configuration schema and parsing (AC: #1)
+      - Task 2: Implement framework presets (AC: #2, #3)
+      - Task 3: Implement strategy behavior (AC: #3, #4, #5)
+      - Task 4: Implement max_depth control (AC: #6)
+      - Task 5: Implement configuration migration (AC: #7)
+      - Task 6: Implement --analyze-modules flag (AC: #9)
+      - Task 7: Implement warning system (AC: #10)
+      - Task 8: Create documentation (AC: #8)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. Configuration option in `.project-index.json` includes: `submodule_strategy`, `submodule_threshold`, `submodule_max_depth`, `submodule_patterns`
+    2. Built-in framework presets implemented: vite, react, nextjs, generic
+    3. Strategy "auto" applies framework preset if detected, else generic
+    4. Strategy "force" always generates sub-modules regardless of size
+    5. Strategy "disabled" uses monolithic modules (legacy behavior)
+    6. `submodule_max_depth` controls splitting depth (1-3 levels)
+    7. Migration path: regenerating index with new config automatically reorganizes modules
+    8. Documentation explains multi-level sub-module configuration with Vite examples
+    9. `--analyze-modules` flag shows current structure, file counts, and suggested configuration
+    10. Warning system alerts for modules >200 files and detected frameworks without presets enabled
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc path="docs/tech-spec-epic-4.md" title="Epic 4 Technical Specification" section="Configuration Schema" snippet="Complete submodule_config schema with strategy, threshold, max_depth, and framework preset controls. Default strategy: auto (most user-friendly), default threshold: 100 files, default max_depth: 3 for Vite." />
+      <doc path="docs/epics.md" title="Epic Breakdown" section="Story 4.4" snippet="Configuration and migration for multi-level sub-modules. Provides user-facing configuration control with built-in framework presets (vite, react, nextjs, generic) and three strategy modes (auto, force, disabled)." />
+      <doc path="docs/PRD.md" title="Product Requirements Document" section="NFR003" snippet="Index format shall be human-readable JSON with clear schema documentation, enabling debugging and third-party tool integration." />
+      <doc path="docs/PRD.md" title="Product Requirements Document" section="FR015" snippet="System shall support incremental index regeneration, updating only modified files and their direct dependencies." />
+      <doc path="docs/stories/1-8-configuration-and-documentation.md" title="Story 1.8 - Configuration and Documentation" section="Configuration System" snippet="Established load_configuration() function that reads .project-index.json with mode (split/single), threshold, and validation. Story 4.4 extends this with submodule_config section." />
+      <doc path="docs/stories/4-1-large-module-detection-and-analysis.md" title="Story 4.1 - Large Module Detection" section="Completion Notes" snippet="Implemented get_submodule_config() to extract configuration with defaults. Default threshold: 100 files. Function available at scripts/project_index.py:1368-1398." />
+      <doc path="docs/stories/4-2-intelligent-sub-module-generation-with-multi-level-splitting.md" title="Story 4.2 - Sub-Module Generation" section="Completion Notes" snippet="Implemented detect_framework_patterns() (lines 1521-1572) that returns framework type (vite/generic). Vite detection based on src/components/, src/views/, src/api/ presence. Also implemented split_module_recursive() with max_depth parameter (lines 1611-1721)." />
+      <doc path="docs/stories/4-3-enhanced-relevance-scoring-for-multi-level-sub-modules.md" title="Story 4.3 - Relevance Scoring" section="Completion Notes" snippet="All sub-module infrastructure complete and tested (85/85 tests passing). Multi-level naming validated, file-to-module mapping provides O(1) lookups, zero technical debt identified." />
+    </docs>
+
+    <code>
+      <file path="scripts/project_index.py" kind="main indexer" symbol="load_configuration" lines="81-176" reason="Existing configuration loading function that needs to be enhanced with submodule_config parsing and validation" />
+      <file path="scripts/project_index.py" kind="configuration" symbol="get_submodule_config" lines="1368-1398" reason="Already exists from Story 4.1 - extracts submodule config with defaults, reuse for this story" />
+      <file path="scripts/project_index.py" kind="framework detection" symbol="detect_framework_patterns" lines="1521-1572" reason="Framework detection logic (vite/generic) that needs framework preset mapping" />
+      <file path="scripts/project_index.py" kind="splitting logic" symbol="split_module_recursive" lines="1611-1721" reason="Recursive splitting function that accepts max_depth parameter - needs integration with config" />
+      <file path="scripts/project_index.py" kind="organization" symbol="organize_into_modules" lines="1805-1877" reason="Module organization entry point where strategy logic should be integrated" />
+      <file path="scripts/project_index.py" kind="detection" symbol="detect_large_modules" lines="1470-1519" reason="Large module detection for warning system (AC #10)" />
+      <file path="scripts/test_configuration.py" kind="test suite" symbol="TestLoadConfiguration" lines="30-152" reason="Existing configuration tests from Epic 1 Story 1.8 - extend with submodule_config tests" />
+      <file path="scripts/test_large_module_detection.py" kind="test suite" symbol="TestLoadConfigurationSubmodule" lines="33-134" reason="Tests for submodule config validation from Story 4.1 - reference for test patterns" />
+      <file path="README.md" kind="documentation" symbol="Configuration" lines="TBD" reason="Main documentation file that needs configuration section added per AC #8" />
+    </code>
+
+    <dependencies>
+      <python>
+        Standard library only (no external dependencies):
+        - pathlib: File path operations, directory traversal
+        - typing: Type hints for Dict, List, Optional
+        - json: Configuration parsing and index generation
+        - re: Framework pattern detection
+        - logging: Observability logging for warnings
+        - argparse: CLI argument parsing for --analyze-modules flag
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Python 3.12+ stdlib only - no new external dependencies
+    - Configuration must support both old and new formats (backward compatibility required)
+    - Configuration validation must fail gracefully with clear, actionable error messages
+    - --analyze-modules flag must be read-only (no index modification)
+    - Default strategy: "auto" (most user-friendly, applies detected framework preset or generic)
+    - Default threshold: 100 files (conservative, only splits when beneficial)
+    - Default max_depth: 3 for Vite projects, 2 for others
+    - Warning vs Error philosophy: Large modules and framework detection are warnings (suggestions), not errors - index generation always succeeds
+    - All paths in configuration must be project-relative (strip project root prefix)
+    - Framework detection priority order: Vite &gt; React &gt; Next.js &gt; Generic
+  </constraints>
+
+  <interfaces>
+    <interface name="load_configuration" kind="function" signature="load_configuration(index_path: Path) -> Dict" path="scripts/project_index.py:81-176" description="Reads .project-index.json and returns config dict. Needs enhancement to parse and validate submodule_config section with strategy, threshold, max_depth, framework_presets fields." />
+
+    <interface name="get_submodule_config" kind="function" signature="get_submodule_config(config: Dict) -> Dict" path="scripts/project_index.py:1368-1398" description="Extracts submodule_config from main config with defaults. Already exists from Story 4.1. Returns dict with enabled, strategy, threshold, max_depth, framework_presets keys." />
+
+    <interface name="apply_framework_preset" kind="function (new)" signature="apply_framework_preset(framework_type: str, config: Dict) -> Dict" path="scripts/project_index.py (new)" description="NEW FUNCTION: Returns preset configuration for detected framework. Maps framework_type (vite/react/nextjs/generic) to split_paths configuration." />
+
+    <interface name="organize_into_modules" kind="function" signature="organize_into_modules(files: List[Path], root_path: Path, config: Dict) -> Dict[str, List[str]]" path="scripts/project_index.py:1805-1877" description="Groups files into modules. Needs enhancement to check submodule_config.strategy and apply appropriate organization (auto/force/disabled)." />
+
+    <interface name="analyze_module_structure" kind="function (new)" signature="analyze_module_structure(files: List[Path], root_path: Path, config: Dict) -> str" path="scripts/project_index.py (new)" description="NEW FUNCTION: Generates analysis report for --analyze-modules flag. Returns tree view, file counts, suggested configuration. Read-only, no modifications." />
+
+    <interface name="generate_warnings" kind="function (new)" signature="generate_warnings(modules: Dict, framework_type: str, config: Dict) -> List[str]" path="scripts/project_index.py (new)" description="NEW FUNCTION: Checks for optimization opportunities. Returns list of warning messages for large modules (&gt;200 files) and framework mismatches." />
+
+    <interface name="submodule_config schema" kind="configuration" signature="{&quot;enabled&quot;: bool, &quot;strategy&quot;: &quot;auto&quot;|&quot;force&quot;|&quot;disabled&quot;, &quot;threshold&quot;: int, &quot;max_depth&quot;: 1|2|3, &quot;framework_presets&quot;: {...}}" path=".project-index.json" description="Configuration schema for submodule behavior. Strategy auto detects framework and applies preset. Force always splits. Disabled uses monolithic." />
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing uses Python unittest framework (stdlib). All test files in scripts/ directory with test_ prefix. Test structure: TestClass for each function/feature, test methods for each scenario. Coverage target: 95% for configuration logic (critical path). Integration tests for migration scenarios. Performance tests for --analyze-modules (&lt;500ms for 1000-file project).
+    </standards>
+
+    <locations>
+      scripts/test_configuration.py - Existing configuration tests, extend with submodule_config tests
+      scripts/test_large_module_detection.py - Reference for submodule config validation patterns
+      scripts/test_sub_module_splitting.py - Framework preset and splitting behavior tests
+    </locations>
+
+    <ideas>
+      - AC #1: Test load_configuration() with valid/invalid submodule_config (all fields, missing fields, invalid values)
+      - AC #2: Test each framework preset (vite, react, nextjs, generic) returns expected split_paths
+      - AC #3: Test "auto" strategy applies correct preset based on detected framework
+      - AC #4: Test "force" strategy splits even small modules (&lt;threshold)
+      - AC #5: Test "disabled" strategy uses monolithic organization
+      - AC #6: Test max_depth enforcement (1=top-level, 2=parent-child, 3=full depth)
+      - AC #7: Integration test: regenerate index with new config, verify modules reorganized
+      - AC #9: Test --analyze-modules flag generates analysis without modifying files
+      - AC #10: Test warning system detects large modules and framework mismatches
+      - Performance: Test --analyze-modules completes in &lt;500ms for 1000-file project
+      - Migration: Test auto-generation of default config on first Epic 4 run
+      - Backward compat: Test config works with projects that have no submodule_config
+    </ideas>
+  </tests>
+</story-context>

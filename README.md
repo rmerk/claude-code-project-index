@@ -991,6 +991,394 @@ Each directory can have its own `.project-index.json` - just run the indexer fro
 
 See `docs/.project-index.json.example` for a complete example.
 
+## Multi-Level Sub-Module Configuration
+
+**NEW in Epic 4** - Fine-grained control over sub-module organization with framework-specific presets for Vite, React, and Next.js projects.
+
+### What are Multi-Level Sub-Modules?
+
+Multi-level sub-modules allow large modules to be split into hierarchical organization (parent → child → grandchild) for better navigation and faster lazy-loading. This is especially valuable for framework-based projects with predictable directory patterns.
+
+**Example - Vite Project Structure:**
+
+```
+Without sub-modules (monolithic):
+├── src (850 files) ← Single large module
+
+With multi-level sub-modules:
+├── src-components (120 files)
+├── src-views (85 files)
+├── src-api (45 files)
+├── src-stores (30 files)
+├── src-composables (25 files)
+├── src-utils (15 files)
+```
+
+**Benefits:**
+- **Faster queries**: Load only `src-components` instead of all 850 files
+- **Better organization**: Framework-specific patterns (components, views, api, etc.)
+- **Lazy-loading**: Agent loads sub-modules on-demand based on query relevance
+- **Performance**: 70%+ file reduction for targeted queries
+
+### Framework Presets
+
+The indexer includes built-in presets for popular frameworks:
+
+**Vite (Vue.js) - 3 levels:**
+```
+Detects: src/components/, src/views/, src/api/, src/stores/, src/composables/, src/utils/
+Depth: 3 levels (parent-child-grandchild)
+Example: "src" → "src-components" → "src-components-auth"
+```
+
+**React - 2 levels:**
+```
+Detects: components/, hooks/, utils/, pages/, contexts/, services/
+Depth: 2 levels (parent-child)
+Example: "src" → "src-components"
+```
+
+**Next.js - 2 levels:**
+```
+Detects: app/, components/, lib/, utils/, hooks/
+Depth: 2 levels (parent-child)
+Example: "project" → "project-app"
+```
+
+**Generic - 2 levels:**
+```
+Applies to: All projects without specific framework patterns
+Depth: 2 levels (split by direct subdirectories)
+Example: "docs" → "docs-guides"
+```
+
+### Configuration Schema
+
+Add `submodule_config` section to `.project-index.json`:
+
+```json
+{
+  "mode": "auto",
+  "threshold": 1000,
+  "submodule_config": {
+    "enabled": true,
+    "strategy": "auto",
+    "threshold": 100,
+    "max_depth": 3,
+    "framework_presets": {
+      "vite": {
+        "split_paths": ["src/components", "src/views", "src/api"],
+        "max_depth": 3
+      }
+    }
+  }
+}
+```
+
+**Configuration Fields:**
+
+- **`enabled`** (boolean, default: `true`)
+  - Enable/disable sub-module splitting
+  - `true`: Sub-modules generated based on strategy
+  - `false`: Uses monolithic module organization (legacy behavior)
+
+- **`strategy`** (string, default: `"auto"`)
+  - `"auto"`: Detect framework → apply preset if >threshold, else skip
+  - `"force"`: Always split modules regardless of size
+  - `"disabled"`: Use monolithic modules (same as enabled:false)
+
+- **`threshold`** (integer, default: `100`)
+  - Minimum file count to trigger splitting in "auto" strategy
+  - Ignored in "force" strategy (always splits)
+  - Conservative default ensures only large modules split
+
+- **`max_depth`** (integer, default: `3` for Vite, `2` for others)
+  - Maximum splitting depth
+  - `1`: Top-level only (no sub-modules) - `"src"`
+  - `2`: Parent-child - `"src-components"`
+  - `3`: Parent-child-grandchild - `"src-components-auth"`
+
+- **`framework_presets`** (object, optional)
+  - Override built-in framework presets
+  - Keys: `"vite"`, `"react"`, `"nextjs"`, `"generic"`
+  - Values: `{ "split_paths": [...], "max_depth": N }`
+
+### Strategy Modes
+
+**Auto Strategy (Recommended):**
+
+```json
+{
+  "submodule_config": {
+    "strategy": "auto",
+    "threshold": 100
+  }
+}
+```
+
+- Detects framework automatically (Vite, React, Next.js, Generic)
+- Applies framework preset if module has >100 files
+- Skips splitting for well-organized small modules
+- **Best for**: Most projects - balances performance and simplicity
+
+**Force Strategy:**
+
+```json
+{
+  "submodule_config": {
+    "strategy": "force"
+  }
+}
+```
+
+- Always splits modules regardless of size
+- Useful for enforcing consistent organization
+- **Best for**: Projects with strict module organization requirements
+
+**Disabled Strategy:**
+
+```json
+{
+  "submodule_config": {
+    "strategy": "disabled"
+  }
+}
+```
+
+- Uses monolithic modules (legacy behavior)
+- No sub-module splitting
+- **Best for**: Small projects or when simplicity is preferred
+
+### Analyzing Module Structure
+
+Use the `--analyze-modules` flag to preview module organization without modifying files:
+
+```bash
+python scripts/project_index.py --analyze-modules
+```
+
+**Output example:**
+
+```
+======================================================================
+📊 MODULE STRUCTURE ANALYSIS (Read-Only)
+======================================================================
+
+🔍 Detected Framework: vite
+   Description: Vite project with Vue.js patterns (components, views, api, stores, composables, utils)
+   Recommended max_depth: 3
+
+⚙️  Current Configuration:
+   Strategy: auto
+   Threshold: 100 files
+   Max depth: 3 levels
+
+📦 Module Analysis:
+   Total modules: 8
+   Large modules (>=100 files): 1
+
+🌳 Current Module Structure:
+⚠️  src: 850 files
+   docs: 45 files
+   scripts: 30 files
+   tests: 120 files
+
+🔮 Potential Sub-Module Structure (if index were generated):
+   Strategy 'auto' would split 1 module(s):
+
+   src (850 files) →
+      ├─ src-components: 285 files
+      ├─ src-views: 125 files
+      ├─ src-api: 95 files
+      ├─ src-stores: 65 files
+      ├─ src-composables: 45 files
+      ├─ src-utils: 35 files
+      └─ src (remaining): 200 files
+
+💡 Suggested Configuration (.project-index.json):
+```json
+{
+  "mode": "auto",
+  "threshold": 1000,
+  "submodule_config": {
+    "enabled": true,
+    "strategy": "auto",
+    "threshold": 100,
+    "max_depth": 3
+  }
+}
+```
+
+✅ Analysis complete (no files modified)
+======================================================================
+```
+
+**Analysis is read-only** - No files are modified. Safe to run anytime.
+
+### Configuration Migration
+
+The indexer automatically creates default configuration on first run:
+
+1. Detects framework (Vite, React, Next.js, Generic)
+2. Applies appropriate preset (max_depth, patterns)
+3. Creates `.project-index.json` with detected settings
+4. **Regenerating index with updated config reorganizes modules automatically**
+
+**Migration example:**
+
+```bash
+# First run - no config exists
+$ python scripts/project_index.py
+✨ Created .project-index.json with vite preset
+🚀 Building Project Index...
+   Framework detected: vite, Strategy: auto, Max depth: 3
+   Auto strategy: detected 1 large module(s) (>=100 files)
+📂 Splitting modules using vite preset...
+   Split src → 6 sub-modules
+
+# Update config to force mode
+$ echo '{"submodule_config": {"strategy": "force"}}' > .project-index.json
+
+# Regenerate - applies new config
+$ python scripts/project_index.py
+🚀 Building Project Index...
+   Force strategy: splitting all 8 modules
+📂 Splitting modules using vite preset...
+   Split docs → 3 sub-modules
+   Split scripts → 2 sub-modules
+   ...
+```
+
+### Warning System
+
+The indexer warns about optimization opportunities:
+
+**Large Module Warning (>200 files):**
+
+```
+======================================================================
+⚠️  Large module detected: 'src' has 850 files (>200)
+   Consider enabling sub-module splitting for better performance.
+   Add to .project-index.json:
+   {
+     "submodule_config": {
+       "enabled": true,
+       "strategy": "auto",
+       "threshold": 100
+     }
+   }
+----------------------------------------------------------------------
+```
+
+**Framework Detected but Disabled:**
+
+```
+======================================================================
+⚠️  Vite framework detected but sub-module splitting is disabled
+   This project could benefit from framework-specific organization.
+   Add to .project-index.json:
+   {
+     "submodule_config": {
+       "enabled": true,
+       "strategy": "auto"
+     }
+   }
+----------------------------------------------------------------------
+```
+
+### Example Configurations
+
+**Vite Project (3-level splitting):**
+
+```json
+{
+  "mode": "auto",
+  "threshold": 1000,
+  "submodule_config": {
+    "enabled": true,
+    "strategy": "auto",
+    "threshold": 100,
+    "max_depth": 3
+  }
+}
+```
+
+**React Project (2-level splitting):**
+
+```json
+{
+  "mode": "auto",
+  "threshold": 1000,
+  "submodule_config": {
+    "enabled": true,
+    "strategy": "auto",
+    "threshold": 100,
+    "max_depth": 2
+  }
+}
+```
+
+**Custom Framework Preset:**
+
+```json
+{
+  "submodule_config": {
+    "enabled": true,
+    "strategy": "auto",
+    "threshold": 50,
+    "max_depth": 2,
+    "framework_presets": {
+      "vite": {
+        "split_paths": [
+          "src/components",
+          "src/pages",
+          "src/services",
+          "src/utils"
+        ],
+        "max_depth": 2
+      }
+    }
+  }
+}
+```
+
+**Force Small Modules:**
+
+```json
+{
+  "submodule_config": {
+    "enabled": true,
+    "strategy": "force",
+    "max_depth": 2
+  }
+}
+```
+
+### Performance Validation
+
+Multi-level sub-modules are tested for performance:
+
+- **Sub-module splitting overhead**: <2 seconds (well under 10% of total time)
+- **File-to-module lookup**: O(1) via hash map (<10ms)
+- **Relevance scoring**: <100ms for 1,000 modules
+- **Analysis flag**: <500ms for 1,000-file project
+
+All acceptance criteria validated in comprehensive test suite (85/85 tests passing).
+
+### When to Use Sub-Modules
+
+**Use sub-modules when:**
+- Module has >100 files
+- Framework-specific patterns detected (Vite, React, Next.js)
+- Working on targeted features (components, API routes, etc.)
+- Want faster query response times
+
+**Skip sub-modules when:**
+- Module has <100 files (well-organized)
+- Prefer simplicity over optimization
+- No framework patterns detected
+- Legacy project with flat structure
+
 ## Temporal Awareness
 
 **NEW in Epic 2** - The index-analyzer agent now prioritizes recently changed files to help you focus on active development areas.

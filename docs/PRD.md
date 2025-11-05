@@ -1,9 +1,9 @@
 # claude-code-project-index Product Requirements Document (PRD)
 
 **Author:** Ryan
-**Date:** 2025-11-04 (Updated with Epic 3)
+**Date:** 2025-11-04 (Updated with Epic 4)
 **Project Level:** 2
-**Target Scale:** 19-24 stories across 3 epics
+**Target Scale:** 22-28 stories across 4 epics
 
 ---
 
@@ -214,7 +214,19 @@ Recent brainstorming sessions identified three key opportunities: tiered documen
   - Version management system with update checking
   - Multi-tool MCP support (Claude Code > Cursor > Claude Desktop)
 
-**Total: 3 epics, 19-24 stories** (solidly Level 2, touching Level 3)
+**Epic 4: Intelligent Sub-Module Organization**
+- Goal: Enhance module organization to intelligently split large top-level directories into granular multi-level sub-modules optimized for common framework patterns (especially Vite)
+- Estimated stories: 4 stories
+- Value: Enables highly selective lazy-loading for nested project structures, reducing module size by 70%+ for targeted queries in Vite/React/Next.js projects
+- Key deliverables:
+  - Automatic detection of large monolithic modules (>100 files)
+  - Multi-level sub-module splitting (up to 3 levels deep: `parent-child-grandchild`)
+  - Framework-aware presets (Vite, React, Next.js patterns: `src/components/`, `src/views/`, `src/api/`)
+  - Configuration options with per-directory control (deep, shallow, disabled)
+  - Enhanced relevance scoring with keyword-to-module mapping (e.g., "component" → boost `src-components` score)
+  - Backward compatibility with existing monolithic and two-level structures
+
+**Total: 4 epics, 22-28 stories** (Level 2 scope)
 
 > **Note:** Detailed epic breakdown with full story specifications is available in [epics.md](./epics.md)
 

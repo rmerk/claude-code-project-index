@@ -60,6 +60,13 @@ development_status:
   2-10-mcp-server-implementation: done
   epic-2-retrospective: completed
 
+  epic-4: done
+  4-1-large-module-detection-and-analysis: done
+  4-2-intelligent-sub-module-generation-with-multi-level-splitting: done
+  4-3-enhanced-relevance-scoring-for-multi-level-sub-modules: done
+  4-4-configuration-and-migration-for-multi-level-sub-modules: done
+  epic-4-retrospective: optional
+
   epic-3: contexted
   3-1-installation-integration-with-smart-config-presets: drafted
   3-2-performance-validation-on-medium-projects: backlog

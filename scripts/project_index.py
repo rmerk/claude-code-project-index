@@ -19,6 +19,7 @@ __version__ = "0.2.0-beta"
 import json
 import os
 import re
+import subprocess
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -66,8 +67,8 @@ def detect_index_format(index_path: Path = None) -> str:
         with open(index_path) as f:
             data = json.load(f)
             version = data.get("version", "1.0")
-            # Split format: v2.0-split, v2.1-enhanced, or any future v2.x-* versions
-            if version.startswith("2.") and ("-split" in version or "-enhanced" in version):
+            # Split format: v2.0-split, v2.1-enhanced, v2.2-submodules, or any future v2.x-* versions
+            if version.startswith("2.") and ("-split" in version or "-enhanced" in version or "-submodules" in version):
                 return "split"
     except (FileNotFoundError, json.JSONDecodeError, Exception):
         # If index file doesn't exist or is corrupted, but directory exists,
@@ -87,14 +88,25 @@ def load_configuration(config_path: Optional[Path] = None) -> Dict[str, any]:
     Returns:
         Dictionary with configuration values, or empty dict if file not found.
         Valid keys: 'mode' (str), 'threshold' (int), 'max_index_size' (int),
-        'compression_level' (str)
+        'compression_level' (str), 'submodule_config' (dict)
 
     Configuration format:
         {
             "mode": "auto" | "split" | "single",
             "threshold": number (default: 1000),
             "max_index_size": number (default: 1048576),
-            "compression_level": "standard" | "aggressive"
+            "compression_level": "standard" | "aggressive",
+            "submodule_config": {
+                "enabled": true,
+                "threshold": 100,
+                "strategy": "auto" | "force" | "disabled",
+                "max_depth": 1 | 2 | 3,
+                "framework_presets": {
+                    "vite": {"split_paths": [...], "max_depth": 3},
+                    "react": {"split_paths": [...], "max_depth": 2},
+                    "nextjs": {"split_paths": [...], "max_depth": 2}
+                }
+            }
         }
 
     Configuration file location:
@@ -126,6 +138,51 @@ def load_configuration(config_path: Optional[Path] = None) -> Dict[str, any]:
             if not isinstance(config['threshold'], (int, float)) or config['threshold'] <= 0:
                 print(f"⚠️  Warning: Invalid threshold '{config['threshold']}' in config file, ignoring")
                 config.pop('threshold')
+
+        # Validate submodule_config if present
+        if 'submodule_config' in config:
+            submod_config = config['submodule_config']
+
+            # Validate enabled flag
+            if 'enabled' in submod_config:
+                if not isinstance(submod_config['enabled'], bool):
+                    print(f"⚠️  Warning: Invalid submodule_config.enabled (must be boolean), using default: true")
+                    submod_config['enabled'] = True
+
+            # Validate threshold
+            if 'threshold' in submod_config:
+                if not isinstance(submod_config['threshold'], int) or submod_config['threshold'] <= 0:
+                    print(f"⚠️  Warning: Invalid submodule_config.threshold (must be positive integer), using default: 100")
+                    submod_config['threshold'] = 100
+
+            # Validate strategy
+            if 'strategy' in submod_config:
+                valid_strategies = ['auto', 'force', 'disabled']
+                if submod_config['strategy'] not in valid_strategies:
+                    print(f"⚠️  Warning: Invalid submodule_config.strategy, using default: 'auto'")
+                    submod_config['strategy'] = 'auto'
+
+            # Validate max_depth
+            if 'max_depth' in submod_config:
+                if not isinstance(submod_config['max_depth'], int) or not (1 <= submod_config['max_depth'] <= 3):
+                    print(f"⚠️  Warning: Invalid submodule_config.max_depth (must be 1-3), using default: 3")
+                    submod_config['max_depth'] = 3
+
+            # Validate framework_presets if present
+            if 'framework_presets' in submod_config:
+                if not isinstance(submod_config['framework_presets'], dict):
+                    print(f"⚠️  Warning: Invalid submodule_config.framework_presets (must be dict), ignoring")
+                    submod_config.pop('framework_presets')
+                else:
+                    # Validate each preset entry
+                    valid_frameworks = ['vite', 'react', 'nextjs', 'generic']
+                    for framework, preset in list(submod_config['framework_presets'].items()):
+                        if framework not in valid_frameworks:
+                            print(f"⚠️  Warning: Unknown framework '{framework}' in framework_presets, ignoring")
+                            submod_config['framework_presets'].pop(framework)
+                        elif not isinstance(preset, dict):
+                            print(f"⚠️  Warning: Invalid preset for '{framework}' (must be dict), ignoring")
+                            submod_config['framework_presets'].pop(framework)
 
         return config
 
@@ -209,7 +266,7 @@ def generate_tree_structure(root_path: Path, max_depth: int = MAX_TREE_DEPTH) ->
 
 
 def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int]:
-    """Generate lightweight core index in split format (v2.0-split).
+    """Generate lightweight core index in split format (v2.2-submodules).
 
     Args:
         root_dir: Project root directory
@@ -223,9 +280,9 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
     root = Path(root_dir)
     git_cache = {}  # Cache for git metadata
 
-    # Core index structure (v2.1-enhanced with git metadata)
+    # Core index structure (v2.2-submodules with multi-level organization)
     core_index = {
-        'version': '2.1-enhanced',
+        'version': '2.2-submodules',
         'at': datetime.now().isoformat(),
         'root': str(root),
         'tree': [],
@@ -446,6 +503,89 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
     print("📦 Organizing modules...")
     modules = organize_into_modules(parsed_files, root, depth=1)
 
+    # Detect and split large modules (Epic 4, Stories 4.1-4.4)
+    submod_config = get_submodule_config(config)
+    strategy = submod_config.get('strategy', 'auto')
+
+    # Story 4.4: Apply strategy behavior
+    if submod_config['enabled'] and strategy != 'disabled':
+        import logging
+        logger = logging.getLogger(__name__)
+
+        # Detect framework and apply preset (Story 4.4, AC #2, #3)
+        framework_type = detect_framework_patterns(root)
+        preset = apply_framework_preset(framework_type, config.get('submodule_config'))
+        # User config overrides preset (prioritize user's max_depth setting)
+        max_depth = submod_config.get('max_depth', preset.get('max_depth', 3))
+
+        logger.info(f"Framework detected: {framework_type}, Strategy: {strategy}, Max depth: {max_depth}")
+
+        # Determine which modules to split based on strategy
+        modules_to_split = []
+
+        if strategy == 'force':
+            # Force: Split ALL modules regardless of size (AC #4)
+            logger.info(f"Force strategy: splitting all {len(modules)} modules")
+            modules_to_split = [{'module_id': mid, 'file_count': len(files)} for mid, files in modules.items()]
+            print(f"   Force strategy: splitting all {len(modules_to_split)} module(s)")
+
+        elif strategy == 'auto':
+            # Auto: Split only large modules (AC #3)
+            large_modules = detect_large_modules(
+                modules,
+                threshold=submod_config['threshold'],
+                root_path=root,
+                config=config
+            )
+            modules_to_split = large_modules
+            if large_modules:
+                print(f"   Auto strategy: detected {len(large_modules)} large module(s) (>={submod_config['threshold']} files)")
+
+        # Apply splitting to selected modules
+        if modules_to_split:
+            print(f"📂 Splitting modules using {framework_type} preset...")
+            split_modules = {}
+
+            for mod_info in modules_to_split:
+                module_id = mod_info['module_id']
+                file_list = modules[module_id]
+
+                logger.info(f"Splitting {module_id} ({len(file_list)} files) with max_depth={max_depth}")
+
+                sub_modules = split_module_recursive(
+                    module_id,
+                    file_list,
+                    root,
+                    max_depth,
+                    current_depth=0,
+                    config=config
+                )
+
+                # If splitting occurred (returned more than 1 module)
+                if len(sub_modules) > 1:
+                    split_modules.update(sub_modules)
+                    print(f"   Split {module_id} → {len(sub_modules)} sub-modules")
+                else:
+                    # No split occurred, keep original
+                    split_modules[module_id] = file_list
+
+            # Replace split modules in the modules dict
+            for mod_info in modules_to_split:
+                module_id = mod_info['module_id']
+                if module_id in modules:
+                    del modules[module_id]
+            modules.update(split_modules)
+        else:
+            if strategy == 'auto':
+                logger.info("No large modules detected - using monolithic organization")
+
+    elif strategy == 'disabled':
+        # Disabled: Use monolithic modules (legacy behavior, AC #5)
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("Sub-module splitting disabled - using monolithic module organization")
+        print("   Sub-module splitting disabled (using monolithic modules)")
+
     # Add modules for directories with only markdown files (no code)
     # This ensures detail modules are created even for doc-only directories
     if markdown_files_by_tier:
@@ -475,6 +615,20 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
 
     # Create module references with metadata
     core_index['modules'] = create_module_references(modules, file_functions_map)
+
+    # Build file-to-module mapping for O(1) lookup (Story 4.2)
+    print("🗺️  Building file-to-module map...")
+    core_index['file_to_module_map'] = build_file_to_module_map(modules)
+
+    # Generate warnings for optimization opportunities (Story 4.4, AC #10)
+    framework_type = detect_framework_patterns(root)
+    warnings = generate_warnings(modules, framework_type, config)
+    if warnings:
+        print("\n" + "=" * 70)
+        for warning in warnings:
+            print(warning)
+            print("-" * 70)
+        print("")
 
     # Infer directory purposes
     print("🏗️  Analyzing directory purposes...")
@@ -554,7 +708,7 @@ def generate_detail_modules(
         # Build detail module structure
         detail_module = {
             'module_id': module_id,
-            'version': '2.0-split',
+            'version': '2.2-submodules',
             'modified': datetime.now().isoformat(),
             'files': {},
             'call_graph_local': [],
@@ -1276,6 +1430,528 @@ def compress_if_needed(dense_index: Dict, target_size: int = MAX_INDEX_SIZE) -> 
     return dense_index
 
 
+def get_submodule_config(config: Optional[Dict]) -> Dict[str, any]:
+    """
+    Get submodule configuration with defaults applied.
+
+    Args:
+        config: Configuration dictionary (may be None or missing submodule_config)
+
+    Returns:
+        Dictionary with submodule configuration values and defaults applied.
+        Keys: enabled (bool), threshold (int), strategy (str), max_depth (int)
+    """
+    defaults = {
+        'enabled': True,
+        'threshold': 100,
+        'strategy': 'auto',
+        'max_depth': 3
+    }
+
+    if not config or 'submodule_config' not in config:
+        return defaults
+
+    submod_config = config['submodule_config']
+
+    # Apply defaults for missing keys
+    return {
+        'enabled': submod_config.get('enabled', defaults['enabled']),
+        'threshold': submod_config.get('threshold', defaults['threshold']),
+        'strategy': submod_config.get('strategy', defaults['strategy']),
+        'max_depth': submod_config.get('max_depth', defaults['max_depth'])
+    }
+
+
+def analyze_directory_structure(module_path: Path, root_path: Path) -> Dict[str, any]:
+    """
+    Analyze second-level directory structure for a large module.
+
+    Args:
+        module_path: Path to the module directory
+        root_path: Project root path
+
+    Returns:
+        Dictionary with:
+            - subdirectories: List of immediate subdirectory names
+            - logical_groups: List of identified logical groupings
+            - file_distribution: Dict mapping subdir -> file count
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    subdirs = []
+    file_distribution = {}
+
+    try:
+        # Get immediate subdirectories only (not recursive)
+        for item in module_path.iterdir():
+            if item.is_dir() and item.name not in IGNORE_DIRS:
+                subdirs.append(item.name)
+
+                # Count files in this subdirectory (recursively)
+                file_count = sum(1 for f in item.rglob('*') if f.is_file())
+                file_distribution[item.name] = file_count
+
+        # Identify logical groupings based on common patterns
+        logical_groups = []
+        common_patterns = {
+            'source': ['src', 'lib', 'app', 'source'],
+            'documentation': ['docs', 'documentation', 'doc'],
+            'tests': ['tests', 'test', '__tests__', 'spec'],
+            'components': ['components', 'widgets'],
+            'views': ['views', 'pages', 'screens'],
+            'api': ['api', 'routes', 'endpoints'],
+            'utilities': ['utils', 'utilities', 'helpers'],
+            'configuration': ['config', 'configuration', 'settings']
+        }
+
+        for group_name, patterns in common_patterns.items():
+            matching = [d for d in subdirs if d.lower() in patterns]
+            if matching:
+                logical_groups.append({
+                    'type': group_name,
+                    'directories': matching
+                })
+
+        logger.debug(f"Analyzed directory structure for {module_path.name}: "
+                    f"{len(subdirs)} subdirectories, {len(logical_groups)} logical groups")
+
+        return {
+            'subdirectories': subdirs,
+            'logical_groups': logical_groups,
+            'file_distribution': file_distribution
+        }
+
+    except Exception as e:
+        logger.warning(f"Error analyzing directory structure for {module_path}: {e}")
+        return {
+            'subdirectories': [],
+            'logical_groups': [],
+            'file_distribution': {}
+        }
+
+
+def detect_large_modules(modules: Dict[str, List[str]], threshold: int, root_path: Path,
+                         config: Optional[Dict] = None) -> List[Dict[str, any]]:
+    """
+    Detect modules that exceed the file count threshold.
+
+    Args:
+        modules: Dict mapping module_id -> list of file paths
+        threshold: Maximum files per module before flagging as large
+        root_path: Project root path
+        config: Optional configuration dict (for verbose/logging control)
+
+    Returns:
+        List of dicts, each containing:
+            - module_id: str
+            - file_count: int
+            - analysis: dict with directory structure analysis (if available)
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    large_modules = []
+    submod_config = get_submodule_config(config)
+
+    # Skip detection if disabled
+    if not submod_config['enabled']:
+        logger.debug("Sub-module detection disabled by configuration")
+        return large_modules
+
+    for module_id, file_list in modules.items():
+        file_count = len(file_list)
+
+        # Short-circuit: skip small modules
+        # AC#6: Small modules (<threshold) skip detection
+        # Modules with file_count >= threshold are flagged as large
+        if file_count < threshold:
+            continue
+
+        logger.info(f"Large module detected: {module_id} ({file_count} files)")
+
+        # Analyze directory structure for large modules
+        module_path = root_path / module_id if module_id != "root" else root_path
+        analysis = analyze_directory_structure(module_path, root_path)
+
+        large_modules.append({
+            'module_id': module_id,
+            'file_count': file_count,
+            'analysis': analysis
+        })
+
+    return large_modules
+
+
+def detect_framework_patterns(root_path: Path) -> str:
+    """
+    Detect framework type by examining directory structure.
+
+    Currently detects:
+    - Vite: Presence of src/ with characteristic subdirectories (components/, views/, api/, stores/, composables/, utils/)
+    - Generic: Default fallback
+
+    Args:
+        root_path: Project root path
+
+    Returns:
+        Framework type: "vite", "react", "nextjs", or "generic"
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    try:
+        src_path = root_path / "src"
+
+        if not src_path.exists() or not src_path.is_dir():
+            logger.debug("No src/ directory found - framework: generic")
+            return "generic"
+
+        # Vite characteristic directories
+        vite_patterns = [
+            "components",
+            "views",
+            "api",
+            "stores",
+            "composables",
+            "utils"
+        ]
+
+        # Count how many Vite patterns are present
+        matches = 0
+        for pattern in vite_patterns:
+            if (src_path / pattern).exists() and (src_path / pattern).is_dir():
+                matches += 1
+
+        # Consider it Vite if at least 3 characteristic directories are present
+        if matches >= 3:
+            logger.debug(f"Vite framework detected ({matches}/{len(vite_patterns)} patterns matched)")
+            return "vite"
+
+        logger.debug(f"Generic framework ({matches}/{len(vite_patterns)} Vite patterns matched - need 3+)")
+        return "generic"
+
+    except Exception as e:
+        logger.warning(f"Error detecting framework patterns: {e}")
+        return "generic"
+
+
+def apply_framework_preset(framework_type: str, config: Optional[Dict] = None) -> Dict[str, any]:
+    """
+    Get framework-specific preset configuration for sub-module organization.
+
+    Args:
+        framework_type: Framework type detected ("vite", "react", "nextjs", "generic")
+        config: Optional configuration dict to merge with preset
+
+    Returns:
+        Dictionary with framework preset configuration:
+        - split_paths: List of paths to split into sub-modules
+        - max_depth: Recommended depth for this framework
+        - description: Human-readable description
+
+    Framework Presets:
+        vite: src/components, src/views, src/api, src/stores, src/composables, src/utils (depth=3)
+        react: components, hooks, utils, pages (depth=2)
+        nextjs: app/, components/, lib/ (depth=2)
+        generic: Split by direct subdirectories heuristic (depth=2)
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Define framework presets
+    presets = {
+        "vite": {
+            "split_paths": [
+                "src/components",
+                "src/views",
+                "src/api",
+                "src/stores",
+                "src/composables",
+                "src/utils"
+            ],
+            "max_depth": 3,
+            "description": "Vite project with Vue.js patterns (components, views, api, stores, composables, utils)"
+        },
+        "react": {
+            "split_paths": [
+                "components",
+                "hooks",
+                "utils",
+                "pages",
+                "contexts",
+                "services"
+            ],
+            "max_depth": 2,
+            "description": "React project with standard component organization"
+        },
+        "nextjs": {
+            "split_paths": [
+                "app",
+                "components",
+                "lib",
+                "utils",
+                "hooks"
+            ],
+            "max_depth": 2,
+            "description": "Next.js project with App Router structure"
+        },
+        "generic": {
+            "split_paths": [],  # Empty list means: split by direct subdirectories automatically
+            "max_depth": 2,
+            "description": "Generic project - split by top-level subdirectories"
+        }
+    }
+
+    # Get preset for framework type (default to generic if unknown)
+    preset = presets.get(framework_type, presets["generic"])
+
+    # Merge with user config if provided
+    if config and 'framework_presets' in config:
+        user_presets = config['framework_presets']
+        if framework_type in user_presets:
+            logger.debug(f"Applying user-defined preset override for {framework_type}")
+            # User can override split_paths and max_depth
+            if 'split_paths' in user_presets[framework_type]:
+                preset['split_paths'] = user_presets[framework_type]['split_paths']
+            if 'max_depth' in user_presets[framework_type]:
+                preset['max_depth'] = user_presets[framework_type]['max_depth']
+
+    logger.debug(f"Applied {framework_type} preset: {preset['description']}")
+    return preset
+
+
+def generate_submodule_name(parent: str, child: str, grandchild: Optional[str] = None) -> str:
+    """
+    Generate sub-module name following multi-level naming convention.
+
+    Naming rules:
+    - Second-level: {parent}-{child}
+    - Third-level: {parent}-{child}-{grandchild}
+
+    Args:
+        parent: Parent module name
+        child: Child directory name
+        grandchild: Optional grandchild directory name (for third level)
+
+    Returns:
+        Sub-module name string
+
+    Examples:
+        >>> generate_submodule_name("assureptmdashboard", "src")
+        'assureptmdashboard-src'
+        >>> generate_submodule_name("assureptmdashboard", "src", "components")
+        'assureptmdashboard-src-components'
+    """
+    if grandchild:
+        # Third-level: parent-child-grandchild
+        return f"{parent}-{child}-{grandchild}"
+    else:
+        # Second-level: parent-child
+        return f"{parent}-{child}"
+
+
+def split_module_recursive(
+    module_id: str,
+    file_list: List[str],
+    root_path: Path,
+    max_depth: int,
+    current_depth: int = 0,
+    config: Optional[Dict] = None
+) -> Dict[str, List[str]]:
+    """
+    Recursively split a large module into sub-modules based on directory structure.
+
+    Splitting logic:
+    1. If depth limit reached or module too small -> return as-is
+    2. Analyze directory structure to find organized subdirectories
+    3. For each subdirectory:
+       - If it has >= threshold files AND organized structure -> split recursively
+       - Otherwise, keep as single sub-module
+    4. Group intermediate files (at current level) into *-root sub-module
+
+    Args:
+        module_id: Module identifier (e.g., "assureptmdashboard" or "assureptmdashboard-src")
+        file_list: List of file paths relative to project root
+        root_path: Project root path
+        max_depth: Maximum recursion depth (typically 3)
+        current_depth: Current recursion depth (0 = top level)
+        config: Optional configuration dict
+
+    Returns:
+        Dict mapping sub-module_id -> file_list
+        If no splitting occurs, returns {module_id: file_list}
+
+    Examples:
+        Input: module_id="assureptmdashboard", 416 files in src/components/, src/views/, etc.
+        Output: {
+            "assureptmdashboard-src-components": [245 files],
+            "assureptmdashboard-src-views": [89 files],
+            ...
+        }
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Get configuration
+    submod_config = get_submodule_config(config)
+    threshold = submod_config['threshold']
+
+    # Base case 1: depth limit reached
+    if current_depth >= max_depth:
+        logger.debug(f"Depth limit reached for {module_id} at level {current_depth}")
+        return {module_id: file_list}
+
+    # Base case 2: module too small to split
+    if len(file_list) < threshold:
+        logger.debug(f"Module {module_id} below threshold ({len(file_list)} < {threshold})")
+        return {module_id: file_list}
+
+    # Determine module base path
+    # For root module, use root_path
+    # For named modules like "scripts", use root_path/scripts
+    # For sub-modules like "assureptmdashboard-src", parse the structure
+    if module_id == "root":
+        module_path = root_path
+    else:
+        # Extract path components from module_id
+        # Examples: "scripts" -> root_path/scripts
+        #          "assureptmdashboard-src" -> root_path/assureptmdashboard/src
+        parts = module_id.split('-')
+        module_path = root_path / '/'.join(parts)
+
+    # Analyze directory structure
+    try:
+        subdirs = []
+        subdir_files = {}
+
+        # Group files by immediate subdirectory
+        for file_path_str in file_list:
+            file_path = root_path / file_path_str
+
+            try:
+                # Get path relative to module_path
+                rel_to_module = file_path.relative_to(module_path)
+                parts = rel_to_module.parts
+
+                if len(parts) > 1:
+                    # File is in a subdirectory
+                    subdir = parts[0]
+                    if subdir not in subdirs:
+                        subdirs.append(subdir)
+                        subdir_files[subdir] = []
+                    subdir_files[subdir].append(file_path_str)
+                else:
+                    # File at module root level
+                    if 'root' not in subdir_files:
+                        subdir_files['root'] = []
+                    subdir_files['root'].append(file_path_str)
+
+            except ValueError:
+                # File not under module_path, skip
+                logger.debug(f"File {file_path_str} not under {module_path}, skipping")
+                continue
+
+        # Check if module has organized structure
+        # "Organized" = has subdirectories with significant file counts
+        has_organized_structure = False
+        for subdir, files in subdir_files.items():
+            if subdir != 'root' and len(files) >= threshold * 0.2:  # At least 20% of threshold
+                has_organized_structure = True
+                break
+
+        # If flat structure, don't split
+        if not has_organized_structure:
+            logger.debug(f"Module {module_id} has flat structure - no splitting")
+            return {module_id: file_list}
+
+        # Split into sub-modules
+        logger.info(f"Splitting {module_id} ({len(file_list)} files) into {len(subdirs)} sub-modules at depth {current_depth}")
+
+        result = {}
+
+        for subdir, files in subdir_files.items():
+            if subdir == 'root':
+                # Intermediate-level files -> *-root sub-module
+                root_module_id = f"{module_id}-root"
+                result[root_module_id] = files
+                logger.debug(f"Created {root_module_id} with {len(files)} intermediate files")
+            else:
+                # Create sub-module name based on current depth
+                if current_depth == 0:
+                    # First split: parent-child
+                    sub_module_id = generate_submodule_name(module_id, subdir)
+                else:
+                    # Deeper splits: append to existing name
+                    sub_module_id = f"{module_id}-{subdir}"
+
+                # Recursively split if this subdirectory is large enough
+                if len(files) >= threshold:
+                    logger.debug(f"Recursively splitting {sub_module_id} ({len(files)} files)")
+                    sub_result = split_module_recursive(
+                        sub_module_id,
+                        files,
+                        root_path,
+                        max_depth,
+                        current_depth + 1,
+                        config
+                    )
+                    result.update(sub_result)
+                else:
+                    # Keep as single sub-module
+                    result[sub_module_id] = files
+                    logger.debug(f"Created {sub_module_id} with {len(files)} files")
+
+        return result
+
+    except Exception as e:
+        logger.error(f"Error splitting module {module_id}: {e}")
+        # Graceful degradation: return original module
+        return {module_id: file_list}
+
+
+def build_file_to_module_map(modules: Dict[str, List[str]]) -> Dict[str, str]:
+    """
+    Build reverse mapping from file paths to module IDs for O(1) lookup.
+
+    This enables fast @ reference resolution: given a file path like
+    "src/components/LoginForm.vue", quickly find which module contains it.
+
+    Args:
+        modules: Dict mapping module_id -> list of file paths
+
+    Returns:
+        Dict mapping file_path -> module_id
+
+    Example:
+        Input: {
+            "assureptmdashboard-src-components": ["src/components/Button.vue", "src/components/Form.vue"],
+            "assureptmdashboard-src-views": ["src/views/Home.vue"]
+        }
+        Output: {
+            "src/components/Button.vue": "assureptmdashboard-src-components",
+            "src/components/Form.vue": "assureptmdashboard-src-components",
+            "src/views/Home.vue": "assureptmdashboard-src-views"
+        }
+    """
+    file_to_module = {}
+
+    for module_id, file_list in modules.items():
+        for file_path in file_list:
+            # Each file should map to exactly one module
+            if file_path in file_to_module:
+                # This shouldn't happen in properly organized modules
+                # Log warning but continue (last module wins)
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"File {file_path} appears in multiple modules: "
+                             f"{file_to_module[file_path]} and {module_id}")
+
+            file_to_module[file_path] = module_id
+
+    return file_to_module
+
+
 def organize_into_modules(files: List[Path], root_path: Path, depth: int = 1) -> Dict[str, List[str]]:
     """Group files by directory into modules.
 
@@ -1618,7 +2294,7 @@ def migrate_to_split_format(root_dir: str = '.', dry_run: bool = False) -> bool:
     current_format = detect_index_format(index_path)
 
     if current_format == 'split':
-        print("      ℹ️  Index is already in split format (v2.0-split)")
+        print("      ℹ️  Index is already in split format (v2.x)")
         print("      No migration needed.")
         return True
 
@@ -1792,6 +2468,224 @@ def migrate_to_split_format(root_dir: str = '.', dry_run: bool = False) -> bool:
     return True
 
 
+def generate_warnings(modules: Dict[str, List[str]], framework_type: str, config: Optional[Dict] = None) -> List[str]:
+    """
+    Generate warnings for optimization opportunities (Story 4.4, AC #10).
+
+    Checks for:
+        - Large modules (>200 files) that could benefit from sub-module splitting
+        - Detected frameworks without matching presets enabled
+
+    Args:
+        modules: Dict mapping module_id -> list of file paths
+        framework_type: Detected framework type
+        config: Optional configuration dict
+
+    Returns:
+        List of warning messages
+    """
+    warnings = []
+    submod_config = get_submodule_config(config)
+    strategy = submod_config.get('strategy', 'auto')
+
+    # Warning 1: Large modules (>200 files)
+    for module_id, file_list in modules.items():
+        if len(file_list) > 200:
+            warnings.append(
+                f"⚠️  Large module detected: '{module_id}' has {len(file_list)} files (>200)\n"
+                f"   Consider enabling sub-module splitting for better performance.\n"
+                f"   Add to .project-index.json:\n"
+                f"   {{\n"
+                f"     \"submodule_config\": {{\n"
+                f"       \"enabled\": true,\n"
+                f"       \"strategy\": \"auto\",\n"
+                f"       \"threshold\": 100\n"
+                f"     }}\n"
+                f"   }}"
+            )
+
+    # Warning 2: Framework detected but preset not being used
+    if framework_type != "generic" and strategy == "disabled":
+        warnings.append(
+            f"⚠️  {framework_type.capitalize()} framework detected but sub-module splitting is disabled\n"
+            f"   This project could benefit from framework-specific organization.\n"
+            f"   Add to .project-index.json:\n"
+            f"   {{\n"
+            f"     \"submodule_config\": {{\n"
+            f"       \"enabled\": true,\n"
+            f"       \"strategy\": \"auto\"\n"
+            f"     }}\n"
+            f"   }}"
+        )
+
+    return warnings
+
+
+def analyze_module_structure(root_path: Path, config: Optional[Dict] = None) -> None:
+    """
+    Analyze and display current/potential module structure without modifying files.
+
+    This is a read-only analysis tool for the --analyze-modules flag (Story 4.4, AC #9).
+    Helps users understand module organization before committing to configuration.
+
+    Args:
+        root_path: Project root path
+        config: Optional configuration dict
+
+    Displays:
+        - Detected framework type
+        - Current/potential module structure (tree view)
+        - File counts per module
+        - Suggested configuration based on patterns
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+
+    print("\n" + "=" * 70)
+    print("📊 MODULE STRUCTURE ANALYSIS (Read-Only)")
+    print("=" * 70)
+
+    # Detect framework
+    framework_type = detect_framework_patterns(root_path)
+    preset = apply_framework_preset(framework_type, config.get('submodule_config') if config else None)
+
+    print(f"\n🔍 Detected Framework: {framework_type}")
+    print(f"   Description: {preset['description']}")
+    print(f"   Recommended max_depth: {preset['max_depth']}")
+
+    # Get files to index (same logic as build_index)
+    all_files = []
+
+    for file_path in root_path.rglob('*'):
+        if file_path.is_file() and should_index_file(file_path, root_path):
+            all_files.append(file_path)
+
+    # Organize into modules
+    modules = organize_into_modules(all_files, root_path, depth=1)
+
+    # Get submodule config
+    submod_config = get_submodule_config(config)
+    strategy = submod_config.get('strategy', 'auto')
+    threshold = submod_config.get('threshold', 100)
+    # User config overrides preset (prioritize user's max_depth setting)
+    max_depth = submod_config.get('max_depth', preset.get('max_depth', 3))
+
+    print(f"\n⚙️  Current Configuration:")
+    print(f"   Strategy: {strategy}")
+    print(f"   Threshold: {threshold} files")
+    print(f"   Max depth: {max_depth} levels")
+
+    # Detect large modules
+    large_modules = detect_large_modules(modules, threshold, root_path, config)
+
+    print(f"\n📦 Module Analysis:")
+    print(f"   Total modules: {len(modules)}")
+    print(f"   Large modules (>={threshold} files): {len(large_modules)}")
+
+    # Show module tree
+    print(f"\n🌳 Current Module Structure:")
+    for module_id in sorted(modules.keys()):
+        file_count = len(modules[module_id])
+        is_large = any(m['module_id'] == module_id for m in large_modules)
+        marker = "⚠️  " if is_large else "   "
+        print(f"{marker}{module_id}: {file_count} files")
+
+    # If strategy would split modules, show potential structure
+    if strategy != 'disabled' and large_modules:
+        print(f"\n🔮 Potential Sub-Module Structure (if index were generated):")
+        print(f"   Strategy '{strategy}' would split {len(large_modules)} module(s):")
+
+        for large_mod in large_modules:
+            module_id = large_mod['module_id']
+            file_list = modules[module_id]
+            print(f"\n   {module_id} ({len(file_list)} files) →")
+
+            # Simulate splitting
+            sub_modules = split_module_recursive(
+                module_id,
+                file_list,
+                root_path,
+                max_depth,
+                current_depth=0,
+                config=config
+            )
+
+            if len(sub_modules) > 1:
+                for sub_id in sorted(sub_modules.keys()):
+                    print(f"      ├─ {sub_id}: {len(sub_modules[sub_id])} files")
+            else:
+                print(f"      └─ (no splitting recommended - module is well-organized)")
+
+    # Suggest configuration
+    print(f"\n💡 Suggested Configuration (.project-index.json):")
+    suggested_config = {
+        "mode": "auto",
+        "threshold": 1000,
+        "submodule_config": {
+            "enabled": True,
+            "strategy": "auto",
+            "threshold": threshold,
+            "max_depth": max_depth
+        }
+    }
+
+    print("```json")
+    print(json.dumps(suggested_config, indent=2))
+    print("```")
+
+    print(f"\n✅ Analysis complete (no files modified)")
+    print("=" * 70 + "\n")
+
+
+def create_default_config(root_path: Path) -> None:
+    """
+    Create default .project-index.json configuration file if it doesn't exist.
+
+    Args:
+        root_path: Project root directory
+
+    Creates config with:
+        - Auto-detected framework preset
+        - Default submodule_config with strategy=auto
+        - Standard mode and threshold settings
+    """
+    config_path = root_path / ".project-index.json"
+
+    # Only create if it doesn't exist
+    if config_path.exists():
+        return
+
+    import logging
+    logger = logging.getLogger(__name__)
+
+    # Detect framework to set appropriate defaults
+    framework_type = detect_framework_patterns(root_path)
+    preset = apply_framework_preset(framework_type, None)
+
+    # Create default configuration
+    default_config = {
+        "mode": "auto",
+        "threshold": 1000,
+        "submodule_config": {
+            "enabled": True,
+            "strategy": "auto",
+            "threshold": 100,
+            "max_depth": preset.get('max_depth', 3)
+        }
+    }
+
+    try:
+        with open(config_path, 'w') as f:
+            json.dump(default_config, f, indent=2)
+
+        logger.info(f"Created default configuration file: .project-index.json")
+        logger.info(f"Detected framework: {framework_type} (max_depth={preset.get('max_depth', 3)})")
+        print(f"✨ Created .project-index.json with {framework_type} preset")
+
+    except Exception as e:
+        logger.warning(f"Could not create default config: {e}")
+
+
 def main() -> None:
     """
     Run the enhanced indexer.
@@ -1866,6 +2760,16 @@ Configuration File:
         action='store_true',
         help='Force full regeneration (skip incremental update)'
     )
+    parser.add_argument(
+        '--verbose',
+        action='store_true',
+        help='Enable verbose logging (shows large module detection and analysis)'
+    )
+    parser.add_argument(
+        '--analyze-modules',
+        action='store_true',
+        help='Analyze and display current/potential module structure without modifying files (Story 4.4, AC #9)'
+    )
 
     # Legacy compatibility flags (hidden from help)
     parser.add_argument('--format', dest='format_legacy', help=argparse.SUPPRESS)
@@ -1874,12 +2778,34 @@ Configuration File:
 
     args = parser.parse_args()
 
+    # Set up logging
+    import logging
+    if args.verbose:
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(levelname)s: %(message)s'
+        )
+    else:
+        logging.basicConfig(
+            level=logging.INFO,
+            format='%(levelname)s: %(message)s'
+        )
+
     # Handle migration first
     if args.migrate:
         success = migrate_to_split_format('.', dry_run=args.dry_run)
         sys.exit(0 if success else 1)
 
+    # Handle --analyze-modules flag (Story 4.4, AC #9)
+    if args.analyze_modules:
+        config = load_configuration()
+        analyze_module_structure(Path.cwd(), config)
+        sys.exit(0)
+
     print("🚀 Building Project Index...")
+
+    # Create default configuration if needed (Story 4.4, AC #7)
+    create_default_config(Path.cwd())
 
     # Load configuration file
     config = load_configuration()
@@ -2048,7 +2974,7 @@ Configuration File:
     # Build index using appropriate method
     if use_split_mode:
         # New split index format
-        print("   Using split index format (v2.0-split)")
+        print("   Using split index format (v2.2-submodules)")
         index, skipped_count = generate_split_index('.', config)
 
         # Check size

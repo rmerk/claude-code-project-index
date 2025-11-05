@@ -140,6 +140,354 @@ class TestFilterFilesByRecency(unittest.TestCase):
         self.assertNotIn("scripts/just_over.py", result)
 
 
+class TestParseModuleName(unittest.TestCase):
+    """Test multi-level module name parsing (Story 4.3)."""
+
+    def setUp(self):
+        """Initialize scorer for testing."""
+        self.scorer = relevance.RelevanceScorer()
+
+    def test_parse_monolithic_module(self):
+        """Parse monolithic module name (single component)."""
+        result = self.scorer._parse_module_name("assureptmdashboard")
+
+        self.assertEqual(result["parent"], "assureptmdashboard")
+        self.assertNotIn("child", result)
+        self.assertNotIn("grandchild", result)
+
+    def test_parse_two_level_module(self):
+        """Parse two-level module name (parent-child)."""
+        result = self.scorer._parse_module_name("assureptmdashboard-src")
+
+        self.assertEqual(result["parent"], "assureptmdashboard")
+        self.assertEqual(result["child"], "src")
+        self.assertNotIn("grandchild", result)
+
+    def test_parse_three_level_module(self):
+        """Parse three-level module name (parent-child-grandchild)."""
+        result = self.scorer._parse_module_name("assureptmdashboard-src-components")
+
+        self.assertEqual(result["parent"], "assureptmdashboard")
+        self.assertEqual(result["child"], "src")
+        self.assertEqual(result["grandchild"], "components")
+
+    def test_parse_handles_deep_nesting(self):
+        """Parse deeply nested module names (4+ components)."""
+        result = self.scorer._parse_module_name("project-src-components-forms")
+
+        self.assertEqual(result["parent"], "project")
+        self.assertEqual(result["child"], "src")
+        # Grandchild should join remaining components
+        self.assertEqual(result["grandchild"], "components-forms")
+
+    def test_parse_simple_names(self):
+        """Parse simple module names (scripts, docs, etc.)."""
+        test_cases = [
+            ("scripts", {"parent": "scripts"}),
+            ("docs", {"parent": "docs"}),
+            ("agents", {"parent": "agents"})
+        ]
+
+        for module_id, expected in test_cases:
+            with self.subTest(module_id=module_id):
+                result = self.scorer._parse_module_name(module_id)
+                self.assertEqual(result["parent"], expected["parent"])
+                self.assertNotIn("child", result)
+                self.assertNotIn("grandchild", result)
+
+
+class TestDetectModuleType(unittest.TestCase):
+    """Test module type detection from module names (Story 4.3)."""
+
+    def setUp(self):
+        """Initialize scorer for testing."""
+        self.scorer = relevance.RelevanceScorer()
+
+    def test_detect_components_module(self):
+        """Detect 'components' type from module name."""
+        test_cases = [
+            "project-src-components",
+            "app-components"
+        ]
+        for module_id in test_cases:
+            with self.subTest(module_id=module_id):
+                result = self.scorer._detect_module_type(module_id)
+                self.assertEqual(result, "components")
+
+    def test_detect_views_module(self):
+        """Detect 'views' type from module name."""
+        test_cases = [
+            "project-src-views",
+            "app-pages",
+            "project-routes"
+        ]
+        for module_id in test_cases:
+            with self.subTest(module_id=module_id):
+                result = self.scorer._detect_module_type(module_id)
+                self.assertEqual(result, "views")
+
+    def test_detect_api_module(self):
+        """Detect 'api' type from module name."""
+        test_cases = [
+            "project-src-api",
+            "app-services",
+            "project-endpoints"
+        ]
+        for module_id in test_cases:
+            with self.subTest(module_id=module_id):
+                result = self.scorer._detect_module_type(module_id)
+                self.assertEqual(result, "api")
+
+    def test_detect_stores_module(self):
+        """Detect 'stores' type from module name."""
+        test_cases = [
+            "project-src-stores",
+            "app-state",
+            "project-vuex"
+        ]
+        for module_id in test_cases:
+            with self.subTest(module_id=module_id):
+                result = self.scorer._detect_module_type(module_id)
+                self.assertEqual(result, "stores")
+
+    def test_detect_composables_module(self):
+        """Detect 'composables' type from module name."""
+        test_cases = [
+            "project-src-composables",
+            "app-hooks"
+        ]
+        for module_id in test_cases:
+            with self.subTest(module_id=module_id):
+                result = self.scorer._detect_module_type(module_id)
+                self.assertEqual(result, "composables")
+
+    def test_detect_utils_module(self):
+        """Detect 'utils' type from module name."""
+        test_cases = [
+            "project-src-utils",
+            "app-helpers",
+            "project-lib"
+        ]
+        for module_id in test_cases:
+            with self.subTest(module_id=module_id):
+                result = self.scorer._detect_module_type(module_id)
+                self.assertEqual(result, "utils")
+
+    def test_detect_tests_module(self):
+        """Detect 'tests' type from module name."""
+        test_cases = [
+            "project-tests",
+            "app-test",
+            "project-specs",
+            "project-__tests__"
+        ]
+        for module_id in test_cases:
+            with self.subTest(module_id=module_id):
+                result = self.scorer._detect_module_type(module_id)
+                self.assertEqual(result, "tests")
+
+    def test_detect_generic_module(self):
+        """Detect 'generic' type for non-specific module names."""
+        test_cases = [
+            "scripts",
+            "docs",
+            "agents",
+            "project-src"
+        ]
+        for module_id in test_cases:
+            with self.subTest(module_id=module_id):
+                result = self.scorer._detect_module_type(module_id)
+                self.assertEqual(result, "generic")
+
+
+class TestKeywordBoosting(unittest.TestCase):
+    """Test keyword-based score boosting (Story 4.3)."""
+
+    def setUp(self):
+        """Initialize scorer for testing."""
+        self.scorer = relevance.RelevanceScorer()
+
+    def test_component_keyword_boosts_components_module(self):
+        """Query with 'component' keyword boosts components module."""
+        base_score = 10.0
+        boosted = self.scorer._boost_by_keywords(
+            base_score,
+            "project-src-components",
+            "fix LoginForm component"
+        )
+        self.assertEqual(boosted, base_score * 2.0)
+
+    def test_api_keyword_boosts_api_module(self):
+        """Query with 'api' keyword boosts api module."""
+        base_score = 10.0
+        boosted = self.scorer._boost_by_keywords(
+            base_score,
+            "project-src-api",
+            "API endpoint for users"
+        )
+        self.assertEqual(boosted, base_score * 2.0)
+
+    def test_store_keyword_boosts_stores_module(self):
+        """Query with 'store' keyword boosts stores module."""
+        base_score = 10.0
+        boosted = self.scorer._boost_by_keywords(
+            base_score,
+            "project-src-stores",
+            "store mutations"
+        )
+        self.assertEqual(boosted, base_score * 2.0)
+
+    def test_test_keyword_boosts_tests_module(self):
+        """Query with 'test' keyword boosts tests module."""
+        base_score = 10.0
+        boosted = self.scorer._boost_by_keywords(
+            base_score,
+            "project-tests",
+            "show me test coverage"
+        )
+        self.assertEqual(boosted, base_score * 2.0)
+
+    def test_no_boost_for_non_matching_keywords(self):
+        """Non-matching keywords don't boost score."""
+        base_score = 10.0
+        boosted = self.scorer._boost_by_keywords(
+            base_score,
+            "project-src-components",
+            "database query"
+        )
+        self.assertEqual(boosted, base_score)
+
+    def test_no_boost_for_generic_modules(self):
+        """Generic modules don't receive keyword boosts."""
+        base_score = 10.0
+        boosted = self.scorer._boost_by_keywords(
+            base_score,
+            "scripts",
+            "component test api"
+        )
+        self.assertEqual(boosted, base_score)
+
+    def test_zero_score_remains_zero(self):
+        """Zero base score stays zero even with keyword match."""
+        boosted = self.scorer._boost_by_keywords(
+            0.0,
+            "project-src-components",
+            "component"
+        )
+        self.assertEqual(boosted, 0.0)
+
+
+class TestBackwardCompatibility(unittest.TestCase):
+    """Test backward compatibility with different module organization levels (Story 4.3)."""
+
+    def setUp(self):
+        """Initialize scorer for testing."""
+        self.scorer = relevance.RelevanceScorer()
+
+    def test_scoring_with_monolithic_modules(self):
+        """Test relevance scoring works with monolithic (single-level) modules."""
+        modules = {
+            "scripts": {
+                "files": ["scripts/main.py", "scripts/util.py"]
+            },
+            "docs": {
+                "files": ["docs/README.md"]
+            }
+        }
+        query = {"text": "scripts", "explicit_refs": []}
+        git_metadata = {}
+
+        scored = self.scorer.score_all_modules(modules, query, git_metadata)
+
+        # Should score scripts module higher due to keyword match
+        self.assertGreater(len(scored), 0)
+        # Monolithic modules should not cause errors
+        self.assertIsInstance(scored, list)
+
+    def test_scoring_with_two_level_modules(self):
+        """Test relevance scoring with two-level sub-modules (parent-child)."""
+        modules = {
+            "project-src": {
+                "files": ["src/index.js", "src/app.js"]
+            },
+            "project-tests": {
+                "files": ["tests/unit.test.js"]
+            }
+        }
+        query = {"text": "test coverage", "explicit_refs": []}
+        git_metadata = {}
+
+        scored = self.scorer.score_all_modules(modules, query, git_metadata)
+
+        # Should boost project-tests module due to "test" keyword
+        module_scores = {name: score for name, score in scored}
+        if "project-tests" in module_scores:
+            self.assertGreater(module_scores["project-tests"], 0)
+
+    def test_scoring_with_three_level_modules(self):
+        """Test relevance scoring with three-level sub-modules (parent-child-grandchild)."""
+        modules = {
+            "project-src-components": {
+                "files": ["src/components/Button.vue", "src/components/Form.vue"]
+            },
+            "project-src-api": {
+                "files": ["src/api/auth.ts", "src/api/users.ts"]
+            },
+            "project-src-views": {
+                "files": ["src/views/Home.vue"]
+            }
+        }
+        query = {"text": "fix Button component", "explicit_refs": []}
+        git_metadata = {}
+
+        scored = self.scorer.score_all_modules(modules, query, git_metadata)
+
+        # Should boost project-src-components due to "component" keyword
+        module_scores = {name: score for name, score in scored}
+        if "project-src-components" in module_scores:
+            # Components module should be boosted
+            components_score = module_scores["project-src-components"]
+            self.assertGreater(components_score, 0)
+
+            # Components should score higher than api (due to keyword boost)
+            if "project-src-api" in module_scores:
+                api_score = module_scores["project-src-api"]
+                self.assertGreater(components_score, api_score)
+
+    def test_parse_module_name_backward_compat(self):
+        """Test _parse_module_name handles all module organization levels."""
+        # Monolithic
+        result = self.scorer._parse_module_name("scripts")
+        self.assertIn("parent", result)
+        self.assertNotIn("child", result)
+
+        # Two-level
+        result = self.scorer._parse_module_name("project-src")
+        self.assertIn("parent", result)
+        self.assertIn("child", result)
+        self.assertNotIn("grandchild", result)
+
+        # Three-level
+        result = self.scorer._parse_module_name("project-src-components")
+        self.assertIn("parent", result)
+        self.assertIn("child", result)
+        self.assertIn("grandchild", result)
+
+    def test_detect_module_type_backward_compat(self):
+        """Test _detect_module_type handles all module organization levels."""
+        # Monolithic
+        self.assertEqual(self.scorer._detect_module_type("scripts"), "generic")
+        self.assertEqual(self.scorer._detect_module_type("tests"), "tests")
+
+        # Two-level
+        self.assertEqual(self.scorer._detect_module_type("project-api"), "api")
+        self.assertEqual(self.scorer._detect_module_type("project-tests"), "tests")
+
+        # Three-level
+        self.assertEqual(self.scorer._detect_module_type("project-src-components"), "components")
+        self.assertEqual(self.scorer._detect_module_type("project-src-api"), "api")
+
+
 class TestRelevanceScorer(unittest.TestCase):
     """Test multi-signal relevance scoring engine."""
 

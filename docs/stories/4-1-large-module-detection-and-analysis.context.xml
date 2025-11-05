@@ -1,0 +1,291 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>4.1</storyId>
+    <title>Large Module Detection and Analysis</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-04</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/4-1-large-module-detection-and-analysis.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer with a large nested project</asA>
+    <iWant>the indexer to detect when a single module contains too many files</iWant>
+    <soThat>it can make intelligent decisions about sub-module organization</soThat>
+    <tasks>
+      - Task 1: Implement module file counting logic (AC: #1)
+        - Subtask 1.1: Add file counting function to scripts/project_index.py
+        - Subtask 1.2: Integrate counting into organize_into_modules() workflow
+        - Subtask 1.3: Write unit tests for file counting accuracy across nested structures
+
+      - Task 2: Implement configurable threshold system (AC: #2, #7)
+        - Subtask 2.1: Add submodule_config section to configuration schema (.project-index.json)
+        - Subtask 2.2: Implement configuration loading with defaults (threshold=100, enabled=true)
+        - Subtask 2.3: Add configuration validation (threshold must be positive integer)
+        - Subtask 2.4: Write unit tests for config validation and defaults
+
+      - Task 3: Implement second-level directory analysis (AC: #3, #4)
+        - Subtask 3.1: Create detect_large_modules() function to identify modules exceeding threshold
+        - Subtask 3.2: Implement directory structure analysis for large modules (examine immediate subdirectories)
+        - Subtask 3.3: Identify logical groupings (src/, docs/, tests/, components/, views/, api/)
+        - Subtask 3.4: Write unit tests for grouping identification logic
+
+      - Task 4: Implement short-circuit logic for small modules (AC: #6)
+        - Subtask 4.1: Add early return in organize_into_modules() when module &lt; threshold
+        - Subtask 4.2: Write unit tests verifying modules &lt;100 files skip analysis
+
+      - Task 5: Add observability logging (AC: #5)
+        - Subtask 5.1: Add INFO-level logs when large module detected
+        - Subtask 5.2: Add DEBUG-level logs for directory structure analysis
+        - Subtask 5.3: Add verbose flag support to enable logging
+        - Subtask 5.4: Manual test: verify logs appear with --verbose flag
+
+      - Task 6: Integration and performance testing
+        - Subtask 6.1: Test detection on synthetic projects (small: 50 files, medium: 400 files, large: 1000 files)
+        - Subtask 6.2: Measure performance overhead (target: &lt;100ms per module)
+        - Subtask 6.3: Test configuration disable flag (enable_submodules: false)
+        - Subtask 6.4: Validate backward compatibility with existing index generation
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. Indexer analyzes each top-level directory module and counts total files
+    2. Large module threshold configurable (default: 100 files per module)
+    3. For modules exceeding threshold, analyze second-level directory structure
+    4. Detection logic identifies logical groupings (src/, docs/, tests/, etc.)
+    5. Analysis results logged when verbose flag enabled
+    6. Small modules (&lt;100 files) skip sub-module detection (no unnecessary splitting)
+    7. Configuration option to disable sub-module splitting: "enable_submodules": false
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-4.md</path>
+        <title>Epic 4 Technical Specification</title>
+        <section>Detailed Design - Services and Modules</section>
+        <snippet>Enhanced organize_into_modules() to support multi-level splitting; new detect_large_modules() function; new detect_framework_patterns() function. Large module threshold configurable (default: 100 files per module).</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-4.md</path>
+        <title>Epic 4 Technical Specification</title>
+        <section>Data Models and Contracts - Configuration Schema</section>
+        <snippet>Configuration schema extends .project-index.json with submodule_config section: enabled (bool), strategy (auto/force/disabled), threshold (int, default 100), max_depth (int, 1-3).</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-4.md</path>
+        <title>Epic 4 Technical Specification</title>
+        <section>Performance Requirements</section>
+        <snippet>Target: Large module detection &lt;100ms per module. Sub-module splitting adds ≤10% to total index generation time. Simple file counting operation should be near-instantaneous.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-4.md</path>
+        <title>Epic 4 Technical Specification</title>
+        <section>Observability</section>
+        <snippet>Logging: INFO level for large module identification, DEBUG for directory structure analysis. Events: Framework Detection, Large Module Identified, Sub-Module Split, Performance Metrics.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Functional Requirements</section>
+        <snippet>FR004: System shall generate lightweight core index (PROJECT_INDEX.json) containing file tree, function signatures, imports, and git metadata. NFR002: Core index size shall not exceed 100KB for 10,000 files.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 4.1: Large Module Detection and Analysis</section>
+        <snippet>Foundation story for Epic 4. Analyzes each top-level directory module, counts files, applies configurable threshold (default 100), analyzes second-level structure for logical groupings. No prerequisites.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Component Architecture - Indexer Core</section>
+        <snippet>project_index.py is main orchestrator responsible for file discovery, multi-language parsing, call graph construction, compression, JSON serialization. Uses git-aware discovery and progressive compression.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Error Handling Strategy</section>
+        <snippet>Graceful degradation: Parse errors skip file and continue, timeout returns partial index, missing dependencies use fallback behavior. Non-blocking failures throughout.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>System Architecture</title>
+        <section>Technology Decisions</section>
+        <snippet>Python 3.8+ with stdlib only (no dependencies), regex parsing for speed, JSON output, git integration for fast discovery, progressive compression adaptive to project size.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>organize_into_modules</symbol>
+        <lines>1279-1314</lines>
+        <reason>Primary integration point - this function groups files into modules and needs to be enhanced with detection logic. Currently groups by directory depth without size analysis.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>load_configuration</symbol>
+        <lines>80-139</lines>
+        <reason>Configuration loading function that needs to be extended to read new submodule_config section. Already handles validation for mode and threshold fields.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>generate_detail_modules</symbol>
+        <lines>519-548</lines>
+        <reason>Detail module generation function - understand current flow to ensure detection runs before this phase. Creates PROJECT_INDEX.d/ directory and detail module files.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>create_module_references</symbol>
+        <lines>1317</lines>
+        <reason>Builds module reference metadata - may need updates if module structure changes based on detection results.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/test_configuration.py</path>
+        <kind>test</kind>
+        <symbol>TestLoadConfiguration</symbol>
+        <lines>29-139</lines>
+        <reason>Existing test pattern for configuration loading - follow same unittest structure, tempfile usage, setUp/tearDown patterns for new tests.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/index_utils.py</path>
+        <kind>module</kind>
+        <symbol>build_call_graph</symbol>
+        <lines>132</lines>
+        <reason>Utility functions module - may add directory analysis helper functions here if needed.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package>pathlib</package>
+        <version>stdlib</version>
+        <reason>Path operations for file and directory handling</reason>
+      </python>
+      <python>
+        <package>typing</package>
+        <version>stdlib</version>
+        <reason>Type hints (Dict, List, Optional)</reason>
+      </python>
+      <python>
+        <package>json</package>
+        <version>stdlib</version>
+        <reason>Configuration file parsing</reason>
+      </python>
+      <python>
+        <package>logging</package>
+        <version>stdlib</version>
+        <reason>Observability logging (INFO, DEBUG levels)</reason>
+      </python>
+      <python>
+        <package>unittest</package>
+        <version>stdlib</version>
+        <reason>Test framework for unit tests</reason>
+      </python>
+      <python>
+        <package>tempfile</package>
+        <version>stdlib</version>
+        <reason>Temporary directories for test fixtures</reason>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Python 3.12+ standard library only - no external dependencies allowed. This story must not introduce any new pip packages.</constraint>
+    <constraint>Graceful degradation required - if detection fails on a module, skip it and continue processing remaining modules. Never fail entire index generation.</constraint>
+    <constraint>Backward compatibility mandatory - existing indices must regenerate successfully. Configuration section is optional; defaults apply when missing.</constraint>
+    <constraint>Performance target: detection logic must add less than 100ms per module. Use simple file counting, avoid expensive operations.</constraint>
+    <constraint>Configuration validation: threshold must be positive integer, enabled must be boolean. Invalid values trigger warnings and fallback to defaults.</constraint>
+    <constraint>Integration point: detection runs AFTER organize_into_modules() groups files but BEFORE generate_detail_modules() creates detail files.</constraint>
+    <constraint>Logging discipline: Use Python logging module (not print statements for logic). INFO level for detection events, DEBUG for analysis details.</constraint>
+    <constraint>Testing coverage: Minimum 95% line coverage for new code. Follow existing unittest patterns with setUp/tearDown, tempfile for fixtures.</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>organize_into_modules</name>
+      <kind>function</kind>
+      <signature>def organize_into_modules(files: List[Path], root_path: Path, depth: int = 1) -&gt; Dict[str, List[str]]</signature>
+      <path>scripts/project_index.py:1279</path>
+      <notes>Primary integration point. Returns Dict mapping module_id to file paths. Will be enhanced to call detection logic and potentially modify grouping based on results.</notes>
+    </interface>
+    <interface>
+      <name>load_configuration</name>
+      <kind>function</kind>
+      <signature>def load_configuration(config_path: Optional[Path] = None) -&gt; Dict[str, any]</signature>
+      <path>scripts/project_index.py:80</path>
+      <notes>Needs extension to read submodule_config section. Already validates mode and threshold. Returns empty dict if config missing (not an error).</notes>
+    </interface>
+    <interface>
+      <name>detect_large_modules (NEW)</name>
+      <kind>function</kind>
+      <signature>def detect_large_modules(modules: Dict[str, List[str]], threshold: int, root_path: Path) -&gt; List[str]</signature>
+      <path>scripts/project_index.py (new function)</path>
+      <notes>New function to implement. Takes module dictionary, counts files per module, returns list of module IDs exceeding threshold. Pure function with no side effects for easy testing.</notes>
+    </interface>
+    <interface>
+      <name>Configuration Schema Extension</name>
+      <kind>data schema</kind>
+      <signature>.project-index.json: Add submodule_config section with fields: enabled (bool), threshold (int), strategy (str), max_depth (int)</signature>
+      <path>.project-index.json</path>
+      <notes>Optional section. Defaults: enabled=true, threshold=100, strategy='auto', max_depth=3. Must validate types and ranges.</notes>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Project uses Python unittest framework with standard patterns: test classes inherit from unittest.TestCase, setUp/tearDown methods for fixture management, tempfile module for test isolation, unittest.mock for mocking. Test files named test_*.py in scripts/ directory. Coverage target: 95% line coverage for new code. Performance tests measure execution time and assert against targets. Integration tests use real file structures in temporary directories. Manual tests verify logging output with verbose flags.
+    </standards>
+    <locations>
+      <location>scripts/test_*.py</location>
+      <location>scripts/test_configuration.py (existing, pattern reference)</location>
+      <location>scripts/test_large_module_detection.py (new file to create)</location>
+    </locations>
+    <ideas>
+      <test ac="1" priority="high">
+        <name>test_file_counting_accuracy</name>
+        <description>Verify organize_into_modules() correctly counts files in flat and nested structures. Create test fixtures with 50, 100, 150 files across various depths.</description>
+      </test>
+      <test ac="2" priority="high">
+        <name>test_threshold_configuration</name>
+        <description>Test configurable threshold (default 100). Verify load_configuration() reads submodule_config.threshold, validates positive integer, applies default when missing.</description>
+      </test>
+      <test ac="2,7" priority="high">
+        <name>test_enable_disable_flag</name>
+        <description>Test enable_submodules configuration flag. Verify true/false values control whether detection runs. Test invalid values trigger warning and default to true.</description>
+      </test>
+      <test ac="3,4" priority="medium">
+        <name>test_directory_structure_analysis</name>
+        <description>Test detect_large_modules() analyzes second-level structure. Create fixture with src/, docs/, tests/ subdirectories. Verify logical groupings identified.</description>
+      </test>
+      <test ac="5" priority="medium">
+        <name>test_verbose_logging</name>
+        <description>Manual test: Run with --verbose flag. Verify INFO logs show "Large module detected: {name} ({count} files)". Verify DEBUG logs show directory analysis.</description>
+      </test>
+      <test ac="6" priority="high">
+        <name>test_small_module_short_circuit</name>
+        <description>Test modules with &lt;100 files skip detection. Create fixture with 50-file module, verify no analysis performed, no logs generated (performance optimization).</description>
+      </test>
+      <test ac="1-7" priority="high">
+        <name>test_integration_end_to_end</name>
+        <description>Integration test: Generate full index with large and small modules. Verify detection runs, logs appear, index generation succeeds, backward compatibility maintained.</description>
+      </test>
+      <test priority="high">
+        <name>test_performance_under_100ms</name>
+        <description>Performance test: Measure detection time on 1000-file module. Assert execution &lt;100ms. Use time.perf_counter() for accurate measurement.</description>
+      </test>
+      <test priority="medium">
+        <name>test_graceful_degradation</name>
+        <description>Test error handling: Create malformed module structure, verify detection skips problematic modules, continues processing, logs warning, never crashes.</description>
+      </test>
+      <test priority="medium">
+        <name>test_backward_compatibility</name>
+        <description>Test existing indices regenerate successfully. Run on project without submodule_config, verify defaults applied, index generated correctly.</description>
+      </test>
+    </ideas>
+  </tests>
+</story-context>

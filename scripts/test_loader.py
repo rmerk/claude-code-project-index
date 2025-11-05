@@ -197,6 +197,55 @@ class TestFindModuleForFile(unittest.TestCase):
         result = find_module_for_file("./scripts/loader.py", self.core_index)
         self.assertEqual(result, "scripts")
 
+    def test_find_file_with_file_to_module_map_o1_lookup(self):
+        """Test O(1) lookup via file_to_module_map (Story 4.3)."""
+        # Add file_to_module_map to core index
+        core_index_with_map = self.core_index.copy()
+        core_index_with_map["file_to_module_map"] = {
+            "scripts/loader.py": "scripts",
+            "scripts/project_index.py": "scripts",
+            "agents/index-analyzer.md": "agents"
+        }
+
+        result = find_module_for_file("scripts/loader.py", core_index_with_map)
+        self.assertEqual(result, "scripts")
+
+        result = find_module_for_file("agents/index-analyzer.md", core_index_with_map)
+        self.assertEqual(result, "agents")
+
+    def test_fallback_to_linear_search_without_map(self):
+        """Test fallback to linear search when file_to_module_map absent."""
+        # Core index without file_to_module_map should still work
+        result = find_module_for_file("scripts/loader.py", self.core_index)
+        self.assertEqual(result, "scripts")
+
+    def test_o1_lookup_performance(self):
+        """Test O(1) lookup is fast (<10ms for large map)."""
+        import time
+
+        # Create core index with large file_to_module_map (1000 files)
+        large_map = {}
+        for i in range(1000):
+            large_map[f"src/file_{i}.py"] = f"module-{i % 10}"
+
+        large_map["scripts/target.py"] = "scripts"
+
+        core_index_large = {
+            "modules": {"scripts": {"files": ["scripts/target.py"]}},
+            "file_to_module_map": large_map
+        }
+
+        # Measure lookup time
+        start = time.time()
+        result = find_module_for_file("scripts/target.py", core_index_large)
+        elapsed_ms = (time.time() - start) * 1000
+
+        self.assertEqual(result, "scripts")
+        self.assertLess(
+            elapsed_ms, 10.0,
+            f"O(1) lookup took {elapsed_ms:.2f}ms, exceeds 10ms target"
+        )
+
     def test_file_not_found(self):
         """Test file not in any module raises ValueError."""
         with self.assertRaises(ValueError) as cm:

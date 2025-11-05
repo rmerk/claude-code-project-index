@@ -1,0 +1,201 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>4.3</storyId>
+    <title>Enhanced Relevance Scoring for Multi-Level Sub-Modules</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-04</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/4-3-enhanced-relevance-scoring-for-multi-level-sub-modules.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>an AI agent</asA>
+    <iWant>relevance scoring to leverage fine-grained sub-module organization</iWant>
+    <soThat>I load only the most relevant sections (e.g., components folder, not entire src)</soThat>
+    <tasks>
+      - Task 1: Update RelevanceScorer for multi-level sub-module support (AC: #1)
+      - Task 2: Implement keyword-to-module-type mapping (AC: #2, #3)
+      - Task 3: Implement @ reference resolution using file-to-module map (AC: #4, #5)
+      - Task 4: Integrate with MCP hybrid strategy (AC: #4)
+      - Task 5: Isolate temporal scoring per sub-module (AC: #6)
+      - Task 6: Validate performance improvements (AC: #7)
+      - Task 7: Ensure backward compatibility (AC: #8)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. Relevance scoring algorithm scores multi-level sub-modules independently
+    2. Granular query matching implemented (4 query types: components, api, stores, tests)
+    3. Keyword-to-module mapping implemented with 7 keyword categories
+    4. Direct file reference handling using @ syntax with O(1) lookup
+    5. Multiple @ references support (load multiple sub-modules)
+    6. Temporal scoring isolated per sub-module
+    7. Performance improvement measurable: 70%+ reduction in loaded files
+    8. Backward compatible with monolithic, two-level, and three-level structures
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-4.md</path>
+        <title>Epic Technical Specification: Intelligent Sub-Module Organization</title>
+        <section>Enhanced Relevance Scoring</section>
+        <snippet>Multi-signal relevance scoring enhanced to leverage fine-grained sub-module organization. Keyword-to-module mapping with 7 categories. O(1) lookup via file-to-module map. Performance target: 70%+ reduction in loaded files.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-4.md</path>
+        <title>Epic Technical Specification: Intelligent Sub-Module Organization</title>
+        <section>Enhanced Loader API</section>
+        <snippet>find_module_for_file() enhanced to use file_to_module_map for O(1) lookup with fallback to linear search for backward compatibility. Performance target: &lt;10ms resolution time.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 4.3: Enhanced Relevance Scoring for Multi-Level Sub-Modules</section>
+        <snippet>Keyword-to-module mapping: component/vue→components, view/page→views, api/endpoint→api, store/state→stores, composable/hook→composables, util/helper→utils, test/spec→tests</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>User Journeys - Agent Intelligence</section>
+        <snippet>Hybrid MCP strategy: When @ reference detected, use MCP Read for fresh content + sub-module for context (call graph, dependencies). Graceful degradation when MCP unavailable.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/4-2-intelligent-sub-module-generation-with-multi-level-splitting.md</path>
+        <title>Story 4.2 (Prerequisite)</title>
+        <section>Completion Notes</section>
+        <snippet>Multi-level naming convention: second-level parent-child, third-level parent-child-grandchild. File-to-module mapping generated for O(1) lookup. Synthetic Vite project: 681 files → 9 sub-modules.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>scripts/relevance.py</path>
+        <kind>module</kind>
+        <symbol>RelevanceScorer</symbol>
+        <lines>83-207</lines>
+        <reason>Primary class to enhance. Currently scores modules using explicit refs (10x), temporal (5x/2x), keyword (1x). Need to add keyword-to-module-type mapping and multi-level module name parsing.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/relevance.py</path>
+        <kind>function</kind>
+        <symbol>RelevanceScorer.score_module</symbol>
+        <lines>129-207</lines>
+        <reason>Core scoring function. Needs enhancement to parse multi-level module names, detect module type, and apply keyword boosts based on query content.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/relevance.py</path>
+        <kind>function</kind>
+        <symbol>filter_files_by_recency</symbol>
+        <lines>21-80</lines>
+        <reason>Temporal filtering logic. Must ensure this works correctly with sub-module-level git metadata for temporal isolation (AC #6).</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/loader.py</path>
+        <kind>function</kind>
+        <symbol>find_module_for_file</symbol>
+        <lines>104-198</lines>
+        <reason>Critical function to enhance for @ reference resolution. Must add O(1) lookup via file_to_module_map from core index, with fallback to linear search for backward compat.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/loader.py</path>
+        <kind>function</kind>
+        <symbol>load_detail_by_path</symbol>
+        <lines>199-234</lines>
+        <reason>Integration point for @ reference resolution workflow. Uses find_module_for_file to locate containing module, then loads detail module.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/mcp_detector.py</path>
+        <kind>function</kind>
+        <symbol>detect_mcp_tools</symbol>
+        <lines>24-103</lines>
+        <reason>MCP tool detection for hybrid strategy (AC #4). Detects availability of MCP Read, Grep, Git tools. Used to decide between MCP Read + sub-module vs sub-module only.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>function</kind>
+        <symbol>build_file_to_module_map</symbol>
+        <lines>1723-1762</lines>
+        <reason>Reference for file-to-module map structure (created in Story 4.2). Inverts module→files to file→module for O(1) lookup. Dict stored in core index.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>function</kind>
+        <symbol>generate_submodule_name</symbol>
+        <lines>1534-1561</lines>
+        <reason>Reference for multi-level naming convention. Shows how parent-child-grandchild names are constructed. Parsing logic should reverse this.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package name="pathlib" version="stdlib">Path operations</package>
+        <package name="typing" version="stdlib">Type hints</package>
+        <package name="json" version="stdlib">JSON parsing for core index</package>
+        <package name="logging" version="stdlib">Logging for verbose mode</package>
+        <package name="re" version="stdlib">Regex for keyword matching</package>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Python 3.12+ stdlib only - no new external dependencies (maintain dependency-free core)
+    - Scoring must work with both split and single-file index formats (backward compatibility)
+    - Performance: Keyword boosting must add &lt;20ms per module scored (keep scoring fast)
+    - MCP integration optional - graceful degradation when MCP tools unavailable
+    - O(1) file-to-module lookup required: &lt;10ms resolution time (10x improvement from ~100ms linear search)
+    - Temporal isolation: Recent changes in one sub-module must not boost sibling sub-modules
+    - All modifications must preserve existing metadata: git, functions, classes, imports, call graphs
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>RelevanceScorer.__init__</name>
+      <kind>class constructor</kind>
+      <signature>def __init__(self, config: Optional[Dict[str, Any]] = None)</signature>
+      <path>scripts/relevance.py:108-128</path>
+      <notes>Add keyword_boosts configuration dict with 7 categories. Load from config if present, else use defaults.</notes>
+    </interface>
+    <interface>
+      <name>RelevanceScorer.score_module</name>
+      <kind>instance method</kind>
+      <signature>def score_module(self, module: Dict[str, Any], query: Dict[str, Any], git_metadata: Dict[str, Any]) -> float</signature>
+      <path>scripts/relevance.py:129-207</path>
+      <notes>Enhance to parse multi-level module names, detect module type from name, apply keyword boosts. Module dict now includes multi-level names like "parent-child-grandchild".</notes>
+    </interface>
+    <interface>
+      <name>find_module_for_file</name>
+      <kind>function</kind>
+      <signature>def find_module_for_file(file_path: str, core_index: Dict) -> str</signature>
+      <path>scripts/loader.py:104-198</path>
+      <notes>Enhance to check for file_to_module_map field in core_index. If present, use O(1) dictionary lookup. If absent, fallback to linear search in modules["files"] for backward compat.</notes>
+    </interface>
+    <interface>
+      <name>file_to_module_map (Core Index Field)</name>
+      <kind>data structure</kind>
+      <signature>Dict[str, str] - maps file_path to module_id</signature>
+      <path>PROJECT_INDEX.json (root level)</path>
+      <notes>New field added in Story 4.2. Example: {"src/components/LoginForm.vue": "assureptmdashboard-src-components"}. Enables O(1) @ reference resolution.</notes>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Python unittest framework. Unit tests for pure functions (parse, detect, boost). Integration tests for end-to-end workflows. Performance tests for O(1) lookup and 70%+ reduction targets. Coverage target: 95% line coverage for critical scoring logic.
+    </standards>
+    <locations>
+      - scripts/test_relevance.py (existing test suite for RelevanceScorer)
+      - scripts/test_loader.py (existing test suite for loader functions)
+      - New file: scripts/test_enhanced_relevance_scoring.py (comprehensive tests for Story 4.3 enhancements)
+    </locations>
+    <ideas>
+      <idea ac="1">Test _parse_module_name() with monolithic ("assureptmdashboard"), two-level ("assureptmdashboard-src"), three-level ("assureptmdashboard-src-components") names</idea>
+      <idea ac="2,3">Test granular query matching: "fix LoginForm component" should score *-src-components highest. Test all 7 keyword categories.</idea>
+      <idea ac="3">Test _detect_module_type() returns correct type (components, views, api, stores, composables, utils, tests, generic) for each module name pattern</idea>
+      <idea ac="4">Test @ reference resolution with file_to_module_map: "@src/components/Form.vue" resolves to correct module in &lt;10ms</idea>
+      <idea ac="5">Test multiple @ references: "@src/components/Form.vue @src/api/auth.ts" loads both src-components and src-api modules</idea>
+      <idea ac="6">Test temporal isolation: modify files in components/, verify views module not boosted by recency</idea>
+      <idea ac="7">Performance test: measure file count loaded for "fix component" query. Verify 70%+ reduction (load ~50 vs ~400 files)</idea>
+      <idea ac="8">Backward compat tests: run scoring on monolithic modules, two-level, three-level. Verify all work correctly.</idea>
+    </ideas>
+  </tests>
+</story-context>

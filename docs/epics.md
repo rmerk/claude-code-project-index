@@ -3,7 +3,7 @@
 **Author:** Ryan
 **Date:** 2025-11-04
 **Project Level:** 2
-**Target Scale:** 19-24 stories across 3 epics
+**Target Scale:** 22-28 stories across 4 epics
 
 ---
 
@@ -22,6 +22,7 @@ Each epic includes:
 - Epic 1 establishes foundational infrastructure and split architecture
 - Epic 2 builds on Epic 1's infrastructure to add intelligent features
 - Epic 3 transforms Epic 2's features into production-ready tooling
+- Epic 4 enhances Epic 1's module organization for nested project structures
 - Stories within epics are vertically sliced and sequentially ordered
 - No forward dependencies - each story builds only on previous work
 
@@ -551,6 +552,209 @@ So that I can use project index features in my existing workflow.
 8. All three tools use same MCP server implementation (stdio transport)
 
 **Prerequisites:** Story 3.1 (MCP server installed), Story 3.3 (documentation structure ready)
+
+---
+
+## Epic 4: Intelligent Sub-Module Organization
+
+**Expanded Goal:**
+
+Enhance the module organization logic to intelligently split large top-level directories into granular multi-level sub-modules (up to 3 levels deep) based on project structure and framework patterns. This addresses the limitation where projects with nested structures (e.g., `assureptmdashboard/src/components/`, `assureptmdashboard/src/views/`, `assureptmdashboard/src/api/`) currently get grouped into one monolithic module, forcing agents to load 400+ files even when querying a specific component. By detecting framework patterns (Vite, React, Next.js) and splitting recursively, we enable highly selective lazy-loading where agents load only the 50 component files instead of all 400+ src files.
+
+**Value Delivery:**
+
+- **70%+ reduction** in loaded files for component-specific queries in Vite projects
+- **Multi-level granularity:** Load only `src-components`, not entire `src` (or `docs` or `tests`)
+- **Framework-aware:** Auto-detects Vite/React/Next.js patterns and applies optimal splitting
+- **Keyword intelligence:** Query "fix LoginForm component" → loads only `src-components` module
+- **Maintained backward compatibility** for small/flat projects (no unnecessary splitting)
+- **Enhanced support** for large monorepos and enterprise Vite applications
+
+**Story Breakdown:**
+
+**Story 4.1: Large Module Detection and Analysis**
+
+As a developer with a large nested project,
+I want the indexer to detect when a single module contains too many files,
+So that it can make intelligent decisions about sub-module organization.
+
+**Acceptance Criteria:**
+1. Indexer analyzes each top-level directory module and counts total files
+2. Large module threshold configurable (default: 100 files per module)
+3. For modules exceeding threshold, analyze second-level directory structure
+4. Detection logic identifies logical groupings (src/, docs/, tests/, etc.)
+5. Analysis results logged when verbose flag enabled
+6. Small modules (<100 files) skip sub-module detection (no unnecessary splitting)
+7. Configuration option to disable sub-module splitting: `"enable_submodules": false`
+
+**Prerequisites:** None (builds on Epic 1's existing module organization)
+
+---
+
+**Story 4.2: Intelligent Sub-Module Generation with Multi-Level Splitting**
+
+As a developer working on Vite-based projects with nested src structure,
+I want large modules automatically split into granular sub-modules at multiple levels,
+So that agents can lazy-load only the specific section I'm querying (e.g., components, not views).
+
+**Acceptance Criteria:**
+1. When module exceeds threshold, analyze directory tree up to 3 levels deep
+2. **Multi-level naming convention:**
+   - Second-level: `{parent}-{child}` (e.g., `assureptmdashboard-src.json`)
+   - Third-level: `{parent}-{child}-{grandchild}` (e.g., `assureptmdashboard-src-components.json`)
+3. **Vite project pattern recognition:**
+   - Auto-detect common Vite patterns: `src/components/`, `src/views/`, `src/api/`, `src/stores/`, `src/composables/`, `src/utils/`
+   - Split these into individual sub-modules when parent `src/` exceeds threshold
+4. **Splitting rules:**
+   - If `src/` directory has >100 files AND has organized subdirectories → split to third level
+   - If `src/` has <100 files OR flat structure → keep as second-level module
+   - Apply same logic recursively to other large second-level directories
+5. Each sub-module stored in `PROJECT_INDEX.d/` with complete detail information
+6. **Core index updated with:**
+   - Reference to all sub-modules individually in `modules` section
+   - **File-to-module mapping** in core index for @ reference resolution:
+     ```json
+     {
+       "modules": {
+         "assureptmdashboard-src-components": {
+           "detail_path": "PROJECT_INDEX.d/assureptmdashboard-src-components.json",
+           "file_count": 245,
+           "files": ["src/components/LoginForm.vue", "src/components/Button.vue", ...]
+         }
+       }
+     }
+     ```
+   - Enables O(1) lookup: `@src/components/LoginForm.vue` → `assureptmdashboard-src-components` module
+7. Files at intermediate levels grouped logically (e.g., `src/*.ts` files → `assureptmdashboard-src-root.json`)
+8. Sub-module generation preserves all existing metadata (git, functions, imports)
+9. Original monolithic module format still generated for projects with `enable_submodules: false`
+10. **Example output for Vite project:**
+    ```
+    Split assureptmdashboard → 12 sub-modules:
+      - assureptmdashboard-src-components (245 Vue files)
+      - assureptmdashboard-src-views (89 Vue files)
+      - assureptmdashboard-src-api (34 TS files)
+      - assureptmdashboard-src-stores (18 TS files)
+      - assureptmdashboard-src-composables (22 TS files)
+      - assureptmdashboard-src-utils (8 TS files)
+      - assureptmdashboard-docs (169 MD files)
+      - assureptmdashboard-tests (82 test files)
+      - assureptmdashboard-bmad (14 MD files)
+    ```
+
+**Prerequisites:** Story 4.1 (detection logic implemented)
+
+---
+
+**Story 4.3: Enhanced Relevance Scoring for Multi-Level Sub-Modules**
+
+As an AI agent,
+I want relevance scoring to leverage fine-grained sub-module organization,
+So that I load only the most relevant sections (e.g., components folder, not entire src).
+
+**Acceptance Criteria:**
+1. Relevance scoring algorithm updated to score multi-level sub-modules independently
+2. **Granular query matching:**
+   - Query "fix LoginForm component" → scores `assureptmdashboard-src-components` highest
+   - Query "API endpoint for users" → scores `assureptmdashboard-src-api` highest
+   - Query "store mutations" → scores `assureptmdashboard-src-stores` highest
+   - Query "show me test coverage" → scores `assureptmdashboard-tests` highest
+3. **Keyword-to-module mapping:**
+   - "component", "vue component" → boost `src-components` score
+   - "view", "page", "route" → boost `src-views` score
+   - "api", "endpoint", "service" → boost `src-api` score
+   - "store", "state", "vuex", "pinia" → boost `src-stores` score
+   - "composable", "hook" → boost `src-composables` score
+   - "util", "helper" → boost `src-utils` score
+4. **Direct file reference handling (@ syntax in Claude Code):**
+   - Core index maintains file-to-module mapping for all files across all sub-modules
+   - Query with `@src/components/LoginForm.vue` → agent:
+     - Maps file path to containing sub-module: `assureptmdashboard-src-components`
+     - Uses **Strategy A (Hybrid):** MCP Read for fresh file content + sub-module load for context
+     - If MCP available: MCP Read gets current file content, sub-module provides call graph/dependencies
+     - If MCP unavailable: Loads only the containing sub-module, uses indexed file data
+   - Query with `@src/auth.ts` (intermediate-level file) → agent:
+     - Maps to containing sub-module: `assureptmdashboard-src-root` (or `assureptmdashboard-src` if not split)
+     - Same hybrid strategy as above
+   - Query with `@auth.ts` (root-level file) → agent:
+     - Maps to: `assureptmdashboard-root` or `assureptmdashboard` module
+     - Loads only that top-level module
+   - **Multiple @ references:** Query with `@src/components/Form.vue @src/api/auth.ts` → agent:
+     - Maps to 2 sub-modules: `src-components` and `src-api`
+     - Loads both sub-modules for complete context
+     - Uses MCP Read for both files if available
+5. Temporal scoring works with fine-grained sub-modules (recent changes in `components` don't boost `views` or `api` scores)
+6. **Performance improvement measurable:**
+   - 70%+ reduction in loaded file count for component-specific queries
+   - Load ~50 component files instead of ~416 src files
+   - Direct @ references: Load only containing sub-module (~50 files) not entire project
+7. Agent can load multiple relevant sub-modules when needed (e.g., "components that call API" loads both `src-components` and `src-api`)
+8. Backward compatible: relevance scoring works with monolithic, two-level, and three-level sub-module structures
+
+**Prerequisites:** Story 4.2 (multi-level sub-modules generated), Epic 2 Story 2.4 (relevance scoring exists)
+
+---
+
+**Story 4.4: Configuration and Migration for Multi-Level Sub-Modules**
+
+As a developer,
+I want control over multi-level sub-module behavior and smooth migration,
+So that I can optimize for my project's specific structure (especially Vite patterns).
+
+**Acceptance Criteria:**
+1. Configuration option in `.project-index.json`:
+   ```json
+   {
+     "submodule_strategy": "auto",       // "auto", "force", "disabled"
+     "submodule_threshold": 100,          // files per module before splitting
+     "submodule_max_depth": 3,            // how many levels deep to split (1-3)
+     "submodule_patterns": {              // framework-specific patterns
+       "vite": {                          // preset for Vite projects
+         "enabled": true,
+         "split_paths": [
+           "src/components",
+           "src/views",
+           "src/api",
+           "src/stores",
+           "src/composables",
+           "src/utils"
+         ]
+       },
+       "custom": {                        // custom per-project patterns
+         "assureptmdashboard": {
+           "src/components": "deep",      // always split to component level
+           "src/views": "deep",
+           "src/api": "shallow",          // keep API as single module
+           "docs": "disabled"             // never split docs
+         }
+       }
+     }
+   }
+   ```
+2. **Built-in framework presets:**
+   - `"vite"` - Auto-detects and splits common Vite structure
+   - `"react"` - Components, hooks, utils, pages pattern
+   - `"nextjs"` - app/, components/, lib/ pattern
+   - `"generic"` - Default heuristic-based splitting
+3. `submodule_strategy: "auto"` - applies framework preset if detected, else generic (default)
+4. `submodule_strategy: "force"` - always generates sub-modules regardless of size
+5. `submodule_strategy: "disabled"` - uses monolithic modules (legacy behavior)
+6. `submodule_max_depth` controls splitting depth:
+   - `1` - top-level only (no sub-modules)
+   - `2` - split to second level (`assureptmdashboard-src`)
+   - `3` - split to third level (`assureptmdashboard-src-components`) - default for Vite
+7. Migration path: regenerating index with new config automatically reorganizes modules
+8. Documentation explains multi-level sub-module configuration with Vite examples
+9. `--analyze-modules` flag shows:
+   - Current module structure (tree view)
+   - File count per potential sub-module
+   - Suggested configuration based on detected patterns
+   - Example: "Detected Vite project - suggest enabling vite preset"
+10. **Warning system:**
+    - Module >200 files: "Consider enabling sub-modules for better performance"
+    - Vite project detected without preset: "Vite project detected - enable vite preset in config for optimal sub-module organization"
+
+**Prerequisites:** Story 4.2 (multi-level sub-module generation), Story 4.3 (agent integration)
 
 ---
 

@@ -106,7 +106,9 @@ def find_module_for_file(file_path: str, core_index: Dict) -> str:
     Find module containing specific file.
 
     Searches the core index's module mappings to determine which module
-    contains the given file path.
+    contains the given file path. Uses O(1) file_to_module_map lookup
+    when available (Story 4.3), with fallback to linear search for
+    backward compatibility.
 
     Args:
         file_path: File path to search for (e.g., "scripts/project_index.py")
@@ -161,7 +163,19 @@ def find_module_for_file(file_path: str, core_index: Dict) -> str:
     # Normalize file_path for comparison (remove leading ./ if present)
     normalized_path = file_path.lstrip('./')
 
-    # Search all modules for the file
+    # Strategy A (Story 4.3): Try O(1) lookup via file_to_module_map first
+    if "file_to_module_map" in core_index:
+        file_map = core_index["file_to_module_map"]
+        if isinstance(file_map, dict):
+            # Try direct lookup
+            if normalized_path in file_map:
+                return file_map[normalized_path]
+
+            # Try with original path if different
+            if file_path != normalized_path and file_path in file_map:
+                return file_map[file_path]
+
+    # Fallback (backward compatibility): Linear search through all modules
     for module_id, module_info in modules.items():
         if not isinstance(module_info, dict):
             logger.warning(f"Skipping invalid module entry: {module_id}")

@@ -1,0 +1,281 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>4</epicId>
+    <storyId>2</storyId>
+    <title>Intelligent Sub-Module Generation with Multi-Level Splitting</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-04</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/4-2-intelligent-sub-module-generation-with-multi-level-splitting.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer working on Vite-based projects with nested src structure</asA>
+    <iWant>large modules automatically split into granular sub-modules at multiple levels</iWant>
+    <soThat>agents can lazy-load only the specific section I'm querying (e.g., components, not views)</soThat>
+    <tasks>
+      <task id="1" status="pending">Implement multi-level splitting algorithm (AC: #1, #4)</task>
+      <task id="2" status="pending">Implement multi-level naming convention (AC: #2)</task>
+      <task id="3" status="pending">Implement Vite framework pattern detection (AC: #3)</task>
+      <task id="4" status="pending">Build file-to-module mapping (AC: #6)</task>
+      <task id="5" status="pending">Generate sub-module detail files (AC: #5, #7, #8)</task>
+      <task id="6" status="pending">Update core index with sub-module references (AC: #6)</task>
+      <task id="7" status="pending">Maintain backward compatibility (AC: #9)</task>
+      <task id="8" status="pending">Integration testing and example validation (AC: #10)</task>
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    <criterion id="1">When module exceeds threshold, analyze directory tree up to 3 levels deep</criterion>
+    <criterion id="2">Multi-level naming convention: Second-level `{parent}-{child}`, Third-level `{parent}-{child}-{grandchild}`</criterion>
+    <criterion id="3">Vite project pattern recognition: Auto-detect src/components/, src/views/, src/api/, src/stores/, src/composables/, src/utils/ and split when parent src/ exceeds threshold</criterion>
+    <criterion id="4">Splitting rules: If src/ has >100 files AND organized subdirectories → split to third level; If <100 files OR flat → keep second-level; Apply recursively to other large second-level dirs</criterion>
+    <criterion id="5">Each sub-module stored in PROJECT_INDEX.d/ with complete detail information</criterion>
+    <criterion id="6">Core index updated with: (a) All sub-modules in modules section, (b) File-to-module mapping for O(1) @ reference resolution, (c) files arrays in each module for backward compat</criterion>
+    <criterion id="7">Files at intermediate levels grouped logically (e.g., src/*.ts → assureptmdashboard-src-root.json)</criterion>
+    <criterion id="8">Sub-module generation preserves all existing metadata (git, functions, imports)</criterion>
+    <criterion id="9">Original monolithic module format still generated for projects with enable_submodules: false</criterion>
+    <criterion id="10">Example Vite output: Split assureptmdashboard → 9-12 sub-modules with specific file counts per subdirectory</criterion>
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-4.md</path>
+        <title>Epic Technical Specification: Intelligent Sub-Module Organization</title>
+        <section>Detailed Design - Services and Modules</section>
+        <snippet>Epic 4 enhances existing modules in scripts/ without introducing new services. Key changes: project_index.py enhanced with organize_into_modules() multi-level splitting, new detect_large_modules(), detect_framework_patterns(), and split_module_recursive() functions. Loader.py enhanced with find_module_for_file() for multi-level module lookup.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-4.md</path>
+        <title>Epic Technical Specification: Intelligent Sub-Module Organization</title>
+        <section>Data Models and Contracts - Core Index Schema Enhancement</section>
+        <snippet>Core index adds file_to_module_map for O(1) lookup: file_path → module_id. Modules section extended with files arrays. Schema version remains 2.1-enhanced (additive changes only). Detail modules maintain Epic 1 schema unchanged.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-4.md</path>
+        <title>Epic Technical Specification: Intelligent Sub-Module Organization</title>
+        <section>APIs and Interfaces - Enhanced Functions</section>
+        <snippet>split_module_recursive(module_id, file_list, root_path, max_depth, current_depth, config) recursively splits modules up to 3 levels. Returns dict with sub-module_id → file_list entries. build_file_to_module_map(modules) creates reverse lookup for @ reference resolution.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-4.md</path>
+        <title>Epic Technical Specification: Intelligent Sub-Module Organization</title>
+        <section>Non-Functional Requirements - Performance</section>
+        <snippet>Sub-module splitting must add ≤10% to index generation time. Large module detection <100ms per module. Framework pattern detection <500ms per project. Sub-module splitting <2s for 1000 files. File-to-module map generation <500ms for 10,000 files.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Epic 4: Intelligent Sub-Module Organization</section>
+        <snippet>Goal: Enhance module organization to intelligently split large directories into granular multi-level sub-modules optimized for Vite/React/Next.js patterns. Value: 70%+ reduction in module size for targeted queries. Deliverables: Automatic detection, multi-level splitting up to 3 levels, framework-aware presets, enhanced relevance scoring.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 4.2: Intelligent Sub-Module Generation with Multi-Level Splitting</section>
+        <snippet>Prerequisites: Story 4.1 (detection logic implemented). Builds on Epic 1's detail module generation. Sets foundation for Story 4.3 (relevance scoring enhancements). Implementation notes: Use mcp-builder if extending MCP functionality, follow Python implementation guide, leverage existing scripts/ utilities.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/4-1-large-module-detection-and-analysis.md</path>
+        <title>Story 4.1: Large Module Detection and Analysis</title>
+        <section>Dev Agent Record - Completion Notes</section>
+        <snippet>Story 4.1 completed with 21 tests passing. Created get_submodule_config(), detect_large_modules(), analyze_directory_structure() functions. Uses >= threshold logic. Graceful degradation pattern with per-module error isolation. Performance: <10ms for 1000 files (exceeds <100ms target by 10x).</snippet>
+      </doc>
+      <doc>
+        <path>README.md</path>
+        <title>Project Index for Claude Code</title>
+        <section>Project Overview</section>
+        <snippet>Python tool that generates comprehensive JSON indices of codebases for AI agents. Supports split index architecture with lazy-loading for large projects (10,000+ files). Uses Python 3.12+ stdlib only for core functionality. MCP server optional for Claude Desktop/CLI integration.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>get_submodule_config</symbol>
+        <lines>1328-1357</lines>
+        <reason>REUSE: Story 4.1 helper to retrieve validated submodule configuration with defaults (threshold, enabled, strategy, max_depth). Must use instead of duplicating config logic.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>detect_large_modules</symbol>
+        <lines>1430-1479</lines>
+        <reason>REUSE: Story 4.1 function to identify modules with file_count >= threshold. Returns list of (module_id, file_count) tuples for splitting candidates.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>analyze_directory_structure</symbol>
+        <lines>1360-1427</lines>
+        <reason>REUSE: Story 4.1 function that examines second-level directory layout and identifies logical groupings (components, api, tests, etc.). Provides input for splitting decisions.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>generate_detail_modules</symbol>
+        <lines>574-762</lines>
+        <reason>INTEGRATION POINT: Epic 1 function that generates detail module files. Task 5 enhances this to call split_module_recursive() and generate sub-module files in PROJECT_INDEX.d/.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>generate_core_index</symbol>
+        <lines>247-572</lines>
+        <reason>INTEGRATION POINT: Task 6 enhances this to include file_to_module_map in core index schema and update modules section with sub-module references.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>organize_into_modules</symbol>
+        <lines>1481-1519</lines>
+        <reason>CONTEXT: Understand current module organization logic. Task 1's split_module_recursive() will be called during this phase to split large modules.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>module</kind>
+        <symbol>generate_split_index</symbol>
+        <lines>763-1071</lines>
+        <reason>CONTEXT: Main orchestration function for split index generation. Shows workflow: scan → organize → detect → split → generate details → generate core index.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/index_utils.py</path>
+        <kind>module</kind>
+        <symbol>build_call_graph</symbol>
+        <lines>132-160</lines>
+        <reason>REFERENCE: Epic 1 function that builds call graph from function calls. Task 5 must preserve this metadata when generating sub-modules.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/loader.py</path>
+        <kind>module</kind>
+        <symbol>find_module_for_file</symbol>
+        <lines>104-198</lines>
+        <reason>FUTURE ENHANCEMENT: Story 4.3 will enhance this for O(1) lookup via file_to_module_map. Task 4 creates the mapping that this function will consume.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/test_large_module_detection.py</path>
+        <kind>test</kind>
+        <symbol>TestDetectLargeModules</symbol>
+        <lines>174-264</lines>
+        <reason>REFERENCE: Story 4.1 test patterns to follow. Shows how to test detection logic, threshold edge cases, and configuration validation. Aim for similar coverage (~21 tests).</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package name="pathlib" version="stdlib">File path operations, directory traversal for multi-level splitting</package>
+        <package name="typing" version="stdlib">Type hints for function signatures (Dict, List, Optional)</package>
+        <package name="json" version="stdlib">Config parsing, index generation, sub-module file writing</package>
+        <package name="re" version="stdlib">Framework pattern detection (Vite directory patterns)</package>
+        <package name="logging" version="stdlib">Observability logging (INFO/DEBUG with --verbose flag)</package>
+        <package name="os" version="stdlib">Environment, filesystem operations</package>
+        <package name="datetime" version="stdlib">Timestamps for metadata</package>
+        <package name="subprocess" version="stdlib">Git command execution (optional, for metadata)</package>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Python 3.12+ stdlib only - no new dependencies for core indexing (MCP server optional)</constraint>
+    <constraint>Graceful degradation: Errors in splitting isolated per module, never fail entire index generation</constraint>
+    <constraint>Metadata preservation: git data, functions, classes, imports, call graphs must all transfer to sub-modules</constraint>
+    <constraint>Performance: Splitting logic must add ≤10% overhead (following Story 4.1's <100ms per module precedent)</constraint>
+    <constraint>Threshold boundary: Uses >= threshold logic from Story 4.1 (modules with exactly 100 files are flagged as large)</constraint>
+    <constraint>Logging discipline: Use Python logging module (not print), INFO for events, DEBUG for details, respect --verbose flag</constraint>
+    <constraint>Configuration-driven: Never assume config fields present, always use defaults from get_submodule_config()</constraint>
+    <constraint>Backward compatibility: Monolithic format preserved when enable_submodules: false (AC #9)</constraint>
+    <constraint>Depth limit: Maximum 3 levels deep (parent, parent-child, parent-child-grandchild)</constraint>
+    <constraint>Path normalization: All paths in index must be project-relative (strip project root prefix)</constraint>
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>split_module_recursive</name>
+      <kind>function signature</kind>
+      <signature>def split_module_recursive(module_id: str, file_list: List[str], root_path: Path, max_depth: int, current_depth: int, config: Dict) -> Dict[str, List[str]]</signature>
+      <path>scripts/project_index.py</path>
+      <description>NEW core function (Task 1). Recursively splits a module into sub-modules based on directory structure. Returns dict with sub-module_id → file_list entries. Uses detect_large_modules() and analyze_directory_structure() from Story 4.1.</description>
+    </interface>
+    <interface>
+      <name>generate_submodule_name</name>
+      <kind>function signature</kind>
+      <signature>def generate_submodule_name(parent: str, child: str, grandchild: Optional[str] = None) -> str</signature>
+      <path>scripts/project_index.py</path>
+      <description>NEW helper function (Task 2). Generates sub-module name following convention: second-level "{parent}-{child}", third-level "{parent}-{child}-{grandchild}".</description>
+    </interface>
+    <interface>
+      <name>detect_framework_patterns</name>
+      <kind>function signature</kind>
+      <signature>def detect_framework_patterns(root_path: Path) -> str</signature>
+      <path>scripts/project_index.py</path>
+      <description>NEW function (Task 3). Detects framework type ("vite", "react", "nextjs", "generic") by examining directory structure. Vite detection: checks for src/components/, src/views/, src/api/, src/stores/, src/composables/, src/utils/.</description>
+    </interface>
+    <interface>
+      <name>build_file_to_module_map</name>
+      <kind>function signature</kind>
+      <signature>def build_file_to_module_map(modules: Dict[str, List[str]]) -> Dict[str, str]</signature>
+      <path>scripts/project_index.py</path>
+      <description>NEW function (Task 4). Inverts module → files to file → module for O(1) @ reference lookup. Returns dict: {file_path: module_id}. Target performance: <10ms for 10,000 files.</description>
+    </interface>
+    <interface>
+      <name>Core Index Schema Extension</name>
+      <kind>JSON schema</kind>
+      <signature>{
+  "version": "2.1-enhanced",
+  "modules": {
+    "{module_id}": {
+      "file_count": int,
+      "function_count": int,
+      "detail_path": "PROJECT_INDEX.d/{module_id}.json",
+      "files": ["file1.py", "file2.py", ...]
+    }
+  },
+  "file_to_module_map": {
+    "{file_path}": "{module_id}"
+  }
+}</signature>
+      <path>PROJECT_INDEX.json</path>
+      <description>Task 6: Core index schema extended with file_to_module_map field (additive change). Modules section includes files arrays for backward compatibility. No breaking changes.</description>
+    </interface>
+    <interface>
+      <name>Detail Module Schema (unchanged)</name>
+      <kind>JSON schema</kind>
+      <signature>{
+  "module_id": str,
+  "version": "2.1-enhanced",
+  "files": {
+    "{file_path}": {
+      "lang": str,
+      "funcs": [...],
+      "classes": {...},
+      "imports": [...],
+      "git": {...}
+    }
+  },
+  "call_graph_local": {...}
+}</signature>
+      <path>PROJECT_INDEX.d/{module_id}.json</path>
+      <description>Task 5: Sub-modules use existing Epic 1 detail module schema. Must preserve all metadata: git (commit, author, date, lines_changed, recency_days), functions (signatures, line numbers), classes (methods), imports, call_graph_local.</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing framework: Python unittest (stdlib). Test file naming: test_{feature}.py. Run tests: python -m unittest discover scripts/ or python scripts/test_*.py. Coverage target: 90% line coverage for high complexity functions (split_module_recursive). Follow Story 4.1 test patterns: comprehensive edge cases, boundary conditions (exactly threshold files), performance validation (<10% overhead), integration tests on synthetic projects. All tests must pass before marking story complete.
+    </standards>
+    <locations>
+      scripts/test_*.py - Unit and integration tests
+      scripts/test_large_module_detection.py - Story 4.1 reference for test patterns
+    </locations>
+    <ideas>
+      <idea ac="1,4">Unit tests for split_module_recursive(): (a) Flat structure (no subdirs) → no splitting, (b) Organized structure with subdirs exceeding threshold → split to level 3, (c) Mixed structure (some large, some small subdirs) → selective splitting, (d) Depth limit respected (max 3 levels), (e) Edge case: exactly threshold files at each level</idea>
+      <idea ac="2">Unit tests for generate_submodule_name(): (a) Second-level naming format: "{parent}-{child}", (b) Third-level naming format: "{parent}-{child}-{grandchild}", (c) Invalid inputs handled gracefully</idea>
+      <idea ac="3">Unit tests for detect_framework_patterns(): (a) Vite project detected by src/ subdirectories, (b) Non-Vite project returns "generic", (c) Partial Vite structure handled, (d) Empty/missing directories handled</idea>
+      <idea ac="6">Unit tests for build_file_to_module_map(): (a) Correctness: all files mapped, no orphans, no duplicates, (b) Performance: <10ms for 10,000 files, (c) Empty input handled, (d) Duplicate filenames in different modules handled</idea>
+      <idea ac="5,7,8">Integration test: Synthetic Vite project with 400 files in src/ subdirectories. Verify: (a) Split count 9-12 sub-modules, (b) All files accounted for, (c) file_to_module_map complete, (d) Metadata preserved (git, funcs, imports), (e) Intermediate files grouped into *-root sub-modules</idea>
+      <idea ac="9">Regression test: Regenerate index with enable_submodules: false. Verify: (a) Monolithic module format preserved, (b) No sub-modules generated, (c) Core index structure unchanged, (d) Backward compatibility maintained</idea>
+      <idea ac="10">Integration test: Run on real Vite project structure. Verify: (a) Example output matches AC #10 format, (b) Sub-module counts match expectations, (c) Performance overhead ≤10% of total index time</idea>
+      <idea ac="1-10">Performance test: Measure splitting overhead on 1000-file synthetic project. Baseline: full index generation time without splitting. With splitting: should add ≤10%. Profile with cProfile if needed.</idea>
+    </ideas>
+  </tests>
+</story-context>
