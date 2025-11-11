@@ -1,0 +1,78 @@
+{
+  "version": "1.0",
+  "description": "Benchmark projects for performance validation (Story 3.2)",
+  "projects": [
+    {
+      "id": "python-medium",
+      "name": "Flask",
+      "url": "https://github.com/pallets/flask",
+      "type": "Python",
+      "description": "Popular Python web framework - representative of medium Python projects",
+      "estimatedFiles": 850,
+      "estimatedLOC": 45000,
+      "languageDistribution": {
+        "python": 0.95,
+        "markdown": 0.03,
+        "other": 0.02
+      },
+      "notes": "Well-structured Python project with clear modules, extensive test suite, documentation. Good representative of typical Python backend projects."
+    },
+    {
+      "id": "javascript-medium",
+      "name": "VS Code Extension - ESLint",
+      "url": "https://github.com/microsoft/vscode-eslint",
+      "type": "JavaScript/TypeScript",
+      "description": "VS Code extension with TypeScript - representative of medium JS/TS projects",
+      "estimatedFiles": 1200,
+      "estimatedLOC": 65000,
+      "languageDistribution": {
+        "typescript": 0.85,
+        "javascript": 0.08,
+        "json": 0.05,
+        "other": 0.02
+      },
+      "notes": "Modern TypeScript project with strong typing, VS Code extension patterns, Node.js integration. Good representative of typical frontend/extension projects."
+    },
+    {
+      "id": "polyglot-large",
+      "name": "claude-code-project-index (self-test)",
+      "url": "file://.",
+      "type": "Polyglot",
+      "description": "This project - mixed Python, Markdown, Shell, YAML",
+      "estimatedFiles": 200,
+      "estimatedLOC": 30000,
+      "languageDistribution": {
+        "python": 0.65,
+        "markdown": 0.25,
+        "shell": 0.05,
+        "yaml": 0.03,
+        "other": 0.02
+      },
+      "notes": "Polyglot project with Python code, extensive Markdown docs, shell scripts, YAML configs. Self-testing provides confidence in tool's own performance. Includes bmad/ framework (large doc hierarchy)."
+    }
+  ],
+  "selectionCriteria": {
+    "fileCountRange": "500-5000 files per project",
+    "diversity": "Python-only, TypeScript-heavy, polyglot",
+    "realWorld": "Actual open-source projects, not synthetic",
+    "accessibility": "Public repos or self (can be cloned/tested reliably)",
+    "representativeness": "Common project patterns: web framework, VS Code extension, documentation-heavy tool"
+  },
+  "benchmarkExpectations": {
+    "flask": {
+      "fullGeneration": "8-12s",
+      "incremental": "<1.2s",
+      "mcpLatency": "<500ms per tool"
+    },
+    "vscode-eslint": {
+      "fullGeneration": "12-18s",
+      "incremental": "<1.8s",
+      "mcpLatency": "<500ms per tool"
+    },
+    "self-test": {
+      "fullGeneration": "3-8s",
+      "incremental": "<0.8s",
+      "mcpLatency": "<500ms per tool"
+    }
+  }
+}

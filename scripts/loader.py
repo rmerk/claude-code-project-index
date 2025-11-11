@@ -89,6 +89,10 @@ def load_detail_module(module_name: str, index_dir: Optional[Path] = None) -> Di
         )
 
     # Validate JSON structure (check for required fields)
+    # Handle backward compatibility: older formats used 'f' instead of 'files'
+    if 'f' in module_data and 'files' not in module_data:
+        module_data['files'] = module_data.pop('f')
+
     required_fields = ["module_id", "version", "files"]
     missing_fields = [field for field in required_fields if field not in module_data]
 

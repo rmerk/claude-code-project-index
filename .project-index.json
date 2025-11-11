@@ -1,4 +1,6 @@
 {
   "mode": "split",
-  "threshold": 1000
+  "threshold": 1000,
+  "_preset": "medium",
+  "version": "2.0"
 }

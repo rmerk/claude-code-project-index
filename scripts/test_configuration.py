@@ -38,7 +38,14 @@ class TestLoadConfiguration(unittest.TestCase):
         os.chdir(self.test_path)
 
     def tearDown(self):
-        """Clean up temporary directory."""
+        """Clean up temporary directory and config files."""
+        # Clean up any config files created during tests
+        config_path = Path(self.test_path) / ".project-index.json"
+        backup_path = Path(self.test_path) / ".project-index.json.backup"
+        if config_path.exists():
+            config_path.unlink()
+        if backup_path.exists():
+            backup_path.unlink()
         os.chdir(self.original_cwd)
         self.test_dir.cleanup()
 
@@ -170,7 +177,14 @@ class TestConfigurationPrecedence(unittest.TestCase):
         config_path.write_text(json.dumps(self.config_data))
 
     def tearDown(self):
-        """Clean up temporary directory."""
+        """Clean up temporary directory and config files."""
+        # Clean up any config files created during tests
+        config_path = Path(self.test_path) / ".project-index.json"
+        backup_path = Path(self.test_path) / ".project-index.json.backup"
+        if config_path.exists():
+            config_path.unlink()
+        if backup_path.exists():
+            backup_path.unlink()
         os.chdir(self.original_cwd)
         self.test_dir.cleanup()
 
@@ -229,7 +243,14 @@ class TestModeSelection(unittest.TestCase):
         os.chdir(self.test_path)
 
     def tearDown(self):
-        """Clean up temporary directory."""
+        """Clean up temporary directory and config files."""
+        # Clean up any config files created during tests
+        config_path = Path(self.test_path) / ".project-index.json"
+        backup_path = Path(self.test_path) / ".project-index.json.backup"
+        if config_path.exists():
+            config_path.unlink()
+        if backup_path.exists():
+            backup_path.unlink()
         os.chdir(self.original_cwd)
         self.test_dir.cleanup()
 
@@ -283,7 +304,7 @@ class TestModeSelection(unittest.TestCase):
     @patch('sys.argv', ['project_index.py', '--mode', 'auto'])
     @patch('project_index.generate_split_index')
     @patch('project_index.print_summary')
-    @patch('index_utils.get_git_files')
+    @patch('project_index.get_git_files')
     def test_mode_auto_triggers_split_above_threshold(self, mock_git_files,
                                                       mock_summary, mock_generate):
         """Test --mode auto triggers split when file count exceeds threshold."""
@@ -308,14 +329,21 @@ class TestCustomThreshold(unittest.TestCase):
         os.chdir(self.test_path)
 
     def tearDown(self):
-        """Clean up temporary directory."""
+        """Clean up temporary directory and config files."""
+        # Clean up any config files created during tests
+        config_path = Path(self.test_path) / ".project-index.json"
+        backup_path = Path(self.test_path) / ".project-index.json.backup"
+        if config_path.exists():
+            config_path.unlink()
+        if backup_path.exists():
+            backup_path.unlink()
         os.chdir(self.original_cwd)
         self.test_dir.cleanup()
 
     @patch('sys.argv', ['project_index.py', '--threshold', '500'])
     @patch('project_index.generate_split_index')
     @patch('project_index.print_summary')
-    @patch('index_utils.get_git_files')
+    @patch('project_index.get_git_files')
     def test_custom_threshold_via_cli(self, mock_git_files, mock_summary, mock_generate):
         """Test custom threshold via --threshold flag."""
         # Mock 501 files (just above custom threshold of 500)
@@ -364,7 +392,14 @@ class TestBackwardCompatibility(unittest.TestCase):
         os.chdir(self.test_path)
 
     def tearDown(self):
-        """Clean up temporary directory."""
+        """Clean up temporary directory and config files."""
+        # Clean up any config files created during tests
+        config_path = Path(self.test_path) / ".project-index.json"
+        backup_path = Path(self.test_path) / ".project-index.json.backup"
+        if config_path.exists():
+            config_path.unlink()
+        if backup_path.exists():
+            backup_path.unlink()
         os.chdir(self.original_cwd)
         self.test_dir.cleanup()
 

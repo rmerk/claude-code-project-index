@@ -1,0 +1,29 @@
+{
+  "version": "1.0",
+  "generated": "2025-11-11 05:20:49",
+  "metrics": [
+    {
+      "project_id": "polyglot-large",
+      "project_name": "claude-code-project-index (self-test)",
+      "file_count": 200,
+      "full_generation_times": [
+        1.3868427276611328,
+        1.3327171802520752,
+        1.369230031967163
+      ],
+      "full_generation_median": 1.369230031967163,
+      "incremental_update_time": 1.079740047454834,
+      "incremental_ratio": 0.7885746165701457,
+      "mcp_load_core_latency": 0.15,
+      "mcp_load_module_latency": 0.2,
+      "mcp_search_files_latency": 0.1,
+      "mcp_get_file_info_latency": 0.08,
+      "mcp_load_core_tokens": 5000,
+      "mcp_load_module_tokens": 3000,
+      "mcp_search_files_tokens": 500,
+      "mcp_get_file_info_tokens": 800,
+      "peak_memory_mb": null,
+      "timestamp": "2025-11-11 05:20:49"
+    }
+  ]
+}

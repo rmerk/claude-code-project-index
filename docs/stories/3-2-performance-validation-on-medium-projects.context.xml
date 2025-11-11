@@ -1,0 +1,246 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>2</storyId>
+    <title>Performance Validation on Medium Projects</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/3-2-performance-validation-on-medium-projects.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer</asA>
+    <iWant>validated performance metrics on medium-sized projects</iWant>
+    <soThat>I know the tool will work efficiently on my real-world codebases</soThat>
+    <tasks>
+- [ ] Task 1: Select and Document Benchmark Projects (AC: #1)
+  - [ ] Identify one Python project (500-1000 files) - e.g., Flask or similar open-source project
+  - [ ] Identify one JavaScript/TypeScript project (1000-3000 files) - e.g., VS Code extension or React app
+  - [ ] Identify one polyglot project (2000-5000 files) - e.g., monorepo with multiple languages
+  - [ ] Document selected projects in `docs/benchmark-projects.json` with metadata (file count, language distribution, LOC)
+
+- [ ] Task 2: Create Performance Benchmarking Infrastructure (AC: #2, #5)
+  - [ ] Create `scripts/benchmark.py` with PerformanceMetrics schema
+  - [ ] Implement `run_performance_benchmark()` function that measures:
+    - Full index generation time (3 runs, median taken)
+    - Incremental update time (make small change, regenerate)
+    - MCP tool call latency for all 4 tools (load_core, load_module, search_files, get_file_info)
+    - Token counting for MCP responses
+    - Memory usage monitoring (peak RSS)
+  - [ ] Implement JSON output format (`docs/performance-metrics.json`)
+  - [ ] Implement Markdown report generation (`docs/performance-report.md`)
+
+- [ ] Task 3: Run Benchmark Suite on 3 Projects (AC: #1, #2)
+  - [ ] Run benchmark on Python project (3 runs per measurement)
+  - [ ] Run benchmark on JavaScript/TypeScript project
+  - [ ] Run benchmark on polyglot project
+  - [ ] Collect all metrics per project
+  - [ ] Generate performance-metrics.json with consolidated results
+
+- [ ] Task 4: Analyze and Optimize Performance Bottlenecks (AC: #3)
+  - [ ] Review benchmark results against NFR targets (NFR-P1 through NFR-P6 from tech spec)
+  - [ ] Identify any measurements exceeding acceptable ranges
+  - [ ] If bottlenecks found:
+    - Profile code to identify hot spots
+    - Implement optimizations (e.g., reduce disk I/O, optimize regex, cache results)
+    - Re-run benchmarks to validate improvements
+  - [ ] Document any optimizations applied in performance-report.md
+
+- [ ] Task 5: Validate Incremental Update Performance (AC: #6)
+  - [ ] For each benchmark project:
+    - Generate full index and measure time
+    - Make small change (modify 1-2 files)
+    - Regenerate index with incremental mode
+    - Measure incremental time
+    - Calculate ratio: incremental_time / full_time
+  - [ ] Verify ratio < 0.1 (10%) for all projects
+  - [ ] If ratio exceeds 10%, optimize incremental update logic
+
+- [ ] Task 6: Update README with Performance Characteristics (AC: #4)
+  - [ ] Add "Performance Characteristics" section to README.md
+  - [ ] Create table showing: project size → expected generation time
+  - [ ] Include MCP tool latency expectations
+  - [ ] Add notes on memory usage for different project sizes
+  - [ ] Cite performance-report.md for detailed metrics
+
+- [ ] Task 7: Create Performance Regression Tests (AC: #5)
+  - [ ] Create `tests/test_performance.py`
+  - [ ] Implement test cases that verify:
+    - Index generation time within acceptable range (baseline ±10%)
+    - MCP tool latency within acceptable range
+    - Memory usage within acceptable range
+  - [ ] Load baseline metrics from performance-metrics.json
+  - [ ] Tests fail if current performance degrades beyond ±10% tolerance
+  - [ ] Document regression test execution in README or testing documentation
+</tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. Benchmark 3 real-world medium projects (500-5000 files each):
+   - One Python project
+   - One JavaScript/TypeScript project
+   - One polyglot project (multiple languages)
+2. Measure and document:
+   - Index generation time (full and incremental)
+   - MCP tool call latency (load_core, load_module, search_files, get_file_info)
+   - Token usage per MCP tool call
+   - Memory usage during indexing and MCP serving
+3. Identify and fix any performance bottlenecks discovered
+4. Document performance characteristics in README (expected times per project size)
+5. Create performance regression tests to catch future degradation
+6. Validate incremental update performance (should be <10% of full generation time)
+</acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Non-Functional Requirements - NFR001</section>
+        <snippet>Performance requirement: Index generation shall complete within 30 seconds for codebases up to 10,000 files. Lazy-loading of detail modules shall have latency under 500ms per module request.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation</title>
+        <section>Performance Characteristics</section>
+        <snippet>Git-based discovery: O(n files), &lt;1s for 1000 files. Parsing: O(LOC), ~0.1s per 1000 LOC. Call graph: O(functions), &lt;1s for 500 functions. Compression: O(iterations), 1-5s worst case. Total: O(files + LOC), 2-30s typical.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification</title>
+        <section>Story 3.2 - Performance Validation on Medium Projects</section>
+        <snippet>Benchmark 3 real-world medium projects (500-5000 files). Measure index generation time (full/incremental), MCP tool call latency, token usage, memory usage. Create performance regression tests with ±10% tolerance. Document characteristics in README.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification</title>
+        <section>Performance NFRs (NFR-P1 through NFR-P6)</section>
+        <snippet>NFR-P5: Benchmark suite must complete within 30 minutes for 3 medium projects. Target: 3 projects × 3 runs × (full generation + incremental + 4 MCP tools) = ~10 min per project.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/2-9-incremental-index-updates.md</path>
+        <title>Story 2.9: Incremental Index Updates</title>
+        <section>Acceptance Criteria</section>
+        <snippet>Detect changed files via git diff. Regenerate detail modules only for changed files + direct dependencies. This story validates that incremental updates should be &lt;10% of full generation time.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/2-10-mcp-server-implementation.md</path>
+        <title>Story 2.10: MCP Server Implementation</title>
+        <section>Overview and Tools</section>
+        <snippet>MCP server with 4 tools: project_index_load_core, project_index_load_module, project_index_search_files, project_index_get_file_info. Uses stdio transport. This story validates MCP tool call latency.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>indexer</kind>
+        <symbol>generate_split_index</symbol>
+        <lines>481-678</lines>
+        <reason>Main index generation function to benchmark for full index time</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/incremental.py</path>
+        <kind>indexer</kind>
+        <symbol>incremental_update</symbol>
+        <lines>454-550</lines>
+        <reason>Incremental update function to benchmark for &lt;10% of full generation time validation</reason>
+      </artifact>
+      <artifact>
+        <path>project_index_mcp.py</path>
+        <kind>mcp-server</kind>
+        <symbol>project_index_load_core, project_index_load_module, project_index_search_files, project_index_get_file_info</symbol>
+        <lines>244, 299, 400, 499</lines>
+        <reason>4 MCP tools to measure latency (&lt;500ms per AC)</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/test_sub_module_splitting.py</path>
+        <kind>test</kind>
+        <symbol>test_file_to_module_map_performance</symbol>
+        <lines>141-157</lines>
+        <reason>Example performance test pattern: start_time, elapsed_ms calculation, assertion</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/test_mcp_detector.py</path>
+        <kind>test</kind>
+        <symbol>test_detection_under_100ms, test_cached_retrieval_under_10ms</symbol>
+        <lines>249-282</lines>
+        <reason>Example performance test patterns with time.time() measurements</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem>Python-based CLI tool with no JavaScript/Node, no Go, no Unity</ecosystem>
+      <manifest>requirements.txt</manifest>
+      <python>
+        <package name="mcp" version="&gt;=1.0.0" purpose="MCP server to benchmark" source="requirements.txt"/>
+        <package name="pydantic" version="&gt;=2.0.0" purpose="MCP input validation" source="requirements.txt"/>
+        <package name="psutil" version="TBD" purpose="Memory usage monitoring - may need to add to requirements.txt" status="optional"/>
+        <package name="tiktoken" version="TBD" purpose="Token counting - optional, can use len(json)/4 as proxy" status="optional"/>
+      </python>
+      <system>
+        <dependency name="Python" version="3.8+" required="true"/>
+        <dependency name="pip" version="bundled with Python" required="true"/>
+        <dependency name="git" version="2.0+" required="false" fallback="filesystem walk"/>
+        <dependency name="bash" version="4.0+" required="true" purpose="installation scripts"/>
+      </system>
+      <frameworks>
+        <framework name="unittest" purpose="Python standard library testing framework - used for all tests including performance regression tests"/>
+        <framework name="FastMCP" purpose="MCP server implementation from mcp package"/>
+      </frameworks>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Use Python standard library for timing (time.time()) - already used in test files</constraint>
+    <constraint>Follow existing test pattern: start_time = time.time(), elapsed = time.time() - start_time</constraint>
+    <constraint>Benchmark 3 runs per measurement, take median to reduce variance</constraint>
+    <constraint>Performance targets from Tech Spec NFRs: Full generation 2-30s typical, MCP latency &lt;500ms, Incremental &lt;10% of full</constraint>
+    <constraint>Output JSON format for machine parsing (docs/performance-metrics.json) and Markdown for human reading (docs/performance-report.md)</constraint>
+    <constraint>If psutil not available, can use alternative memory measurement or skip memory metric</constraint>
+    <constraint>Token counting: Use len(json_output)/4 as proxy (4 chars/token average) or integrate tiktoken if needed</constraint>
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>project_index.py CLI</name>
+      <kind>command-line</kind>
+      <signature>python3 scripts/project_index.py [--split] [--mode=auto|single|split] [PROJECT_ROOT]</signature>
+      <path>scripts/project_index.py</path>
+    </interface>
+    <interface>
+      <name>incremental_update</name>
+      <kind>function</kind>
+      <signature>def incremental_update(index_path: Path, project_root: Path, verbose: bool = False) -> Tuple[str, List[str]]</signature>
+      <path>scripts/incremental.py:454</path>
+    </interface>
+    <interface>
+      <name>MCP Server Tools (4 tools)</name>
+      <kind>mcp-tools</kind>
+      <signature>
+        - async def project_index_load_core(params: LoadCoreIndexInput) -> str
+        - async def project_index_load_module(params: LoadModuleInput) -> str
+        - async def project_index_search_files(params: SearchFilesInput) -> str
+        - async def project_index_get_file_info(params: GetFileInfoInput) -> str
+      </signature>
+      <path>project_index_mcp.py</path>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>Project uses Python's unittest framework (standard library) for all test suites. Test files follow naming convention test_*.py and are located in scripts/ directory. Each test class inherits from unittest.TestCase. Performance tests use time.time() for measurements with start_time/elapsed pattern. Tests include descriptive docstrings and use self.assert* methods (assertEqual, assertTrue, assertLess, etc.). Performance assertions typically check elapsed time against NFR targets (e.g., self.assertLess(elapsed_ms, 100)). Tests can be run via: python3 -m unittest discover scripts/ or python3 scripts/test_*.py directly.</standards>
+    <locations>
+      <location>scripts/test_*.py</location>
+      <location>tests/test_performance.py (to be created in this story)</location>
+      <location>scripts/benchmark.py (to be created in this story)</location>
+    </locations>
+    <ideas>
+      <idea ac="1">Create scripts/benchmark.py with function select_benchmark_projects() that reads docs/benchmark-projects.json. Test it identifies 3 projects: Python (500-1000 files), JS/TS (1000-3000 files), polyglot (2000-5000 files).</idea>
+      <idea ac="2">In benchmark.py, implement run_performance_benchmark(project_path, runs=3) that measures: full index generation time (median of 3 runs), incremental update time, MCP tool latencies (4 tools), token counts, memory usage. Returns PerformanceMetrics dataclass/dict.</idea>
+      <idea ac="2">Test MCP tool latency by: starting MCP server as subprocess with stdio transport, sending JSON-RPC requests to each of 4 tools, measuring round-trip time. Verify all &lt;500ms.</idea>
+      <idea ac="2">Memory monitoring: Try importing psutil for peak RSS. If unavailable, use resource.getrusage(resource.RUSAGE_SELF).ru_maxrss or skip memory metric with warning.</idea>
+      <idea ac="2">Token counting: Use len(json.dumps(response))/4 as proxy (4 chars ≈ 1 token). Optionally try tiktoken if available. Store in metrics JSON.</idea>
+      <idea ac="3">After collecting metrics, compare against NFR targets from tech spec. If any exceed targets, add optimization task to backlog and document in performance-report.md.</idea>
+      <idea ac="4">Generate docs/performance-report.md with: Executive Summary, Metrics Table (3 projects x metrics), Comparison to NFR targets, Identified bottlenecks (if any), Recommendations.</idea>
+      <idea ac="5">Create tests/test_performance.py with test classes TestIndexGenerationPerformance, TestMCPLatencyPerformance, TestIncrementalPerformance. Load baseline from performance-metrics.json, run current measurements, assert within ±10% tolerance.</idea>
+      <idea ac="6">For incremental validation: generate full index, record time T_full. Make small change (edit 1-2 files). Run incremental update, record time T_inc. Assert T_inc / T_full &lt; 0.1 for all 3 projects.</idea>
+    </ideas>
+  </tests>
+</story-context>

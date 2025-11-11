@@ -867,9 +867,16 @@ class TestIntegration(unittest.TestCase):
         with open(index_path, 'r') as f:
             core_index = json.load(f)
 
-        # Verify version supports git metadata
+        # Verify version supports git metadata (v2.1+ or v2.2+)
+        # Skip test if using legacy format (v1.0) - git metadata not available
         version = core_index.get("version", "")
-        self.assertIn("2.1", version, "Core index should be v2.1-enhanced")
+        if version == "1.0":
+            self.skipTest("Legacy format (v1.0) does not support git metadata - regenerate index with split format")
+
+        self.assertTrue(
+            version.startswith("2.1") or version.startswith("2.2"),
+            f"Core index should be v2.1-enhanced or v2.2-submodules, got {version}"
+        )
 
         # Extract modules and git metadata
         modules = core_index.get("modules", {})

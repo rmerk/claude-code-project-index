@@ -1,0 +1,367 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>4</storyId>
+    <title>Version Management System</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/3-4-version-management-system.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer</asA>
+    <iWant>version tracking and update checking</iWant>
+    <soThat>I know when updates are available and can manage upgrades easily</soThat>
+    <tasks>
+- Task 1: Implement Version Display (AC: #1, #2)
+  - Create VERSION file at ~/.claude-code-project-index/VERSION with initial version "v0.3.0"
+  - Add `--version` flag to project_index.py CLI
+  - Display version from VERSION file when --version flag used
+  - Test version display command
+
+- Task 2: Implement Update Checking (AC: #4, #5)
+  - Create check_for_updates() function in project_index.py
+  - Integrate GitHub Releases API call with 2s timeout
+  - Compare local VERSION with latest release version
+  - Display update notification if newer version available
+  - Implement --no-update-check flag to skip update checking
+  - Add update check to /index run workflow (non-blocking)
+  - Test update checking with mocked GitHub API responses
+
+- Task 3: Implement Upgrade Mechanism (AC: #3)
+  - Add --upgrade flag to install.sh
+  - Download latest release from GitHub
+  - Backup current installation before upgrade
+  - Install new version
+  - Validate new installation
+  - Test upgrade procedure
+
+- Task 4: Implement Rollback Capability (AC: #9)
+  - Add --rollback flag to install.sh
+  - Restore previous version from backup
+  - Validate rollback procedure
+  - Test rollback mechanism
+
+- Task 5: Create CHANGELOG.md (AC: #6, #7)
+  - Document Epic 1 changes (v0.1.x → v0.2.x)
+  - Document Epic 2 changes (v0.2.x → v0.3.x)
+  - Highlight breaking changes with ⚠️ warnings
+  - Add migration notes for breaking changes
+  - Include release tagging process documentation
+  - Test CHANGELOG completeness
+
+- Task 6: Implement Version Compatibility Warnings (AC: #8)
+  - Add version field to PROJECT_INDEX.json format
+  - Compare index version with installed version
+  - Display warning when mismatch detected
+  - Test version compatibility checking
+
+- Task 7: Document Release Process (AC: #10)
+  - Create release process documentation (git tagging, GitHub release)
+  - Document version bumping procedure
+  - Document CHANGELOG update workflow
+  - Test release process documentation by following steps
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. `--version` flag displays current version (e.g., `v0.3.0`)
+2. Version stored in `~/.claude-code-project-index/VERSION` file
+3. `install.sh --upgrade` mechanism downloads and installs latest version
+4. Update checking on `/index` run (checks GitHub releases, shows message if newer version available)
+5. Update checking respects `--no-update-check` flag for CI/automation
+6. `CHANGELOG.md` created with all Epic 1, 2, 3 changes documented
+7. Breaking changes clearly marked in CHANGELOG with migration notes
+8. Version compatibility warnings when index format mismatches installed version
+9. Rollback capability: `install.sh --rollback` restores previous version from backup
+10. Release tagging process documented for maintainers
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Technical Specification - Epic 3</title>
+        <section>Version Management Layer (lines 71-75)</section>
+        <snippet>VERSION file in ~/.claude-code-project-index/VERSION, update checking integration in index generation flow (non-blocking), CHANGELOG.md tracking Epic 1-3 release history, rollback capability via backup mechanisms in install.sh</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Technical Specification - Epic 3</title>
+        <section>Version Update Check Workflow (lines 488-511)</section>
+        <snippet>Non-blocking GitHub API call with 2s timeout on /index run. Checks releases API, compares versions, displays update notification if newer available. Respects --no-update-check flag for CI/automation. Continues silently on network failure.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Technical Specification - Epic 3</title>
+        <section>Story 3.4 Acceptance Criteria (lines 964-975)</section>
+        <snippet>Authoritative acceptance criteria: --version flag, VERSION file storage, install.sh --upgrade mechanism, update checking on /index, --no-update-check flag, CHANGELOG.md with Epic 1-3 changes, breaking change markers, version compatibility warnings, rollback capability, release tagging documentation</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 3.4: Version Management System (lines 504-524)</section>
+        <snippet>User story context. Prerequisites: Story 3.1 (installation infrastructure), Story 3.3 (CHANGELOG content source). Part of Epic 3 production readiness focus.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Epic 3 Overview (lines 206-215)</section>
+        <snippet>Production readiness goal: smart installation, version management system with update checking, comprehensive documentation. Transforms Epic 2 features into production-ready tooling.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>NFR001 - Performance (line 61)</section>
+        <snippet>Index generation shall complete within 30 seconds for codebases up to 10,000 files. Version check must not block or impact this performance target.</snippet>
+      </doc>
+      <doc>
+        <path>docs/migration.md</path>
+        <title>Migration Guide</title>
+        <section>Version Overview (lines 10-16)</section>
+        <snippet>Version history: v0.1.x (legacy single-file), v0.2.x (Epic 1 split architecture), v0.3.x (Epic 2+ intelligent features, MCP server, smart presets). CHANGELOG should document these migrations.</snippet>
+      </doc>
+      <doc>
+        <path>docs/troubleshooting.md</path>
+        <title>Troubleshooting Guide</title>
+        <section>Installation Issues (lines 12-49)</section>
+        <snippet>Documents installation validation commands, dependency checks, common error patterns. Version management errors should follow these documentation patterns.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/3-3-comprehensive-documentation-with-claude-code-focus.md</path>
+        <title>Story 3.3: Comprehensive Documentation</title>
+        <section>Documentation Patterns Established</section>
+        <snippet>Created migration.md, troubleshooting.md, best-practices.md, mcp-setup.md. Established patterns: markdown with heading hierarchy, code blocks with syntax highlighting, tables for structured data, emoji indicators (⚠️ for warnings), cross-references with relative links, progressive disclosure approach.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>main script</kind>
+        <symbol>__version__</symbol>
+        <lines>17</lines>
+        <reason>Current hardcoded version "0.2.0-beta" - needs to be replaced with VERSION file reading mechanism</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>CLI parser</kind>
+        <symbol>main</symbol>
+        <lines>2689-2780</lines>
+        <reason>ArgumentParser setup with existing --version flag (line 2726). Need to extend with --no-update-check flag and integrate update checking into workflow.</reason>
+      </artifact>
+      <artifact>
+        <path>install.sh</path>
+        <kind>installation script</kind>
+        <symbol>main installation flow</symbol>
+        <lines>1-160</lines>
+        <reason>Existing installation logic with file copying, directory setup. Needs --upgrade and --rollback flags added with backup/restore mechanisms.</reason>
+      </artifact>
+      <artifact>
+        <path>PROJECT_INDEX.json</path>
+        <kind>index schema</kind>
+        <symbol>version field</symbol>
+        <lines>1</lines>
+        <reason>Index already has version field "2.2-submodules" for format versioning. This is index format version, distinct from tool version but both needed for compatibility checking.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/test_migration.py</path>
+        <kind>test file</kind>
+        <symbol>TestMigrateToSplitFormat</symbol>
+        <lines>275-411</lines>
+        <reason>Testing patterns for migration workflows - similar backup/restore/validation patterns needed for version rollback testing.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/git_metadata.py</path>
+        <kind>utility module</kind>
+        <symbol>extract_git_metadata</symbol>
+        <lines>22-76</lines>
+        <reason>Example of external API integration with timeout handling (git command execution). Pattern to follow for GitHub API with 2s timeout.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <dependency name="mcp" version=">=1.0.0" optional="true">MCP Python SDK for optional MCP server functionality</dependency>
+        <dependency name="pydantic" version=">=2.0.0" optional="true">Input validation (transitive via mcp)</dependency>
+        <dependency name="psutil" version=">=5.9.0" optional="true">Process monitoring for benchmarks</dependency>
+        <stdlib>urllib.request - Use for GitHub API calls (NO new dependencies for version management)</stdlib>
+        <stdlib>json - Parse GitHub API responses and VERSION file</stdlib>
+        <stdlib>pathlib - File path operations for VERSION file</stdlib>
+        <stdlib>subprocess - Execute git commands for install.sh operations</stdlib>
+        <stdlib>argparse - CLI argument parsing (already in use)</stdlib>
+        <stdlib>logging - Update check logging to ~/.claude-code-project-index/logs/</stdlib>
+      </python>
+      <shell>
+        <dependency name="bash" version="any">Installation script language</dependency>
+        <dependency name="git" version="any">Required for install.sh clone/download operations</dependency>
+        <dependency name="jq" version="any">JSON manipulation in install.sh for config files</dependency>
+        <dependency name="curl" version="any">Download releases from GitHub in --upgrade</dependency>
+      </shell>
+      <frameworks>
+        <framework>Python 3.8+ standard library (no external deps for core)</framework>
+        <framework>Bash scripting for installation/upgrade/rollback</framework>
+        <framework>unittest for testing (existing test suite patterns)</framework>
+      </frameworks>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    <constraint>Python 3.8+ compatibility required - use urllib.request (stdlib) for GitHub API, NOT requests library to avoid new external dependencies</constraint>
+    <constraint>Non-blocking update check - must use 2s timeout, graceful degradation on network failure (NFR-P3)</constraint>
+    <constraint>No daemon mode - version checking integrated into existing /index workflow only</constraint>
+    <constraint>Backward compatibility - existing --version flag behavior preserved, VERSION file must be optional for legacy compatibility</constraint>
+    <constraint>Security - version check must not leak project info to GitHub API (user-agent only, no project metadata sent) (NFR-S6)</constraint>
+    <constraint>Observability - update check results must be logged to ~/.claude-code-project-index/logs/update-checks.log (NFR-O3)</constraint>
+    <constraint>Breaking changes in CHANGELOG must use ⚠️ emoji and include migration notes linking to migration.md</constraint>
+    <constraint>install.sh must validate downloaded version before installing (checksum or signature verification if available)</constraint>
+    <constraint>Rollback must restore complete previous installation state, not just scripts (includes templates, agents, config)</constraint>
+    <constraint>Version compatibility check should warn but not block - allow user to proceed with mismatched versions</constraint>
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>VERSION file format</name>
+      <kind>file format</kind>
+      <signature>~/.claude-code-project-index/VERSION - Single line containing version string (e.g., "v0.3.0")</signature>
+      <path>~/.claude-code-project-index/VERSION</path>
+    </interface>
+    <interface>
+      <name>GitHub Releases API</name>
+      <kind>REST endpoint</kind>
+      <signature>GET https://api.github.com/repos/ericbuess/claude-code-project-index/releases/latest - Returns JSON with tag_name, html_url fields</signature>
+      <path>External API</path>
+    </interface>
+    <interface>
+      <name>CLI --version flag</name>
+      <kind>CLI argument</kind>
+      <signature>python project_index.py --version - Displays version from VERSION file, falls back to __version__ if file missing</signature>
+      <path>scripts/project_index.py:2726</path>
+    </interface>
+    <interface>
+      <name>CLI --no-update-check flag</name>
+      <kind>CLI argument</kind>
+      <signature>python project_index.py --no-update-check - Skips GitHub update check for CI/automation</signature>
+      <path>scripts/project_index.py (new)</path>
+    </interface>
+    <interface>
+      <name>install.sh --upgrade</name>
+      <kind>shell script flag</kind>
+      <signature>./install.sh --upgrade - Downloads latest release, backs up current, installs, validates</signature>
+      <path>install.sh (new)</path>
+    </interface>
+    <interface>
+      <name>install.sh --rollback</name>
+      <kind>shell script flag</kind>
+      <signature>./install.sh --rollback - Restores previous version from backup directory</signature>
+      <path>install.sh (new)</path>
+    </interface>
+    <interface>
+      <name>check_for_updates() function</name>
+      <kind>Python function</kind>
+      <signature>def check_for_updates(no_update_check: bool = False) -> Optional[UpdateInfo]: - Returns update info if newer version available</signature>
+      <path>scripts/project_index.py (new)</path>
+    </interface>
+    <interface>
+      <name>PROJECT_INDEX.json version field</name>
+      <kind>JSON field</kind>
+      <signature>"version": "2.2-submodules" - Index format version for compatibility checking</signature>
+      <path>PROJECT_INDEX.json:1</path>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+Project uses unittest framework (Python stdlib) for all testing. Existing test suite has 18 test files in scripts/ directory following consistent patterns:
+
+**Test Structure:**
+- Test classes inherit from unittest.TestCase
+- Tests organized by acceptance criteria (AC#1, AC#2, etc.)
+- setUp/tearDown methods for test isolation
+- tempfile.mkdtemp() for temporary test environments
+- Comprehensive cleanup in tearDown to avoid side effects
+
+**Naming Conventions:**
+- Test files: test_{feature}.py (e.g., test_migration.py, test_git_metadata.py)
+- Test classes: Test{Feature}{Aspect} (e.g., TestCreateBackup, TestExtractLegacyData)
+- Test methods: test_{feature}_{scenario} (e.g., test_backup_creation_with_timestamp, test_upgrade_flag_forces_preset)
+
+**Testing Best Practices:**
+- Mock external dependencies (GitHub API, file system operations where appropriate)
+- Performance tests validate operations complete within specified timeouts
+- Integration tests validate end-to-end workflows
+- Backward compatibility tests ensure legacy behavior preserved
+- Error handling tests for network failures, missing files, invalid input
+
+**Test Execution:**
+- Run individual test: python -m unittest scripts.test_version_management
+- Run all tests: python -m unittest discover scripts/ 'test_*.py'
+- Tests should be runnable without external dependencies (mock GitHub API)
+    </standards>
+    <locations>
+      <location>scripts/test_version_management.py - New test file for Story 3.4</location>
+      <location>scripts/test_migration.py - Reference for backup/restore/validation patterns</location>
+      <location>scripts/test_git_metadata.py - Reference for external API timeout/error handling</location>
+      <location>scripts/test_configuration.py - Reference for CLI flag testing patterns</location>
+    </locations>
+    <ideas>
+      <test ac="1,2" priority="high">
+        <name>test_version_display_from_file</name>
+        <description>Test --version flag reads from VERSION file and displays correctly. Covers AC#1 (display version) and AC#2 (VERSION file storage).</description>
+      </test>
+      <test ac="2" priority="high">
+        <name>test_version_file_creation</name>
+        <description>Test VERSION file created in ~/.claude-code-project-index/VERSION with correct format. Validate single-line "v0.3.0" format.</description>
+      </test>
+      <test ac="1,2" priority="medium">
+        <name>test_version_fallback_to_hardcoded</name>
+        <description>Test --version falls back to __version__ if VERSION file missing (backward compatibility).</description>
+      </test>
+      <test ac="4,5" priority="high">
+        <name>test_update_check_newer_version_available</name>
+        <description>Mock GitHub API to return newer version. Verify update notification displayed with install.sh --upgrade suggestion. Test AC#4 (update checking) and AC#5 (--no-update-check respected).</description>
+      </test>
+      <test ac="4,5" priority="high">
+        <name>test_update_check_timeout_graceful_degradation</name>
+        <description>Mock GitHub API with 3s delay (exceeds 2s timeout). Verify no error, silent continuation. Test NFR-P3 (2s timeout, non-blocking).</description>
+      </test>
+      <test ac="5" priority="medium">
+        <name>test_no_update_check_flag_skips_api</name>
+        <description>Test --no-update-check flag prevents GitHub API call entirely. Verify no network request made.</description>
+      </test>
+      <test ac="3" priority="high">
+        <name>test_upgrade_downloads_and_installs</name>
+        <description>Test install.sh --upgrade mechanism. Mock GitHub release download, verify backup created, new version installed, validation performed.</description>
+      </test>
+      <test ac="3" priority="medium">
+        <name>test_upgrade_validation_failure_rolls_back</name>
+        <description>Test upgrade rollback on validation failure. Mock corrupted download, verify automatic rollback to previous version.</description>
+      </test>
+      <test ac="9" priority="high">
+        <name>test_rollback_restores_previous_version</name>
+        <description>Test install.sh --rollback restores complete previous installation (scripts, templates, agents, config).</description>
+      </test>
+      <test ac="8" priority="medium">
+        <name>test_version_compatibility_warning</name>
+        <description>Test version mismatch between index format (PROJECT_INDEX.json version) and tool version. Verify warning displayed but not blocking.</description>
+      </test>
+      <test ac="6,7" priority="low">
+        <name>test_changelog_format_validation</name>
+        <description>Validate CHANGELOG.md structure: Epic 1-3 sections, ⚠️ emoji for breaking changes, migration notes linking to migration.md.</description>
+      </test>
+      <test ac="10" priority="low">
+        <name>test_release_process_documentation_complete</name>
+        <description>Validate release process documentation exists and includes git tagging, GitHub release creation, version bumping, CHANGELOG update.</description>
+      </test>
+      <test priority="high">
+        <name>test_update_check_logging</name>
+        <description>Test NFR-O3: Verify update check results logged to ~/.claude-code-project-index/logs/update-checks.log with timestamp, result, version info.</description>
+      </test>
+      <test priority="medium">
+        <name>test_update_check_no_project_metadata_leak</name>
+        <description>Test NFR-S6: Verify GitHub API request only sends user-agent, no project-specific information leaked.</description>
+      </test>
+      <test priority="high">
+        <name>test_performance_update_check_under_2s</name>
+        <description>Test NFR-P3: Verify update check completes or times out within 2s, does not block index generation.</description>
+      </test>
+    </ideas>
+  </tests>
+</story-context>

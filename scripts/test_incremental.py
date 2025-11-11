@@ -210,16 +210,6 @@ class TestHashValidation(unittest.TestCase):
         self.assertFalse(result)
 
 
-class TestSelectiveRegeneration(unittest.TestCase):
-    """Test selective regeneration of affected modules (AC #2, #3)."""
-
-    def test_only_affected_modules_updated(self):
-        """Test that only affected modules are regenerated."""
-        # This is an integration test that would require full index setup
-        # For now, validate the logic exists
-        self.assertTrue(True)  # Placeholder
-
-
 class TestAutoDetection(unittest.TestCase):
     """Test auto-detection of incremental vs full mode (AC #5)."""
 
@@ -227,11 +217,6 @@ class TestAutoDetection(unittest.TestCase):
         """Test that missing index triggers full regeneration."""
         non_existent = Path('/tmp/nonexistent_index.json')
         self.assertFalse(non_existent.exists())
-
-    def test_git_unavailable_triggers_full(self):
-        """Test that git unavailability triggers full regeneration."""
-        # Tested via subprocess mocking in detect_changed_files tests
-        self.assertTrue(True)  # Validated in TestChangeDetection
 
 
 class TestPerformance(unittest.TestCase):
@@ -337,7 +322,6 @@ def run_all_tests():
     suite.addTests(loader.loadTestsFromTestCase(TestChangeDetection))
     suite.addTests(loader.loadTestsFromTestCase(TestDependencyGraph))
     suite.addTests(loader.loadTestsFromTestCase(TestHashValidation))
-    suite.addTests(loader.loadTestsFromTestCase(TestSelectiveRegeneration))
     suite.addTests(loader.loadTestsFromTestCase(TestAutoDetection))
     suite.addTests(loader.loadTestsFromTestCase(TestPerformance))
     suite.addTests(loader.loadTestsFromTestCase(TestIntegration))

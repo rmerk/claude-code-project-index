@@ -12,15 +12,23 @@ This isn't a product - just a tool that solves Claude Code's architectural blind
 
 Automatically gives Claude Code architectural awareness of your codebase. Add `-i` to any prompt to generate or update a PROJECT_INDEX.json containing your project's functions, classes, and structure.
 
-## Quick Install
+## Quick Start
+
+### Installation
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ericbuess/claude-code-project-index/main/install.sh | bash
 ```
 
-## Usage
+The installer automatically:
+- Detects your Python version (3.8+ required)
+- Installs scripts to `~/.claude-code-project-index/`
+- Configures Claude Code hooks (`UserPromptSubmit`, `Stop`)
+- Adds `/index` command for manual index generation
 
-Just add `-i` to any Claude prompt:
+### Basic Usage with Claude Code CLI
+
+Just add `-i` to any Claude Code prompt:
 
 ```bash
 claude "fix the auth bug -i"          # Auto-creates/uses index (default 50k)
@@ -37,6 +45,45 @@ claude "analyze architecture -ic200"  # Export up to 200k to clipboard for exter
 - **Auto-maintenance**: Every file change triggers automatic index updates
 - **To stop indexing**: Simply delete PROJECT_INDEX.json
 
+### Performance Characteristics
+
+Based on real-world benchmarks on Apple Silicon (M-series), Python 3.12:
+
+| Project Size | Files | Full Generation | Incremental Update | Use Case |
+|--------------|-------|-----------------|-------------------|----------|
+| **Small** | < 200 | 1-2 seconds | <1 second | Personal projects, utilities |
+| **Medium** | 200-1000 | 3-10 seconds | <1 second | Team projects, web apps |
+| **Large** | 1000-5000 | 10-30 seconds | <2 seconds | Enterprise codebases |
+| **Very Large** | 5000+ | 30-60 seconds | <5 seconds | Monorepos |
+
+**Real example** (this project, 200 files): 1.37s full generation, <1s incremental updates
+
+**MCP Tool Latency:** All tools respond in <200ms typically, <500ms maximum
+
+📊 Detailed metrics: [`docs/performance-report.md`](docs/performance-report.md) | [`docs/performance-metrics.json`](docs/performance-metrics.json)
+
+### Smart Configuration Presets
+
+**Zero configuration required!** On first run, the indexer automatically:
+
+1. **Detects your project size** (counts files via git)
+2. **Selects optimal preset:**
+   - **Small** (<100 files): Single-file format, minimal config
+   - **Medium** (100-4999 files): Split at 500 files, all Epic 2 features enabled
+   - **Large** (5000+ files): Aggressive splitting, optimized for performance
+3. **Creates `.project-index.json`** with the right settings
+4. **Tracks upgrades** as your project grows
+
+```bash
+# First run in your project
+/index
+# ✨ Created .project-index.json with medium preset (1,247 files detected)
+```
+
+When your project crosses size boundaries, you'll be prompted to upgrade (with automatic backups).
+
+**Manual configuration:** You can customize any setting in `.project-index.json` after creation. See [Configuration Options](#configuration-options) below.
+
 ## What It Does
 
 PROJECT_INDEX extracts and tracks:
@@ -51,25 +98,74 @@ This helps Claude:
 - Place new code in the correct location
 - Avoid creating duplicate functions
 
-## NEW: MCP Server Support (Optional)
+## MCP Server Setup (Optional)
 
-**⚡ Epic 2 Feature** - Expose your project index as an MCP (Model Context Protocol) server for advanced AI agent integration.
+**⚡ Epic 2/3 Feature** - Expose your project index as an MCP (Model Context Protocol) server for advanced AI agent integration.
 
 ### What is MCP?
 
-MCP (Model Context Protocol) allows AI agents to interact with your project index through standardized tool interfaces. Instead of loading the entire index, agents can query exactly what they need through dedicated tools.
+[Model Context Protocol (MCP)](https://modelcontextprotocol.io) is an open protocol that standardizes how AI applications provide context to LLMs. Think of MCP like a USB-C port for AI applications - it allows AI agents to interact with your project index through standardized tool interfaces instead of loading the entire index.
 
-### Quick Start
+### Multi-Tool Support (New in v0.3.0!)
+
+**✨ Auto-configuration:** The `install.sh` script now automatically detects and configures MCP for all three tools!
+
+This project supports **three MCP-compatible tools** with the following priority:
+
+1. **🥇 Claude Code CLI** (Recommended, most detailed documentation)
+2. **🥈 Cursor IDE** (Standard support)
+3. **🥉 Claude Desktop** (Basic support)
+
+### Auto-Configuration
 
 ```bash
-# Install MCP dependencies (first external dependency for this project)
-pip install -r requirements.txt
+# Run installation
+./install.sh
 
-# Run the MCP server
-python project_index_mcp.py
+# The installer will:
+# ✅ Auto-detect which AI tools are installed
+# ✅ Offer to configure MCP for detected tools
+# ✅ Write MCP configs (preserves existing servers)
+# ✅ Provide validation commands
+
+# Manual configuration (if auto-detection fails)
+./install.sh --configure-mcp=claude-code
+./install.sh --configure-mcp=cursor
+./install.sh --configure-mcp=desktop
 ```
 
-### Available Tools
+### Validation
+
+```bash
+# Validate MCP connection
+python3 ~/.claude-code-project-index/scripts/validate_mcp.py --tool=claude-code
+python3 ~/.claude-code-project-index/scripts/validate_mcp.py --all
+```
+
+**For detailed setup instructions and troubleshooting**, see [`docs/mcp-setup.md`](docs/mcp-setup.md).
+
+### Manual Setup for Claude Code CLI (If Needed)
+
+```bash
+# 1. Install MCP dependencies (first external dependency for this project)
+pip install -r requirements.txt
+
+# 2. Add MCP server to Claude Code config (~/.claude/settings.json)
+{
+  "mcpServers": {
+    "project-index": {
+      "command": "python",
+      "args": ["~/.claude-code-project-index/project_index_mcp.py"]
+    }
+  }
+}
+
+# 3. Restart Claude Code and verify the 4 tools appear
+# Tools: project_index_load_core, project_index_load_module,
+#        project_index_search_files, project_index_get_file_info
+```
+
+### Available MCP Tools
 
 The MCP server provides 4 core tools:
 
@@ -78,9 +174,13 @@ The MCP server provides 4 core tools:
 3. **`project_index_search_files`** - Search for files by path pattern with pagination
 4. **`project_index_get_file_info`** - Get detailed information about a specific file
 
-### Integration with Claude Desktop
+### Other Tool Integrations
 
-Add to your Claude Desktop MCP configuration (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+**Cursor IDE and Claude Desktop** are also supported. For complete setup instructions:
+- **Cursor IDE setup**: See [`docs/mcp-setup.md#cursor-ide-configuration`](docs/mcp-setup.md#cursor-ide-configuration)
+- **Claude Desktop setup**: See [`docs/mcp-setup.md#claude-desktop-configuration`](docs/mcp-setup.md#claude-desktop-configuration)
+
+Quick example for Claude Desktop (`~/Library/Application Support/Claude/claude_desktop_config.json`):
 
 ```json
 {
@@ -93,6 +193,8 @@ Add to your Claude Desktop MCP configuration (`~/Library/Application Support/Cla
   }
 }
 ```
+
+**Note:** Claude Code CLI is the primary supported tool with the most detailed documentation and testing.
 
 ### Benefits
 
@@ -437,9 +539,16 @@ For any issue, just describe it to Claude and let it fix the tool for you!
 - MCP Python SDK: `pip install -r requirements.txt`
 - See "MCP Server Support" section above for details
 
+
 ## Troubleshooting
 
-### Common Issues
+**📖 For comprehensive troubleshooting**, see [`docs/troubleshooting.md`](docs/troubleshooting.md) with:
+- FAQ with 15+ common issues and solutions
+- Installation validation steps
+- MCP server debugging tips
+- Error message reference table
+
+### Quick Fixes
 
 **Index not creating?**
 - Check Python: `python3 --version` (need 3.8+)
@@ -2101,6 +2210,8 @@ Existing Utilities
 - [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk)
 - [mcp-builder skill](.claude/skills/mcp-builder) - Implementation guide
 - [Pydantic Documentation](https://docs.pydantic.dev/)
+
+**More details:** See [Smart Configuration Presets](#smart-configuration-presets) in the Quick Start section above.
 
 ## Backward Compatibility
 

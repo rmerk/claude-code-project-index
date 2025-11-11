@@ -1,67 +1,47 @@
 {
   "module_id": "scripts",
   "version": "2.1-enhanced",
-  "modified": "2025-11-05T03:23:43.823163",
+  "modified": "2025-11-11T10:11:53.032159",
   "f": {
-    "scripts/test_large_module_detection.py": {
+    "scripts/benchmark.py": {
       "lang": "python",
       "funcs": [
-        "run_all_tests"
+        "load_benchmark_projects",
+        "clone_or_use_project",
+        "measure_full_generation",
+        "measure_incremental_update",
+        "measure_mcp_latency",
+        "measure_memory_usage",
+        "run_performance_benchmark",
+        "save_metrics_json",
+        "generate_performance_report",
+        "main"
       ],
       "imports": [
         "json",
-        "os",
-        "sys",
-        "tempfile",
-        "time",
-        "unittest",
-        "pathlib",
-        "typing",
-        "unittest.mock",
-        "project_index",
-        "shutil",
-        "shutil",
-        "shutil",
-        "shutil",
-        "shutil"
-      ],
-      "git": {
-        "commit": null,
-        "author": null,
-        "date": "2025-11-04T21:56:25.873628+00:00",
-        "message": null,
-        "pr": null,
-        "lines_changed": null,
-        "recency_days": 0
-      }
-    },
-    "scripts/test_manual_large_module.py": {
-      "lang": "python",
-      "funcs": [
-        "create_synthetic_project",
-        "run_test"
-      ],
-      "imports": [
-        "json",
-        "shutil",
-        "tempfile",
-        "pathlib",
-        "sys",
         "os",
         "subprocess",
-        "sys"
+        "sys",
+        "time",
+        "statistics",
+        "tempfile",
+        "shutil",
+        "pathlib",
+        "typing",
+        "dataclasses",
+        "psutil"
       ],
       "git": {
         "commit": null,
         "author": null,
-        "date": "2025-11-04T21:57:31.289567+00:00",
+        "date": "2025-11-11T11:58:04.533456+00:00",
         "message": null,
         "pr": null,
         "lines_changed": null,
         "recency_days": 0
       }
     },
-    "scripts/test_sub_module_splitting.py": {
+    "scripts/test_smart_presets.py": {
       "lang": "python",
       "funcs": [
         "run_all_tests"
@@ -70,18 +50,19 @@
         "json",
         "os",
         "shutil",
+        "sys",
         "tempfile",
         "time",
         "unittest",
         "pathlib",
-        "typing",
+        "unittest.mock",
         "project_index",
-        "sys"
+        "index_utils"
       ],
       "git": {
         "commit": null,
         "author": null,
-        "date": "2025-11-05T00:59:00.425107+00:00",
+        "date": "2025-11-11T10:34:29.131524+00:00",
         "message": null,
         "pr": null,
         "lines_changed": null,
@@ -104,7 +85,7 @@
         "message": "Implement tiered documentation classification system",
         "pr": null,
         "lines_changed": 99,
-        "recency_days": 1
+        "recency_days": 7
       }
     },
     "scripts/find_python.sh": {
@@ -120,7 +101,7 @@
         "message": "Initial release v0.1.0",
         "pr": null,
         "lines_changed": 166,
-        "recency_days": 81
+        "recency_days": 87
       }
     },
     "scripts/git_metadata.py": {
@@ -147,7 +128,7 @@
         "message": "Update PROJECT_INDEX and implement Git metadata extraction",
         "pr": null,
         "lines_changed": 314,
-        "recency_days": 1
+        "recency_days": 7
       }
     },
     "scripts/i_flag_hook.py": {
@@ -185,7 +166,7 @@
         "message": "Clarify philosophy and adjust timeout to reasonable 30s",
         "pr": null,
         "lines_changed": 2,
-        "recency_days": 74
+        "recency_days": 81
       }
     },
     "scripts/impact.py": {
@@ -214,7 +195,7 @@
         "message": "Implement MCP server and enhance project index functionality",
         "pr": null,
         "lines_changed": 348,
-        "recency_days": 1
+        "recency_days": 7
       }
     },
     "scripts/incremental.py": {
@@ -249,7 +230,7 @@
         "message": "Implement MCP server and enhance project index functionality",
         "pr": null,
         "lines_changed": 580,
-        "recency_days": 1
+        "recency_days": 7
       }
     },
     "scripts/index_utils.py": {
@@ -287,7 +268,7 @@
         "message": "Complete Epic 1: Split Index Architecture",
         "pr": null,
         "lines_changed": 18,
-        "recency_days": 3
+        "recency_days": 9
       }
     },
     "scripts/loader.py": {
@@ -307,13 +288,13 @@
         "warnings"
       ],
       "git": {
-        "commit": "85acc24f27cab3701369d0157d7acdd770f1fb3b",
+        "commit": "6a586afeac79678766a77b4e28cde2e44fdce756",
         "author": "4576425+rmerk@users.noreply.github.com",
-        "date": "2025-11-03T14:09:18-06:00",
-        "message": "Implement tiered documentation storage system",
+        "date": "2025-11-05T03:28:12-06:00",
+        "message": "Implement Epic 4: Intelligent Sub-Module Organization and Enhance Project Index",
         "pr": null,
-        "lines_changed": 86,
-        "recency_days": 1
+        "lines_changed": 18,
+        "recency_days": 6
       }
     },
     "scripts/mcp_detector.py": {
@@ -336,7 +317,7 @@
         "message": "Implement MCP server and enhance project index functionality",
         "pr": null,
         "lines_changed": 182,
-        "recency_days": 1
+        "recency_days": 7
       }
     },
     "scripts/project_index.py": {
@@ -409,13 +390,13 @@
         "incremental"
       ],
       "git": {
-        "commit": "af29eeca1bd6137c76fac643fd71f19a26fd606a",
+        "commit": "6a586afeac79678766a77b4e28cde2e44fdce756",
         "author": "4576425+rmerk@users.noreply.github.com",
-        "date": "2025-11-03T20:55:10-06:00",
-        "message": "Implement MCP server and enhance project index functionality",
+        "date": "2025-11-05T03:28:12-06:00",
+        "message": "Implement Epic 4: Intelligent Sub-Module Organization and Enhance Project Index",
         "pr": null,
-        "lines_changed": 78,
-        "recency_days": 1
+        "lines_changed": 946,
+        "recency_days": 6
       }
     },
     "scripts/relevance.py": {
@@ -429,13 +410,13 @@
         "json"
       ],
       "git": {
-        "commit": "d14b7139a4dd04fc91b252c5b1796b5356d52fe7",
+        "commit": "6a586afeac79678766a77b4e28cde2e44fdce756",
         "author": "4576425+rmerk@users.noreply.github.com",
-        "date": "2025-11-03T16:15:46-06:00",
-        "message": "Enhance temporal awareness and relevance scoring in index-analyzer agent",
+        "date": "2025-11-05T03:28:12-06:00",
+        "message": "Implement Epic 4: Intelligent Sub-Module Organization and Enhance Project Index",
         "pr": null,
-        "lines_changed": 238,
-        "recency_days": 1
+        "lines_changed": 208,
+        "recency_days": 6
       }
     },
     "scripts/stop_hook.py": {
@@ -457,7 +438,7 @@
         "message": "Complete Epic 1: Split Index Architecture",
         "pr": null,
         "lines_changed": 24,
-        "recency_days": 3
+        "recency_days": 9
       }
     },
     "scripts/test_backward_compat.py": {
@@ -480,7 +461,7 @@
         "message": "Complete Epic 1: Split Index Architecture",
         "pr": null,
         "lines_changed": 191,
-        "recency_days": 3
+        "recency_days": 9
       }
     },
     "scripts/test_configuration.py": {
@@ -507,7 +488,7 @@
         "message": "Complete Epic 1: Split Index Architecture",
         "pr": null,
         "lines_changed": 414,
-        "recency_days": 3
+        "recency_days": 9
       }
     },
     "scripts/test_doc_classifier.py": {
@@ -531,7 +512,7 @@
         "message": "Implement tiered documentation classification system",
         "pr": null,
         "lines_changed": 270,
-        "recency_days": 1
+        "recency_days": 7
       }
     },
     "scripts/test_git_metadata.py": {
@@ -558,7 +539,7 @@
         "message": "Update PROJECT_INDEX and implement Git metadata extraction",
         "pr": null,
         "lines_changed": 435,
-        "recency_days": 1
+        "recency_days": 7
       }
     },
     "scripts/test_hybrid_routing.py": {
@@ -585,7 +566,7 @@
         "message": "Implement MCP server and enhance project index functionality",
         "pr": null,
         "lines_changed": 529,
-        "recency_days": 1
+        "recency_days": 7
       }
     },
     "scripts/test_impact.py": {
@@ -613,7 +594,7 @@
         "message": "Implement MCP server and enhance project index functionality",
         "pr": null,
         "lines_changed": 558,
-        "recency_days": 1
+        "recency_days": 7
       }
     },
     "scripts/test_incremental.py": {
@@ -641,7 +622,7 @@
         "message": "Implement MCP server and enhance project index functionality",
         "pr": null,
         "lines_changed": 353,
-        "recency_days": 1
+        "recency_days": 7
       }
     },
     "scripts/test_index_analyzer_agent.py": {
@@ -672,7 +653,39 @@
         "message": "Complete Epic 1: Split Index Architecture",
         "pr": null,
         "lines_changed": 569,
-        "recency_days": 3
+        "recency_days": 9
+      }
+    },
+    "scripts/test_large_module_detection.py": {
+      "lang": "python",
+      "funcs": [
+        "run_all_tests"
+      ],
+      "imports": [
+        "json",
+        "os",
+        "sys",
+        "tempfile",
+        "time",
+        "unittest",
+        "pathlib",
+        "typing",
+        "unittest.mock",
+        "project_index",
+        "shutil",
+        "shutil",
+        "shutil",
+        "shutil",
+        "shutil"
+      ],
+      "git": {
+        "commit": "6a586afeac79678766a77b4e28cde2e44fdce756",
+        "author": "4576425+rmerk@users.noreply.github.com",
+        "date": "2025-11-05T03:28:12-06:00",
+        "message": "Implement Epic 4: Intelligent Sub-Module Organization and Enhance Project Index",
+        "pr": null,
+        "lines_changed": 474,
+        "recency_days": 6
       }
     },
     "scripts/test_loader.py": {
@@ -690,13 +703,39 @@
         "time"
       ],
       "git": {
-        "commit": "f0692af91382f83d0420426989af0db0cf8489aa",
+        "commit": "6a586afeac79678766a77b4e28cde2e44fdce756",
         "author": "4576425+rmerk@users.noreply.github.com",
-        "date": "2025-11-03T15:39:51-06:00",
-        "message": "Update PROJECT_INDEX and implement Git metadata extraction",
+        "date": "2025-11-05T03:28:12-06:00",
+        "message": "Implement Epic 4: Intelligent Sub-Module Organization and Enhance Project Index",
         "pr": null,
-        "lines_changed": 3,
-        "recency_days": 1
+        "lines_changed": 49,
+        "recency_days": 6
+      }
+    },
+    "scripts/test_manual_large_module.py": {
+      "lang": "python",
+      "funcs": [
+        "create_synthetic_project",
+        "run_test"
+      ],
+      "imports": [
+        "json",
+        "shutil",
+        "tempfile",
+        "pathlib",
+        "sys",
+        "os",
+        "subprocess",
+        "sys"
+      ],
+      "git": {
+        "commit": "6a586afeac79678766a77b4e28cde2e44fdce756",
+        "author": "4576425+rmerk@users.noreply.github.com",
+        "date": "2025-11-05T03:28:12-06:00",
+        "message": "Implement Epic 4: Intelligent Sub-Module Organization and Enhance Project Index",
+        "pr": null,
+        "lines_changed": 143,
+        "recency_days": 6
       }
     },
     "scripts/test_mcp_detector.py": {
@@ -721,7 +760,7 @@
         "message": "Implement MCP server and enhance project index functionality",
         "pr": null,
         "lines_changed": 389,
-        "recency_days": 1
+        "recency_days": 7
       }
     },
     "scripts/test_mcp_server.py": {
@@ -756,7 +795,7 @@
         "message": "Implement MCP server and enhance project index functionality",
         "pr": null,
         "lines_changed": 667,
-        "recency_days": 1
+        "recency_days": 7
       }
     },
     "scripts/test_migration.py": {
@@ -784,7 +823,7 @@
         "message": "Update PROJECT_INDEX and implement Git metadata extraction",
         "pr": null,
         "lines_changed": 4,
-        "recency_days": 1
+        "recency_days": 7
       }
     },
     "scripts/test_relevance.py": {
@@ -804,13 +843,40 @@
         "scripts"
       ],
       "git": {
-        "commit": "d14b7139a4dd04fc91b252c5b1796b5356d52fe7",
+        "commit": "6a586afeac79678766a77b4e28cde2e44fdce756",
         "author": "4576425+rmerk@users.noreply.github.com",
-        "date": "2025-11-03T16:15:46-06:00",
-        "message": "Enhance temporal awareness and relevance scoring in index-analyzer agent",
+        "date": "2025-11-05T03:28:12-06:00",
+        "message": "Implement Epic 4: Intelligent Sub-Module Organization and Enhance Project Index",
         "pr": null,
-        "lines_changed": 568,
-        "recency_days": 1
+        "lines_changed": 348,
+        "recency_days": 6
+      }
+    },
+    "scripts/test_sub_module_splitting.py": {
+      "lang": "python",
+      "funcs": [
+        "run_all_tests"
+      ],
+      "imports": [
+        "json",
+        "os",
+        "shutil",
+        "tempfile",
+        "time",
+        "unittest",
+        "pathlib",
+        "typing",
+        "project_index",
+        "sys"
+      ],
+      "git": {
+        "commit": "6a586afeac79678766a77b4e28cde2e44fdce756",
+        "author": "4576425+rmerk@users.noreply.github.com",
+        "date": "2025-11-05T03:28:12-06:00",
+        "message": "Implement Epic 4: Intelligent Sub-Module Organization and Enhance Project Index",
+        "pr": null,
+        "lines_changed": 453,
+        "recency_days": 6
       }
     },
     "scripts/test_tiered_storage.py": {
@@ -840,7 +906,7 @@
         "message": "Update PROJECT_INDEX and implement Git metadata extraction",
         "pr": null,
         "lines_changed": 14,
-        "recency_days": 1
+        "recency_days": 7
       }
     }
   },

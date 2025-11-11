@@ -1,0 +1,313 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>3</storyId>
+    <title>Comprehensive Documentation with Claude Code Focus</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/3-3-comprehensive-documentation-with-claude-code-focus.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer new to the project index tool</asA>
+    <iWant>clear, comprehensive documentation with Claude Code as the primary workflow</iWant>
+    <soThat>I can get started quickly and troubleshoot issues independently</soThat>
+    <tasks>
+      - Task 1: Enhance README.md with Claude Code-first workflow (AC: #1)
+        - Add comprehensive Quick Start section prioritizing Claude Code CLI workflow
+        - Integrate Performance Characteristics table (building on Story 3.2 work)
+        - Add Smart Config Presets explanation section
+        - Add MCP Server Setup overview with priority ordering (Claude Code > Cursor > Claude Desktop)
+        - Ensure all sections maintain Claude Code as primary workflow reference
+
+      - Task 2: Create Troubleshooting Guide (AC: #2)
+        - Write FAQ section with 10-15 common issues and solutions
+        - Document Installation validation steps (verify Python, dependencies, hooks)
+        - Add MCP server debugging tips section (connection issues, validation commands)
+        - Create Clear error message reference table with resolution steps
+        - Test all troubleshooting procedures manually
+
+      - Task 3: Create Best Practices Guide (AC: #3)
+        - Document when to use tiered documentation feature
+        - Explain relevance scoring use cases and tuning
+        - Describe incremental updates optimal scenarios
+        - Provide configuration tuning guidance (thresholds, weights, preset selection)
+        - Include real-world usage patterns and examples
+
+      - Task 4: Enhance Migration Guide (AC: #4)
+        - Document v0.1.x → v0.2.x (Epic 1) upgrade path with examples
+        - Document v0.2.x → v0.3.x (Epic 2) upgrade path with examples
+        - Highlight breaking changes clearly with ⚠️ warnings
+        - Provide migration scripts or commands for each transition
+        - Test migration procedures on sample projects
+
+      - Task 5: Create MCP Configuration Guide (AC: #5)
+        - Write Claude Code CLI configuration section (most detailed, priority 1)
+        - Write Cursor IDE configuration section (standard detail, priority 2)
+        - Write Claude Desktop configuration section (basic detail, priority 3)
+        - Document auto-detection behavior and manual fallback
+        - Include config file examples and validation commands for each tool
+        - Test configuration procedures on all three tools
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. README.md enhanced with:
+       - Quick start section (Claude Code workflow first)
+       - Performance characteristics table (project size → expected times)
+       - Smart config presets explanation
+       - MCP server setup (Claude Code > Cursor > Claude Desktop order)
+    2. Troubleshooting guide created (docs/troubleshooting.md):
+       - FAQ with common issues and solutions
+       - Installation validation steps
+       - MCP server debugging tips
+       - Clear error message reference
+    3. Best practices guide created (docs/best-practices.md):
+       - When to use which features (tiered docs, relevance scoring, incremental updates)
+       - Configuration tuning guidance (thresholds, weights)
+       - Real-world usage patterns
+    4. Migration guide enhanced (docs/migration.md):
+       - v0.1.x → v0.2.x upgrade path (Epic 1)
+       - v0.2.x → v0.3.x upgrade path (Epic 2)
+       - Breaking changes clearly highlighted
+    5. MCP configuration guide created (docs/mcp-setup.md):
+       - Claude Code CLI configuration (primary, most detailed)
+       - Cursor IDE configuration (secondary)
+       - Claude Desktop configuration (tertiary)
+       - Auto-detection behavior documented
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification - Production Readiness</title>
+        <section>Overview, System Architecture Alignment</section>
+        <snippet>Epic 3 transforms claude-code-project-index into production-ready tooling. Core focus: smart installation with auto-detected presets, validated performance on medium projects, comprehensive Claude Code-first documentation, version management, and multi-tool MCP support.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>User Journeys - Agent-Driven Adaptive Index Usage</section>
+        <snippet>Primary use case demonstrates agent intelligence with hybrid MCP+index strategy. Agent loads core index (structure), uses MCP tools for real-time data when available, falls back to detail modules when MCP unavailable. Four relevance signals: explicit context, semantic, temporal, structural.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Epic 3: Production Readiness for Claude Code CLI</section>
+        <snippet>Epic sequencing: Epic 1 (split architecture foundation), Epic 2 (intelligent features), Epic 3 (production readiness), Epic 4 (nested module organization). Story 3.3 focuses on comprehensive documentation with Claude Code as primary workflow.</snippet>
+      </doc>
+      <doc>
+        <path>docs/performance-report.md</path>
+        <title>Performance Benchmark Report</title>
+        <section>Benchmark Results, Performance Analysis</section>
+        <snippet>Self-test project: 200 files, 1.37s full generation, 1.08s incremental (78.9% ratio). MCP latency estimates: avg 132ms across all tools. Performance characteristics table ready for README integration.</snippet>
+      </doc>
+      <doc>
+        <path>docs/performance-metrics.json</path>
+        <title>Raw Performance Metrics</title>
+        <section>Structured benchmark data</section>
+        <snippet>JSON format with full_generation, incremental_update, mcp_latency, and token_usage metrics. Source data for README Performance Characteristics table.</snippet>
+      </doc>
+      <doc>
+        <path>docs/benchmark-projects.json</path>
+        <title>Benchmark Project Metadata</title>
+        <section>Project selection and characteristics</section>
+        <snippet>Three benchmark projects documented: self-test (polyglot, 200+ files), Flask (Python, 850 files), VS Code ESLint (TypeScript, 1200 files). Only self-test benchmarked due to scope reduction.</snippet>
+      </doc>
+      <doc>
+        <path>README.md</path>
+        <title>Current README - Needs Enhancement</title>
+        <section>Quick Install, Usage, MCP Server Support</section>
+        <snippet>Existing structure: Background, Quick Install, Usage (-i flag), MCP Server Support (optional). Needs: Quick Start (Claude Code-first), Performance Characteristics table, Smart Config Presets section, enhanced MCP setup.</snippet>
+      </doc>
+      <doc>
+        <path>install.sh</path>
+        <title>Installation Script</title>
+        <section>Installation flow and validation</section>
+        <snippet>Bash installer: dependency checks (git, jq, Python 3.8+), installs to ~/.claude-code-project-index, MCP setup, hook configuration. Reference for installation troubleshooting guide.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/3-2-performance-validation-on-medium-projects.md</path>
+        <title>Story 3.2 - Performance Validation (Previous Story)</title>
+        <section>Dev Agent Record, Learnings</section>
+        <snippet>Created benchmark.py, performance-metrics.json, performance-report.md. Key learnings: use tables for clarity, document limitations transparently, cross-reference docs. Performance data ready for README integration.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>scripts/benchmark.py</path>
+        <kind>utility script</kind>
+        <symbol>PerformanceMetrics (dataclass), run_performance_benchmark(), generate_performance_report()</symbol>
+        <lines>40-542</lines>
+        <reason>Performance benchmarking infrastructure for AC #1. Generates performance-metrics.json and performance-report.md. Reference for Best Practices guide and troubleshooting.</reason>
+      </artifact>
+      <artifact>
+        <path>project_index_mcp.py</path>
+        <kind>MCP server</kind>
+        <symbol>project_index_load_core(), project_index_load_module(), project_index_search_files(), project_index_get_file_info()</symbol>
+        <lines>244-650</lines>
+        <reason>MCP server implementation for AC #5 (MCP Configuration Guide). Four main tools with Pydantic validation. Critical for multi-tool MCP setup documentation.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>core generator</kind>
+        <symbol>load_configuration(), create_default_config(), generate_warnings()</symbol>
+        <lines>81, 2640, 2471</lines>
+        <reason>Configuration handling and smart presets for AC #1 (Smart Config Presets explanation). Shows auto-detection and preset boundary logic to document.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/i_flag_hook.py</path>
+        <kind>hook integration</kind>
+        <symbol>parse_index_flag(), find_project_root(), get_last_interactive_size()</symbol>
+        <lines>66-80, 23-43, 45-64</lines>
+        <reason>Hook-based integration pattern. Reference for troubleshooting guide (hook validation) and MCP setup guide (integration model).</reason>
+      </artifact>
+      <artifact>
+        <path>install.sh</path>
+        <kind>installation script</kind>
+        <symbol>Installation flow: dependency checks, Python detection, MCP setup, hook configuration</symbol>
+        <lines>1-100</lines>
+        <reason>Installation procedures for AC #2 (Troubleshooting Guide - installation validation). Critical reference for MCP setup and installation docs.</reason>
+      </artifact>
+      <artifact>
+        <path>requirements.txt</path>
+        <kind>dependency manifest</kind>
+        <symbol>mcp>=1.0.0, pydantic>=2.0.0, psutil>=5.9.0</symbol>
+        <lines>1-52</lines>
+        <reason>External dependencies introduced in Epic 2-3. Document in troubleshooting (dependency validation) and MCP setup (installation requirements).</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python manifest="requirements.txt">
+        <package name="mcp" version=">=1.0.0" purpose="MCP server framework for AI tool integration (Epic 2)" required="mcp_server" />
+        <package name="pydantic" version=">=2.0.0" purpose="Input validation for MCP tools (transitive via mcp)" required="mcp_server" />
+        <package name="psutil" version=">=5.9.0" purpose="Optional memory monitoring in benchmarks (Epic 3)" required="false" />
+      </python>
+      <system>
+        <dependency name="Python" version="3.8+" required="true" purpose="Core runtime" />
+        <dependency name="git" version="any" required="true" purpose="Repository operations and metadata extraction" />
+        <dependency name="jq" version="any" required="true" purpose="JSON manipulation in install.sh" />
+        <dependency name="bash" version="any" required="true" purpose="Installation and uninstallation scripts" />
+      </system>
+      <frameworks>
+        <framework name="MCP (Model Context Protocol)" version="1.0+" purpose="Standardized AI tool interface" />
+        <framework name="Python stdlib" version="3.8+" purpose="Core indexing (no external deps)" />
+        <framework name="FastMCP" version="via mcp package" purpose="MCP server implementation" />
+      </frameworks>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - **Claude Code First:** All workflows, examples, and instructions must prioritize Claude Code CLI as the primary interface
+    - **Progressive Disclosure:** Documentation structure: Quick Start → Basic Usage → Advanced Features → Troubleshooting
+    - **Practical Examples:** Every concept must be illustrated with real-world usage examples
+    - **Troubleshooting Focus:** Anticipate common user issues and provide clear resolution paths
+    - **Cross-References:** All new docs must cross-link for easy navigation (troubleshooting ↔ mcp-setup, best-practices ↔ README)
+    - **Hook-Based Integration:** Maintain `~/.claude/settings.json` hook model (UserPromptSubmit, Stop)
+    - **Python 3.8+ Compatibility:** Core functionality remains stdlib-only; MCP server requires external deps
+    - **MCP Tool Priority:** Claude Code CLI (priority 1, most detailed) > Cursor IDE (priority 2) > Claude Desktop (priority 3)
+    - **Performance Transparency:** Document limitations clearly (MCP latency estimation, scope reductions)
+    - **Table Formatting:** Follow Story 3.2 pattern of using tables for clarity and structured data
+    - **Breaking Change Warnings:** Use ⚠️ warnings in Migration guide for breaking changes
+    - **Validation Commands:** Provide validation commands for each configuration procedure
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>MCP Server Tools (4 tools)</name>
+      <kind>stdio MCP server</kind>
+      <signature>
+        - project_index_load_core(index_path?, response_format?) → JSON/Markdown core index
+        - project_index_load_module(module_name, index_dir?, response_format?) → JSON/Markdown detail module
+        - project_index_search_files(query, index_path?, limit?, offset?) → Paginated search results
+        - project_index_get_file_info(file_path, index_path?, response_format?) → File details with git metadata
+      </signature>
+      <path>project_index_mcp.py</path>
+    </interface>
+    <interface>
+      <name>Hook Integration</name>
+      <kind>Claude Code hooks</kind>
+      <signature>
+        - UserPromptSubmit hook: i_flag_hook.py (detects -i flag, generates index)
+        - Stop hook: stop_hook.py (cleanup on session end)
+        - Configuration: ~/.claude/settings.json
+      </signature>
+      <path>scripts/i_flag_hook.py, scripts/stop_hook.py</path>
+    </interface>
+    <interface>
+      <name>Configuration Interface</name>
+      <kind>JSON config files</kind>
+      <signature>
+        - .project-index.json: Per-project config with preset tracking
+        - PROJECT_INDEX.json: Generated index with _meta.last_interactive_size_k
+        - Config templates: ~/.claude-code-project-index/templates/{small,medium,large}.json
+      </signature>
+      <path>scripts/project_index.py:load_configuration()</path>
+    </interface>
+    <interface>
+      <name>Performance Benchmarking</name>
+      <kind>Python script</kind>
+      <signature>
+        - run_performance_benchmark(project, temp_dir) → PerformanceMetrics
+        - generate_performance_report(all_metrics, output_path) → Markdown report
+        - Output: docs/performance-metrics.json, docs/performance-report.md
+      </signature>
+      <path>scripts/benchmark.py</path>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+      Testing framework: Python unittest (stdlib) with pytest also available. Tests organized in scripts/ directory with pattern test_*.py. Each test file documents Story/AC mapping in header comments. Test classes use descriptive names (TestLoadConfiguration, TestMCPServer, etc.) with setUp/tearDown for fixture management. Performance tests include timing assertions (e.g., <100ms, <500ms). Mock external dependencies (subprocess, file I/O) for unit tests. Integration tests use tempfile for isolated environments. All tests runnable via: python3 scripts/test_*.py or pytest scripts/
+    </standards>
+    <locations>
+      - scripts/test_*.py (16 test files covering Epic 1-3 features)
+      - Manual tests: scripts/test_manual_large_module.py (synthetic large project validation)
+      - Performance tests: scripts/benchmark.py (not unit tests, but validation infrastructure)
+      - Test execution: python3 scripts/test_<name>.py or pytest scripts/ for all
+    </locations>
+    <ideas>
+      <idea ac="1">
+        **README Enhancement Validation:**
+        - Manual test: Verify Quick Start section can be followed by new user (cold start test)
+        - Manual test: Performance Characteristics table matches docs/performance-metrics.json
+        - Manual test: Smart Config Presets explanation is clear and accurate
+        - Manual test: MCP setup section links correctly to docs/mcp-setup.md
+      </idea>
+      <idea ac="2">
+        **Troubleshooting Guide Validation:**
+        - Manual test: Follow FAQ procedures to resolve common issues (install validation, hook setup)
+        - Manual test: Execute all validation commands in guide (verify Python, check MCP connection)
+        - Manual test: Test error message reference table against actual error outputs
+        - Integration test: Simulate common failure scenarios (missing dependencies, incorrect paths)
+      </idea>
+      <idea ac="3">
+        **Best Practices Guide Validation:**
+        - Manual test: Verify configuration tuning examples produce expected behavior
+        - Manual test: Test real-world usage patterns match documented scenarios
+        - Review test: Cross-check feature recommendations against tech spec and architecture
+      </idea>
+      <idea ac="4">
+        **Migration Guide Validation:**
+        - Integration test: Simulate v0.1.x → v0.2.x migration on sample project
+        - Integration test: Simulate v0.2.x → v0.3.x migration with breaking changes
+        - Manual test: Verify migration scripts/commands execute successfully
+        - Review test: Ensure breaking changes are clearly highlighted with ⚠️
+      </idea>
+      <idea ac="5">
+        **MCP Configuration Guide Validation:**
+        - Manual test: Follow Claude Code CLI config steps and verify MCP tools load
+        - Manual test: Test Cursor IDE configuration procedure (if Cursor available)
+        - Manual test: Test Claude Desktop configuration (if Claude Desktop available)
+        - Integration test: Validate auto-detection behavior with mock configs
+        - Manual test: Execute all validation commands for each tool
+      </idea>
+      <idea general="documentation-quality">
+        **Cross-Reference Link Validation:**
+        - Automated test: Check all internal markdown links resolve correctly
+        - Manual test: Verify cross-references between docs are bidirectional
+        - Review test: Ensure Claude Code is primary reference in all workflows
+      </idea>
+    </ideas>
+  </tests>
+</story-context>

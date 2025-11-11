@@ -324,9 +324,9 @@ class TestMigrateToSplitFormat(unittest.TestCase):
         self.assertTrue(core_index_path.exists())
         self.assertTrue(detail_dir.exists())
 
-        # Verify core index has split version (updated to 2.1-enhanced in Story 2.3)
+        # Verify core index has split version (updated to 2.2-submodules in Epic 4)
         core_index = json.loads(core_index_path.read_text())
-        self.assertEqual(core_index['version'], '2.1-enhanced')
+        self.assertEqual(core_index['version'], '2.2-submodules')
 
     def test_migrate_creates_backup(self):
         """Test AC#3: Migration creates backup before converting."""

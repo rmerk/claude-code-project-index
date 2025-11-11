@@ -218,6 +218,9 @@ def _handle_error(e: Exception, context: str = "") -> str:
             msg += "\n\nNext steps: Run /index to generate the project index."
         elif "PROJECT_INDEX.d" in str(e):
             msg += "\n\nNext steps: Run /index to generate the split index architecture."
+        else:
+            # Generic FileNotFoundError - provide general guidance
+            msg += "\n\nNext steps: Verify the file path exists, or run /index to update the project index."
         return msg
     elif isinstance(e, ValueError):
         msg = f"Error: {str(e)}"
@@ -225,6 +228,9 @@ def _handle_error(e: Exception, context: str = "") -> str:
             msg += "\n\nNext steps: Use project_index_load_core to see available modules."
         elif "format" in str(e).lower():
             msg += "\n\nNext steps: Use format='json' or format='markdown'."
+        else:
+            # Generic ValueError - provide general guidance
+            msg += "\n\nNext steps: Check the input parameters and try again."
         return msg
     elif isinstance(e, json.JSONDecodeError):
         return f"Error: Invalid JSON format in file.\nDetails: {str(e)}\n\nNext steps: Regenerate the index by running /index."

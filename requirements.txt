@@ -29,6 +29,16 @@ mcp>=1.0.0
 pydantic>=2.0.0
 
 # ==============================================================================
+# Epic 3: Story 3.2 - Performance Benchmarking
+# ==============================================================================
+
+# psutil - Process and system utilities for memory monitoring during benchmarks
+# Used by: scripts/benchmark.py for measuring peak RSS memory usage
+# Docs: https://psutil.readthedocs.io/
+# Optional: Benchmark suite will skip memory monitoring if not installed
+psutil>=5.9.0
+
+# ==============================================================================
 # Optional Dependencies (for future enhancements)
 # ==============================================================================
 

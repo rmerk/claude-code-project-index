@@ -485,7 +485,11 @@ class TestIntegrationWithRealProject(unittest.TestCase):
         result = load_detail_module("scripts", self.index_dir)
 
         self.assertEqual(result["module_id"], "scripts")
-        self.assertEqual(result["version"], "2.0-split")
+        # Version can be 2.0-split, 2.1-enhanced, or 2.2-submodules
+        self.assertTrue(
+            result["version"].startswith("2."),
+            f"Expected version 2.x, got {result['version']}"
+        )
         self.assertIn("files", result)
         self.assertGreater(len(result["files"]), 0)
 

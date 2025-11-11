@@ -22,7 +22,10 @@
       "Bash(python:*)",
       "Bash(python3.12:*)",
       "Bash(/opt/homebrew/bin/python3.12 -m pip install:*)",
-      "Bash(source:*)"
+      "Bash(source:*)",
+      "Bash(tee:*)",
+      "Bash(time python3:*)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []

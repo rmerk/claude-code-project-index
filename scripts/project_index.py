@@ -19,17 +19,22 @@ __version__ = "0.2.0-beta"
 import json
 import os
 import re
+import shutil
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, NamedTuple
+from urllib.request import urlopen, Request
+from urllib.error import URLError, HTTPError
+import socket
 
 # Import shared utilities
 from index_utils import (
     IGNORE_DIRS, PARSEABLE_LANGUAGES, CODE_EXTENSIONS, MARKDOWN_EXTENSIONS,
     DIRECTORY_PURPOSES, extract_python_signatures, extract_javascript_signatures,
     extract_shell_signatures, extract_markdown_structure, infer_file_purpose,
-    infer_directory_purpose, get_language_name, should_index_file
+    infer_directory_purpose, get_language_name, should_index_file, get_git_files
 )
 from doc_classifier import classify_documentation
 from git_metadata import extract_git_metadata
@@ -38,6 +43,248 @@ from git_metadata import extract_git_metadata
 MAX_FILES = 10000
 MAX_INDEX_SIZE = 1024 * 1024  # 1MB
 MAX_TREE_DEPTH = 5
+
+
+def read_version_file() -> str:
+    """
+    Read version from VERSION file if it exists, fallback to __version__.
+
+    Checks ~/.claude-code-project-index/VERSION for current version.
+    Falls back to hardcoded __version__ if file doesn't exist (backward compatibility).
+
+    Returns:
+        str: Version string (e.g., "v0.3.0")
+
+    Example:
+        >>> version = read_version_file()
+        >>> print(version)  # "v0.3.0" or "0.2.0-beta" (fallback)
+    """
+    version_file = Path.home() / ".claude-code-project-index" / "VERSION"
+
+    try:
+        if version_file.exists():
+            version = version_file.read_text().strip()
+            if version:
+                return version
+    except (OSError, IOError):
+        # Graceful fallback on file read errors
+        pass
+
+    # Fallback to hardcoded version for backward compatibility
+    return __version__
+
+
+class UpdateInfo(NamedTuple):
+    """Information about available updates."""
+    current_version: str
+    latest_version: str
+    update_available: bool
+    release_url: str
+
+
+def compare_versions(v1: str, v2: str) -> int:
+    """
+    Compare two semantic version strings.
+
+    Strips 'v' prefix and compares major.minor.patch components.
+    Handles beta/alpha suffixes by removing them for comparison.
+
+    Args:
+        v1: First version (e.g., "v0.3.0", "0.2.0-beta")
+        v2: Second version (e.g., "v0.3.1")
+
+    Returns:
+        int: -1 if v1 < v2, 0 if v1 == v2, 1 if v1 > v2
+
+    Example:
+        >>> compare_versions("v0.3.0", "v0.3.1")
+        -1
+        >>> compare_versions("0.3.0", "0.2.0-beta")
+        1
+    """
+    # Strip 'v' prefix and split on '-' to remove beta/alpha suffixes
+    def normalize(v: str) -> List[int]:
+        v = v.lstrip('v').split('-')[0]  # Remove 'v' and suffixes
+        return [int(x) for x in v.split('.')]
+
+    try:
+        v1_parts = normalize(v1)
+        v2_parts = normalize(v2)
+
+        # Pad shorter version with zeros
+        max_len = max(len(v1_parts), len(v2_parts))
+        v1_parts += [0] * (max_len - len(v1_parts))
+        v2_parts += [0] * (max_len - len(v2_parts))
+
+        if v1_parts < v2_parts:
+            return -1
+        elif v1_parts > v2_parts:
+            return 1
+        else:
+            return 0
+    except (ValueError, IndexError):
+        # If parsing fails, consider versions equal
+        return 0
+
+
+def log_update_check(result: str, current_version: str, latest_version: str = None, error: str = None) -> None:
+    """
+    Log update check results to ~/.claude-code-project-index/logs/update-checks.log.
+
+    Args:
+        result: Check result ("up-to-date", "update-available", "error")
+        current_version: Current installed version
+        latest_version: Latest available version (if known)
+        error: Error message (if error occurred)
+
+    Example:
+        >>> log_update_check("update-available", "v0.3.0", "v0.3.1")
+        # Logs: 2025-11-11T12:34:56 | update-available | v0.3.0 -> v0.3.1
+    """
+    log_dir = Path.home() / ".claude-code-project-index" / "logs"
+    log_file = log_dir / "update-checks.log"
+
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+
+        timestamp = datetime.now().isoformat()
+        if result == "update-available" and latest_version:
+            log_entry = f"{timestamp} | {result} | {current_version} -> {latest_version}\n"
+        elif result == "error" and error:
+            log_entry = f"{timestamp} | {result} | {current_version} | {error}\n"
+        else:
+            log_entry = f"{timestamp} | {result} | {current_version}\n"
+
+        with open(log_file, 'a') as f:
+            f.write(log_entry)
+    except (OSError, IOError):
+        # Silent failure - don't block on logging errors
+        pass
+
+
+def check_version_compatibility(index_data: Dict) -> Optional[str]:
+    """
+    Check version compatibility between index format and installed tool.
+
+    Compares index format version with tool version to detect potential
+    incompatibilities. Returns warning message if mismatch detected.
+
+    Args:
+        index_data: Loaded PROJECT_INDEX.json data with optional "version" field
+
+    Returns:
+        str: Warning message if incompatibility detected, None otherwise
+
+    Example:
+        >>> index = json.load(open("PROJECT_INDEX.json"))
+        >>> warning = check_version_compatibility(index)
+        >>> if warning:
+        ...     print(f"⚠️  {warning}")
+    """
+    index_version = index_data.get("version", "1.0")  # Default to 1.0 for legacy
+    tool_version = read_version_file()
+
+    # Extract major.minor from both versions for comparison
+    def extract_major_minor(v: str) -> Tuple[int, int]:
+        v = v.lstrip('v').split('-')[0]  # Remove 'v' prefix and suffixes
+        parts = v.split('.')
+        try:
+            major = int(parts[0]) if len(parts) > 0 else 0
+            minor = int(parts[1]) if len(parts) > 1 else 0
+            return (major, minor)
+        except (ValueError, IndexError):
+            return (0, 0)
+
+    index_maj_min = extract_major_minor(index_version)
+    tool_maj_min = extract_major_minor(tool_version)
+
+    # Check for major version mismatch
+    if index_maj_min[0] != tool_maj_min[0]:
+        return (f"Index format version ({index_version}) differs from tool version ({tool_version}). "
+                f"Consider regenerating index with: python scripts/project_index.py")
+
+    # Check for minor version mismatch (warning, not blocking)
+    if index_maj_min[1] != tool_maj_min[1]:
+        return (f"Index format version ({index_version}) may be outdated (tool version: {tool_version}). "
+                f"Regenerating index recommended.")
+
+    return None  # Versions compatible
+
+
+def check_for_updates(no_update_check: bool = False) -> Optional[UpdateInfo]:
+    """
+    Check GitHub releases for newer version (non-blocking, 2s timeout).
+
+    Makes a GET request to GitHub Releases API with 2-second timeout.
+    Compares local VERSION with latest release version.
+    Logs all check attempts (success and failure).
+
+    Args:
+        no_update_check: Skip check if True (for CI/automation)
+
+    Returns:
+        UpdateInfo: Update info if newer version available, None otherwise
+
+    Security (NFR-S6):
+        - Only sends user-agent header, no project metadata
+        - No local project information leaked to GitHub
+
+    Performance (NFR-P3):
+        - 2-second timeout, non-blocking
+        - Graceful degradation on network failure
+
+    Example:
+        >>> info = check_for_updates()
+        >>> if info and info.update_available:
+        ...     print(f"Update available: {info.latest_version}")
+        ...     print(f"Install with: ./install.sh --upgrade")
+    """
+    if no_update_check:
+        return None
+
+    current_version = read_version_file()
+
+    try:
+        # Set socket timeout for non-blocking behavior (NFR-P3)
+        socket.setdefaulttimeout(2.0)
+
+        # Create request with minimal user-agent (NFR-S6: no project metadata)
+        url = "https://api.github.com/repos/ericbuess/claude-code-project-index/releases/latest"
+        headers = {"User-Agent": "claude-code-project-index"}
+        req = Request(url, headers=headers)
+
+        # Make API call with 2s timeout
+        with urlopen(req, timeout=2) as response:
+            data = json.loads(response.read().decode('utf-8'))
+
+        latest_version = data.get("tag_name", "")
+        release_url = data.get("html_url", "")
+
+        if not latest_version:
+            log_update_check("error", current_version, error="No tag_name in response")
+            return None
+
+        # Compare versions
+        if compare_versions(latest_version, current_version) > 0:
+            log_update_check("update-available", current_version, latest_version)
+            return UpdateInfo(
+                current_version=current_version,
+                latest_version=latest_version,
+                update_available=True,
+                release_url=release_url
+            )
+        else:
+            log_update_check("up-to-date", current_version)
+            return None
+
+    except (URLError, HTTPError, socket.timeout, OSError) as e:
+        # Graceful degradation on network failure (NFR-R3)
+        error_msg = str(type(e).__name__)
+        log_update_check("error", current_version, error=error_msg)
+        return None
+    finally:
+        # Reset socket timeout
+        socket.setdefaulttimeout(None)
 
 
 def detect_index_format(index_path: Path = None) -> str:
@@ -78,17 +325,20 @@ def detect_index_format(index_path: Path = None) -> str:
     return "legacy"
 
 
-def load_configuration(config_path: Optional[Path] = None) -> Dict[str, any]:
+def load_configuration(config_path: Optional[Path] = None, project_root: Optional[Path] = None) -> Dict[str, any]:
     """
     Load configuration from .project-index.json file.
+    On first run (config doesn't exist), auto-detects preset and creates config from template.
+    On subsequent runs, detects if project size crossed preset boundaries and prompts for upgrade.
 
     Args:
         config_path: Path to configuration file (defaults to cwd/.project-index.json)
+        project_root: Project root directory for auto-detection (defaults to config_path.parent or cwd)
 
     Returns:
         Dictionary with configuration values, or empty dict if file not found.
         Valid keys: 'mode' (str), 'threshold' (int), 'max_index_size' (int),
-        'compression_level' (str), 'submodule_config' (dict)
+        'compression_level' (str), 'submodule_config' (dict), '_preset' (str)
 
     Configuration format:
         {
@@ -106,8 +356,27 @@ def load_configuration(config_path: Optional[Path] = None) -> Dict[str, any]:
                     "react": {"split_paths": [...], "max_depth": 2},
                     "nextjs": {"split_paths": [...], "max_depth": 2}
                 }
-            }
+            },
+            "_preset": "small" | "medium" | "large"
         }
+
+    First Run Behavior:
+        - If config file doesn't exist, auto-detects preset based on file count:
+          - <100 files → 'small' preset
+          - 100-4999 files → 'medium' preset
+          - 5000+ files → 'large' preset
+        - Loads preset template and creates .project-index.json
+
+    Boundary Crossing Detection:
+        - On subsequent runs, compares original preset with current file count
+        - If preset boundary crossed (e.g., small → medium), prompts user to upgrade
+        - Creates backup file (.project-index.json.backup) before upgrading
+        - User can accept (upgrade) or decline (keep existing config)
+
+    CLI Flags:
+        - --no-prompt: Skip interactive prompt, auto-upgrade if boundary crossed
+        - --upgrade-to=preset: Force upgrade to specific preset (small/medium/large)
+          regardless of file count. Invalid values are ignored.
 
     Configuration file location:
         Searches for .project-index.json in current working directory only.
@@ -118,9 +387,46 @@ def load_configuration(config_path: Optional[Path] = None) -> Dict[str, any]:
     if config_path is None:
         config_path = Path.cwd() / ".project-index.json"
 
-    # Return empty config if file doesn't exist (not an error)
+    # Track if project_root was explicitly provided
+    project_root_provided = project_root is not None
+
+    if project_root is None:
+        project_root = config_path.parent if config_path.parent.exists() else Path.cwd()
+
+    # Auto-detect preset and create config on first run
+    # Only auto-create if project_root was explicitly provided
+    # This maintains backward compatibility - if project_root was None, return empty dict
     if not config_path.exists():
-        return {}
+        if project_root_provided:
+            # Check CLI flags for --upgrade-to
+            cli_flags = _check_cli_flags()
+
+            # Get file count
+            git_files = get_git_files(project_root)
+            file_count = len(git_files) if git_files else 0
+
+            # Auto-detect preset, but allow --upgrade-to flag to override
+            preset_name = auto_detect_preset(file_count)
+            if cli_flags['upgrade_to']:
+                preset_name = cli_flags['upgrade_to']
+
+            # Load preset template
+            try:
+                config = load_preset_template(preset_name)
+                config['_preset'] = preset_name
+
+                # Save config file
+                config_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(config_path, 'w') as f:
+                    json.dump(config, f, indent=2)
+
+                return config
+            except Exception as e:
+                # If template loading fails, return empty config
+                return {}
+        else:
+            # Config doesn't exist and project_root not provided - return empty dict (backward compatibility)
+            return {}
 
     try:
         with open(config_path) as f:
@@ -184,6 +490,77 @@ def load_configuration(config_path: Optional[Path] = None) -> Dict[str, any]:
                             print(f"⚠️  Warning: Invalid preset for '{framework}' (must be dict), ignoring")
                             submod_config['framework_presets'].pop(framework)
 
+        # Boundary crossing detection and upgrade logic
+        # Only run if project_root was explicitly provided (not defaulted)
+        # This prevents prompts when called from main() without explicit project_root parameter
+        if project_root_provided:
+            # Detect original preset from existing config
+            original_preset = detect_preset_from_config(config)
+
+            # Get current file count and detect current preset
+            git_files = get_git_files(project_root)
+            file_count = len(git_files) if git_files else 0
+            current_preset = auto_detect_preset(file_count)
+
+            # Check CLI flags
+            cli_flags = _check_cli_flags()
+
+            # Handle --upgrade-to flag: override current_preset if flag is present
+            if cli_flags['upgrade_to']:
+                current_preset = cli_flags['upgrade_to']
+
+            # Check if boundary was crossed (preset changed)
+            if original_preset != current_preset:
+                # Determine if we should upgrade (check flags or prompt user)
+                should_upgrade = False
+
+                if cli_flags['no_prompt']:
+                    # Auto-upgrade if --no-prompt flag is set
+                    should_upgrade = True
+                else:
+                    # Prompt user for upgrade
+                    prompt_message = (
+                        f"Your project has grown to {file_count} files.\n"
+                        f"Recommend upgrading from '{original_preset}' to '{current_preset}' preset.\n"
+                        f"Upgrade now? [y/n] "
+                    )
+                    try:
+                        user_response = input(prompt_message).strip().lower()
+                        should_upgrade = user_response == 'y'
+                    except (EOFError, KeyboardInterrupt):
+                        # Handle cases where input is not available (e.g., in tests or non-interactive environments)
+                        should_upgrade = False
+
+                if should_upgrade:
+                    # Create backup before upgrading (only if we're actually upgrading)
+                    backup_path = Path(str(config_path) + ".backup")
+                    try:
+                        shutil.copy(config_path, backup_path)
+                    except Exception as e:
+                        print(f"⚠️  Warning: Could not create backup: {e}")
+                    # Load new preset template
+                    try:
+                        new_config = load_preset_template(current_preset)
+                        # Merge with existing config (preserve user customizations)
+                        # Update _preset field and merge other fields
+                        config.update(new_config)
+                        config['_preset'] = current_preset
+
+                        # Save updated config
+                        with open(config_path, 'w') as f:
+                            json.dump(config, f, indent=2)
+
+                        return config
+                    except Exception as e:
+                        # If template loading fails, keep existing config
+                        print(f"⚠️  Warning: Could not load preset template: {e}")
+                        print("   Keeping existing configuration")
+                        return config
+                else:
+                    # User declined upgrade, return existing config unchanged
+                    return config
+
+        # No boundary crossing, return config as-is
         return config
 
     except json.JSONDecodeError as e:
@@ -199,7 +576,7 @@ def load_configuration(config_path: Optional[Path] = None) -> Dict[str, any]:
 def generate_tree_structure(root_path: Path, max_depth: int = MAX_TREE_DEPTH) -> List[str]:
     """Generate a compact ASCII tree representation of the directory structure."""
     tree_lines = []
-    
+
     def should_include_dir(path: Path) -> bool:
         """Check if directory should be included in tree."""
         return (
@@ -207,38 +584,38 @@ def generate_tree_structure(root_path: Path, max_depth: int = MAX_TREE_DEPTH) ->
             not path.name.startswith('.') and
             path.is_dir()
         )
-    
+
     def add_tree_level(path: Path, prefix: str = "", depth: int = 0):
         """Recursively build tree structure."""
         if depth > max_depth:
             if any(should_include_dir(p) for p in path.iterdir() if p.is_dir()):
                 tree_lines.append(prefix + "└── ...")
             return
-        
+
         try:
             items = sorted(path.iterdir(), key=lambda x: (x.is_file(), x.name.lower()))
         except PermissionError:
             return
-        
+
         # Filter items
         dirs = [item for item in items if should_include_dir(item)]
-        
+
         # Important files to show in tree
         important_files = [
-            item for item in items 
+            item for item in items
             if item.is_file() and (
-                item.name in ['README.md', 'package.json', 'requirements.txt', 
+                item.name in ['README.md', 'package.json', 'requirements.txt',
                              'Cargo.toml', 'go.mod', 'pom.xml', 'build.gradle',
                              'setup.py', 'pyproject.toml', 'Makefile']
             )
         ]
-        
+
         all_items = dirs + important_files
-        
+
         for i, item in enumerate(all_items):
             is_last = i == len(all_items) - 1
             current_prefix = "└── " if is_last else "├── "
-            
+
             name = item.name
             if item.is_dir():
                 name += "/"
@@ -249,13 +626,13 @@ def generate_tree_structure(root_path: Path, max_depth: int = MAX_TREE_DEPTH) ->
                         name += f" ({file_count} files)"
                 except:
                     pass
-            
+
             tree_lines.append(prefix + current_prefix + name)
-            
+
             if item.is_dir():
                 next_prefix = prefix + ("    " if is_last else "│   ")
                 add_tree_level(item, next_prefix, depth + 1)
-    
+
     # Start with root
     tree_lines.append(".")
     add_tree_level(root_path, "")
@@ -316,7 +693,6 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
 
     # Get list of files to process
     print("🔍 Indexing files...")
-    from index_utils import get_git_files
     git_files = get_git_files(root)
 
     skipped_count = 0
@@ -514,7 +890,7 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
 
         # Detect framework and apply preset (Story 4.4, AC #2, #3)
         framework_type = detect_framework_patterns(root)
-        preset = apply_framework_preset(framework_type, config.get('submodule_config'))
+        preset = apply_framework_preset(framework_type, (config or {}).get('submodule_config'))
         # User config overrides preset (prioritize user's max_depth setting)
         max_depth = submod_config.get('max_depth', preset.get('max_depth', 3))
 
@@ -891,26 +1267,25 @@ def build_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int
         'files': {},
         'dependency_graph': {}
     }
-    
+
     # Generate directory tree
     print("📊 Building directory tree...")
     index['project_structure']['tree'] = generate_tree_structure(root)
-    
+
     file_count = 0
     dir_count = 0
     skipped_count = 0
     directory_files = {}  # Track files per directory
-    
+
     # Try to use git ls-files for better performance and accuracy
     print("🔍 Indexing files...")
-    from index_utils import get_git_files
     git_files = get_git_files(root)
-    
+
     if git_files is not None:
         # Use git-based file discovery
         print(f"   Using git ls-files (found {len(git_files)} files)")
         files_to_process = git_files
-        
+
         # Count directories from git files
         seen_dirs = set()
         for file_path in git_files:
@@ -931,10 +1306,10 @@ def build_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int
                     dir_count += 1
                     directory_files[file_path] = []
                 continue
-            
+
             if file_path.is_file():
                 files_to_process.append(file_path)
-    
+
     # Process files
     for file_path in files_to_process:
         if file_count >= MAX_FILES:
@@ -942,19 +1317,19 @@ def build_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int
             print(f"   Consider adding more patterns to .gitignore to reduce scope")
             print(f"   Or ask Claude to modify MAX_FILES in scripts/project_index.py")
             break
-        
+
         if not should_index_file(file_path, root):
             skipped_count += 1
             continue
-        
+
         # Track files in their directories
         parent_dir = file_path.parent
         if parent_dir in directory_files:
             directory_files[parent_dir].append(file_path.name)
-        
+
         # Get relative path and language
         rel_path = file_path.relative_to(root)
-        
+
         # Handle markdown files with tiered classification
         if file_path.suffix in MARKDOWN_EXTENSIONS:
             # Classify documentation tier
@@ -967,26 +1342,26 @@ def build_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int
                 index['documentation_map'][str(rel_path)] = doc_structure
                 index['stats']['markdown_files'] += 1
             continue
-        
+
         # Handle code files
         language = get_language_name(file_path.suffix)
-        
+
         # Base info for all files
         file_info = {
             'language': language,
             'parsed': False
         }
-        
+
         # Add file purpose if we can infer it
         file_purpose = infer_file_purpose(file_path)
         if file_purpose:
             file_info['purpose'] = file_purpose
-        
+
         # Try to parse if we support this language
         if file_path.suffix in PARSEABLE_LANGUAGES:
             try:
                 content = file_path.read_text(encoding='utf-8', errors='ignore')
-                
+
                 # Extract based on language
                 if file_path.suffix == '.py':
                     extracted = extract_python_signatures(content)
@@ -996,17 +1371,17 @@ def build_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int
                     extracted = extract_shell_signatures(content)
                 else:
                     extracted = {'functions': {}, 'classes': {}}
-                
+
                 # Only add if we found something
                 if extracted['functions'] or extracted['classes']:
                     file_info.update(extracted)
                     file_info['parsed'] = True
-                    
+
                 # Update stats
                 lang_key = PARSEABLE_LANGUAGES[file_path.suffix]
                 index['stats']['fully_parsed'][lang_key] = \
                     index['stats']['fully_parsed'].get(lang_key, 0) + 1
-                    
+
             except Exception as e:
                 # Parse error - just list the file
                 index['stats']['listed_only'][language] = \
@@ -1015,15 +1390,15 @@ def build_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int
             # Language not supported for parsing
             index['stats']['listed_only'][language] = \
                 index['stats']['listed_only'].get(language, 0) + 1
-        
+
         # Add to index
         index['files'][str(rel_path)] = file_info
         file_count += 1
-        
+
         # Progress indicator every 100 files
         if file_count % 100 == 0:
             print(f"  Indexed {file_count} files...")
-    
+
     # Infer directory purposes
     print("🏗️  Analyzing directory purposes...")
     for dir_path, files in directory_files.items():
@@ -1033,7 +1408,7 @@ def build_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int
                 rel_dir = str(dir_path.relative_to(root))
                 if rel_dir != '.':
                     index['directory_purposes'][rel_dir] = purpose
-    
+
     index['stats']['total_files'] = file_count
     index['stats']['total_directories'] = dir_count
 
@@ -1046,13 +1421,13 @@ def build_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int
     # Build dependency graph
     print("🔗 Building dependency graph...")
     dependency_graph = {}
-    
+
     for file_path, file_info in index['files'].items():
         if file_info.get('imports'):
             # Normalize imports to resolve relative paths
             file_dir = Path(file_path).parent
             dependencies = []
-            
+
             for imp in file_info['imports']:
                 # Handle relative imports
                 if imp.startswith('.'):
@@ -1072,7 +1447,7 @@ def build_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int
                     else:
                         # Module import like from . import X
                         resolved = str(file_dir)
-                    
+
                     # Try to find actual file
                     for ext in ['.py', '.js', '.ts', '.jsx', '.tsx', '']:
                         potential_file = resolved + ext
@@ -1082,24 +1457,24 @@ def build_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int
                 else:
                     # External dependency or absolute import
                     dependencies.append(imp)
-            
+
             if dependencies:
                 dependency_graph[file_path] = dependencies
-    
+
     # Only add if not empty
     if dependency_graph:
         index['dependency_graph'] = dependency_graph
-    
+
     # Build bidirectional call graph
     print("📞 Building call graph...")
     call_graph = {}
     called_by_graph = {}
-    
+
     # Process all files to build call relationships
     for file_path, file_info in index['files'].items():
         if not isinstance(file_info, dict):
             continue
-            
+
         # Process functions in this file
         if 'functions' in file_info:
             for func_name, func_data in file_info['functions'].items():
@@ -1107,13 +1482,13 @@ def build_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int
                     # Track what this function calls
                     full_func_name = f"{file_path}:{func_name}"
                     call_graph[full_func_name] = func_data['calls']
-                    
+
                     # Build reverse index (called_by)
                     for called in func_data['calls']:
                         if called not in called_by_graph:
                             called_by_graph[called] = []
                         called_by_graph[called].append(func_name)
-        
+
         # Process methods in classes
         if 'classes' in file_info:
             for class_name, class_data in file_info['classes'].items():
@@ -1123,18 +1498,18 @@ def build_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int
                             # Track what this method calls
                             full_method_name = f"{file_path}:{class_name}.{method_name}"
                             call_graph[full_method_name] = method_data['calls']
-                            
+
                             # Build reverse index
                             for called in method_data['calls']:
                                 if called not in called_by_graph:
                                     called_by_graph[called] = []
                                 called_by_graph[called].append(f"{class_name}.{method_name}")
-    
+
     # Add called_by information back to functions
     for file_path, file_info in index['files'].items():
         if not isinstance(file_info, dict):
             continue
-            
+
         if 'functions' in file_info:
             for func_name, func_data in file_info['functions'].items():
                 if func_name in called_by_graph:
@@ -1146,7 +1521,7 @@ def build_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int
                             'signature': func_data,
                             'called_by': called_by_graph[func_name]
                         }
-        
+
         if 'classes' in file_info:
             for class_name, class_data in file_info['classes'].items():
                 if isinstance(class_data, dict) and 'methods' in class_data:
@@ -1163,11 +1538,11 @@ def build_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int
                                         'signature': method_data,
                                         'called_by': list(set(callers))
                                     }
-    
+
     # Add staleness check
     week_old = datetime.now().timestamp() - 7 * 24 * 60 * 60
     index['staleness_check'] = week_old
-    
+
     return index, skipped_count
 
 
@@ -1186,7 +1561,7 @@ def convert_to_enhanced_dense_format(index: Dict) -> Dict:
         'd': {},     # Documentation map
         'deps': index.get('dependency_graph', {}),  # Keep dependencies
     }
-    
+
     def truncate_doc(doc: str, max_len: int = 80) -> str:
         """Truncate docstring to max length."""
         if not doc:
@@ -1195,22 +1570,22 @@ def convert_to_enhanced_dense_format(index: Dict) -> Dict:
         if len(doc) > max_len:
             return doc[:max_len-3] + '...'
         return doc
-    
+
     # Build compressed files section
     for path, info in index.get('files', {}).items():
         if not info.get('parsed', False):
             continue
-            
+
         # Use abbreviated path
         abbrev_path = path.replace('scripts/', 's/').replace('src/', 'sr/').replace('tests/', 't/')
-        
+
         file_entry = []
-        
+
         # Add language as single letter
         lang = info.get('language', 'unknown')
         lang_map = {'python': 'p', 'javascript': 'j', 'typescript': 't', 'shell': 's', 'json': 'j'}
         file_entry.append(lang_map.get(lang, 'u'))
-        
+
         # Compress functions with docstrings: name:line:signature:calls:docstring
         funcs = []
         for fname, fdata in info.get('functions', {}).items():
@@ -1224,10 +1599,10 @@ def convert_to_enhanced_dense_format(index: Dict) -> Dict:
                 funcs.append(f"{fname}:{line}:{sig}:{calls}:{doc}")
             else:
                 funcs.append(f"{fname}:0:{fdata}::")
-        
+
         if funcs:
             file_entry.append(funcs)
-        
+
         # Compress classes with methods and docstrings
         classes = {}
         for cname, cdata in info.get('classes', {}).items():
@@ -1244,17 +1619,17 @@ def convert_to_enhanced_dense_format(index: Dict) -> Dict:
                         methods.append(f"{mname}:{mline}:{msig}:{mcalls}:{mdoc}")
                     else:
                         methods.append(f"{mname}:0:{mdata}::")
-                
+
                 if methods or class_line != '0':
                     classes[cname] = [class_line, methods]
-        
+
         if classes:
             file_entry.append(classes)
-        
+
         # Only add file if it has content
         if len(file_entry) > 1:
             dense['f'][abbrev_path] = file_entry
-    
+
     # Build call graph edges (keep bidirectional info)
     edges = set()
     for path, info in index.get('files', {}).items():
@@ -1266,7 +1641,7 @@ def convert_to_enhanced_dense_format(index: Dict) -> Dict:
                         edges.add((fname, called))
                     for caller in fdata.get('called_by', []):
                         edges.add((caller, fname))
-            
+
             # Extract method calls
             for cname, cdata in info.get('classes', {}).items():
                 if isinstance(cdata, dict):
@@ -1277,25 +1652,25 @@ def convert_to_enhanced_dense_format(index: Dict) -> Dict:
                                 edges.add((full_name, called))
                             for caller in mdata.get('called_by', []):
                                 edges.add((caller, full_name))
-    
+
     # Convert edges to list format
     dense['g'] = [[e[0], e[1]] for e in edges]
-    
+
     # Add compressed documentation map
     for doc_path, doc_info in index.get('documentation_map', {}).items():
         sections = doc_info.get('sections', [])
         if sections:
             # Keep first 10 sections for better context
             dense['d'][doc_path] = sections[:10]
-    
+
     # Add directory purposes if present
     if 'directory_purposes' in index:
         dense['dir_purposes'] = index['directory_purposes']
-    
+
     # Add staleness check timestamp
     if 'staleness_check' in index:
         dense['staleness'] = index['staleness_check']
-    
+
     return dense
 
 
@@ -1303,24 +1678,24 @@ def compress_if_needed(dense_index: Dict, target_size: int = MAX_INDEX_SIZE) -> 
     """Compress dense index further if it exceeds size limit."""
     index_json = json.dumps(dense_index, separators=(',', ':'))
     current_size = len(index_json)
-    
+
     if current_size <= target_size:
         return dense_index
-    
+
     print(f"⚠️  Index too large ({current_size} bytes), compressing to {target_size}...")
-    
+
     # Add safeguards
     iteration = 0
     MAX_ITERATIONS = 10
-    
+
     # Progressive compression strategies
-    
+
     # Step 1: Reduce tree to 10 items
     iteration += 1
     if iteration > MAX_ITERATIONS:
         print(f"  ⚠️ Max compression iterations reached. Returning partially compressed index.")
         return dense_index
-    
+
     print(f"  Step {iteration}: Reducing tree structure...")
     if len(dense_index.get('tree', [])) > 10:
         dense_index['tree'] = dense_index['tree'][:10]
@@ -1329,13 +1704,13 @@ def compress_if_needed(dense_index: Dict, target_size: int = MAX_INDEX_SIZE) -> 
         if current_size <= target_size:
             print(f"  ✅ Compressed to {current_size} bytes")
             return dense_index
-        
+
     # Step 2: Truncate docstrings to 40 chars
     iteration += 1
     if iteration > MAX_ITERATIONS:
         print(f"  ⚠️ Max compression iterations reached. Returning partially compressed index.")
         return dense_index
-    
+
     print(f"  Step {iteration}: Truncating docstrings...")
     for path, file_data in dense_index.get('f', {}).items():
         if len(file_data) > 1 and isinstance(file_data[1], list):
@@ -1347,18 +1722,18 @@ def compress_if_needed(dense_index: Dict, target_size: int = MAX_INDEX_SIZE) -> 
                     parts[4] = parts[4][:37] + '...'
                 new_funcs.append(':'.join(parts))
             file_data[1] = new_funcs
-    
+
     current_size = len(json.dumps(dense_index, separators=(',', ':')))
     if current_size <= target_size:
         print(f"  ✅ Compressed to {current_size} bytes")
         return dense_index
-        
+
     # Step 3: Remove docstrings entirely
     iteration += 1
     if iteration > MAX_ITERATIONS:
         print(f"  ⚠️ Max compression iterations reached. Returning partially compressed index.")
         return dense_index
-    
+
     print(f"  Step {iteration}: Removing docstrings entirely...")
     for path, file_data in dense_index.get('f', {}).items():
         if len(file_data) > 1 and isinstance(file_data[1], list):
@@ -1370,39 +1745,39 @@ def compress_if_needed(dense_index: Dict, target_size: int = MAX_INDEX_SIZE) -> 
                     parts[4] = ''  # Remove docstring
                 new_funcs.append(':'.join(parts))
             file_data[1] = new_funcs
-    
+
     current_size = len(json.dumps(dense_index, separators=(',', ':')))
     if current_size <= target_size:
         print(f"  ✅ Compressed to {current_size} bytes")
         return dense_index
-    
+
     # Step 4: Remove documentation map
     iteration += 1
     if iteration > MAX_ITERATIONS:
         print(f"  ⚠️ Max compression iterations reached. Returning partially compressed index.")
         return dense_index
-    
+
     print(f"  Step {iteration}: Removing documentation map...")
     if 'd' in dense_index:
         del dense_index['d']
-    
+
     current_size = len(json.dumps(dense_index, separators=(',', ':')))
     if current_size <= target_size:
         print(f"  ✅ Compressed to {current_size} bytes")
         return dense_index
-    
+
     # Step 5: Emergency truncation - keep most important files
     iteration += 1
     if iteration > MAX_ITERATIONS:
         print(f"  ⚠️ Max compression iterations reached. Returning partially compressed index.")
         return dense_index
-    
+
     print(f"  Step {iteration}: Emergency truncation - keeping most important files...")
     if dense_index.get('f'):
         files_to_keep = int(len(dense_index['f']) * (target_size / current_size) * 0.9)
         if files_to_keep < 10:
             files_to_keep = 10
-        
+
         # Calculate importance based on function count
         file_importance = {}
         for path, file_data in dense_index['f'].items():
@@ -1412,21 +1787,21 @@ def compress_if_needed(dense_index: Dict, target_size: int = MAX_INDEX_SIZE) -> 
             if len(file_data) > 2:  # Has classes
                 importance += 5
             file_importance[path] = importance
-        
+
         # Keep most important files
         sorted_files = sorted(file_importance.items(), key=lambda x: x[1], reverse=True)
         files_to_keep_set = set(path for path, _ in sorted_files[:files_to_keep])
-        
+
         # Remove less important files
         for path in list(dense_index['f'].keys()):
             if path not in files_to_keep_set:
                 del dense_index['f'][path]
-        
+
         print(f"  Emergency truncation: kept {len(dense_index['f'])} most important files")
-    
+
     final_size = len(json.dumps(dense_index, separators=(',', ':')))
     print(f"  Compressed from {len(index_json)} to {final_size} bytes")
-    
+
     return dense_index
 
 
@@ -1634,6 +2009,125 @@ def detect_framework_patterns(root_path: Path) -> str:
     except Exception as e:
         logger.warning(f"Error detecting framework patterns: {e}")
         return "generic"
+
+
+def auto_detect_preset(file_count: int) -> str:
+    """
+    Auto-detect preset based on file count.
+
+    Args:
+        file_count: Number of files in the project
+
+    Returns:
+        Preset name: 'small', 'medium', or 'large'
+        - small: < 100 files
+        - medium: 100-4999 files
+        - large: 5000+ files
+    """
+    if file_count < 100:
+        return "small"
+    elif file_count < 5000:
+        return "medium"
+    else:
+        return "large"
+
+
+def load_preset_template(preset_name: str) -> Dict[str, any]:
+    """
+    Load preset template from templates directory.
+
+    Args:
+        preset_name: Preset name ('small', 'medium', 'large')
+
+    Returns:
+        Configuration dictionary with preset settings
+        - Replaces '_generated: "auto"' with current ISO timestamp
+        - Falls back to default config if template not found
+    """
+    from datetime import datetime
+    from pathlib import Path
+    import json
+
+    # Template directory: ~/.claude-code-project-index/templates/
+    templates_dir = Path.home() / ".claude-code-project-index" / "templates"
+    template_path = templates_dir / f"{preset_name}.json"
+
+    # Try to load template
+    try:
+        if template_path.exists():
+            with open(template_path, 'r') as f:
+                config = json.load(f)
+
+            # Replace _generated: "auto" with current timestamp
+            if config.get("_generated") == "auto":
+                config["_generated"] = datetime.now().isoformat()
+
+            return config
+    except (json.JSONDecodeError, IOError):
+        # Template file corrupted or unreadable - fall through to default
+        pass
+
+    # Fallback: return default config with preset metadata
+    return {
+        "_preset": preset_name,
+        "_generated": datetime.now().isoformat(),
+        "mode": "auto",
+        "threshold": 1000
+    }
+
+
+def detect_preset_from_config(config: Dict) -> str:
+    """
+    Detect preset name from configuration dictionary.
+
+    Args:
+        config: Configuration dictionary
+
+    Returns:
+        Preset name: 'small', 'medium', or 'large'
+        - Checks _preset metadata field first
+        - Falls back to threshold heuristic if no metadata
+    """
+    # Check for explicit _preset metadata
+    if "_preset" in config:
+        preset = config["_preset"]
+        if preset in ["small", "medium", "large"]:
+            return preset
+
+    # Infer from threshold value
+    threshold = config.get("threshold", 1000)
+
+    if threshold < 200:
+        return "small"
+    elif threshold < 1000:
+        return "medium"
+    else:
+        return "large"
+
+
+def _check_cli_flags() -> Dict[str, any]:
+    """
+    Check for CLI flags related to preset upgrades.
+
+    Returns:
+        Dictionary with:
+        - no_prompt: bool - True if --no-prompt flag is present
+        - upgrade_to: Optional[str] - Preset name if --upgrade-to=preset is present, None otherwise
+    """
+    no_prompt = '--no-prompt' in sys.argv
+
+    upgrade_to = None
+    for arg in sys.argv:
+        if arg.startswith('--upgrade-to='):
+            preset_value = arg.split('=', 1)[1]
+            if preset_value in ['small', 'medium', 'large']:
+                upgrade_to = preset_value
+            # If invalid value, upgrade_to remains None (will be ignored)
+
+    return {
+        'no_prompt': no_prompt,
+        'upgrade_to': upgrade_to
+    }
 
 
 def apply_framework_preset(framework_type: str, config: Optional[Dict] = None) -> Dict[str, any]:
@@ -2029,7 +2523,7 @@ def create_module_references(modules: Dict[str, List[str]], functions: Dict[str,
 def print_summary(index: Dict, skipped_count: int):
     """Print a helpful summary of what was indexed."""
     stats = index['stats']
-    
+
     # Add warning if no files were found
     if stats['total_files'] == 0:
         print("\n⚠️  WARNING: No files were indexed!")
@@ -2040,36 +2534,36 @@ def print_summary(index: Dict, skipped_count: int):
         print(f"\n   Current directory: {os.getcwd()}")
         print("   Try running from your project root directory.")
         return
-    
+
     print(f"\n📊 Project Analysis Complete:")
     print(f"   📁 {stats['total_directories']} directories indexed")
     print(f"   📄 {stats['total_files']} code files found")
     print(f"   📝 {stats['markdown_files']} documentation files analyzed")
-    
+
     # Show fully parsed languages
     if stats['fully_parsed']:
         print("\n✅ Languages with full parsing:")
         for lang, count in sorted(stats['fully_parsed'].items()):
             print(f"   • {count} {lang.capitalize()} files (with signatures)")
-    
+
     # Show listed-only languages
     if stats['listed_only']:
         print("\n📋 Languages listed only:")
         for lang, count in sorted(stats['listed_only'].items()):
             print(f"   • {count} {lang.capitalize()} files")
-    
+
     # Show documentation insights
     if index.get('d'):
         print(f"\n📚 Documentation insights:")
         for doc_file, sections in list(index['d'].items())[:3]:
             print(f"   • {doc_file}: {len(sections)} sections")
-    
+
     # Show directory purposes
     if index.get('dir_purposes'):
         print(f"\n🏗️  Directory structure:")
         for dir_path, purpose in list(index['dir_purposes'].items())[:5]:
             print(f"   • {dir_path}/: {purpose}")
-    
+
     if skipped_count > 0:
         print(f"\n   (Skipped {skipped_count} files in ignored directories)")
 
@@ -2723,7 +3217,7 @@ Configuration File:
         """
     )
 
-    parser.add_argument('--version', action='version', version=f'%(prog)s {__version__}')
+    parser.add_argument('--version', action='version', version=f'%(prog)s {read_version_file()}')
     parser.add_argument(
         '--mode',
         choices=['auto', 'split', 'single'],
@@ -2770,6 +3264,11 @@ Configuration File:
         action='store_true',
         help='Analyze and display current/potential module structure without modifying files (Story 4.4, AC #9)'
     )
+    parser.add_argument(
+        '--no-update-check',
+        action='store_true',
+        help='Skip update checking (for CI/automation, disables network calls)'
+    )
 
     # Legacy compatibility flags (hidden from help)
     parser.add_argument('--format', dest='format_legacy', help=argparse.SUPPRESS)
@@ -2803,6 +3302,14 @@ Configuration File:
         sys.exit(0)
 
     print("🚀 Building Project Index...")
+
+    # Check for updates (Story 3.4, AC #4, #5 - non-blocking, 2s timeout)
+    update_info = check_for_updates(no_update_check=args.no_update_check)
+    if update_info and update_info.update_available:
+        print(f"📦 Update available: {update_info.current_version} → {update_info.latest_version}")
+        print(f"   Install with: ./install.sh --upgrade")
+        print(f"   Release: {update_info.release_url}")
+        print()
 
     # Create default configuration if needed (Story 4.4, AC #7)
     create_default_config(Path.cwd())
@@ -2881,7 +3388,6 @@ Configuration File:
             use_split_mode = False
             print("   Single-file mode (via --no-split flag)")
         else:
-            from index_utils import get_git_files
             git_files = get_git_files(Path('.'))
             file_count = len(git_files) if git_files else 0
 
@@ -3002,23 +3508,23 @@ Configuration File:
 
         # Add version field to legacy format
         index['version'] = '1.0'
-    
+
     # Add metadata if requested via environment
     if target_size_k > 0:
         if '_meta' not in index:
             index['_meta'] = {}
         # Note: Full metadata is added by the hook after generation
         index['_meta']['target_size_k'] = target_size_k
-    
+
     # Save to PROJECT_INDEX.json (minified)
     output_path = Path('PROJECT_INDEX.json')
     output_path.write_text(json.dumps(index, separators=(',', ':')))
-    
+
     # Print summary
     print_summary(index, skipped_count)
-    
+
     print(f"\n💾 Saved to: {output_path}")
-    
+
     # More concise output when called by hook
     if target_size_k > 0:
         actual_size = len(json.dumps(index, separators=(',', ':')))

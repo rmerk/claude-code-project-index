@@ -1,0 +1,245 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>1</storyId>
+    <title>Smart Configuration Presets with Auto-Detection</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-10</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/3-1-smart-config-presets.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>a developer</asA>
+    <iWant>the indexer to automatically detect my project size and create an optimal configuration</iWant>
+    <soThat>Epic 2 features are enabled by default without requiring manual configuration</soThat>
+    <tasks>
+- Design Preset Specifications (small/medium/large with file count thresholds, metadata format)
+- Create Preset Template Files in templates/ directory with JSON configuration
+- Implement Auto-Detection Logic (auto_detect_preset, load_preset_template, detect_preset_from_config functions)
+- Modify load_configuration() Function for first-run and upgrade scenarios
+- Implement Interactive Upgrade Prompt with backup creation
+- Add Command-Line Flags (--no-prompt, --upgrade-to, --dry-run)
+- Update install.sh to create template directory and generate preset files
+- Documentation updates (README sections for presets, auto-detection, CLI flags, FAQ)
+- Testing (unit tests, integration tests, end-to-end workflow tests)
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+1. Three preset templates created (small/medium/large) in `~/.claude-code-project-index/templates/`
+2. First `/index` run auto-detects project size and creates `.project-index.json` with appropriate preset
+3. Config includes metadata (`_preset`, `_generated`) for upgrade tracking
+4. Subsequent runs detect if project crossed preset boundaries (small→medium, medium→large)
+5. Interactive prompt asks user before upgrading config (with backup to `.project-index.json.backup`)
+6. User can accept upgrade (new preset applied) or decline (keeps existing config)
+7. `--no-prompt` flag skips interactive prompts for CI/automation
+8. `--upgrade-to=preset` flag forces specific preset upgrade
+9. Clear messaging explains detected size, current preset, and recommended preset
+10. README updated with preset documentation and upgrade behavior
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Epic 3: Production Readiness for Claude Code CLI</section>
+        <snippet>Epic 3 transforms the tool into production-ready tooling with smart installation that auto-detects project size and creates optimal config presets, performance validation on medium projects, comprehensive documentation, version management, and multi-tool MCP support.</snippet>
+      </doc>
+      <doc>
+        <path>docs/retrospectives/epic-2-retro-2025-11-04.md</path>
+        <title>Epic 2 Retrospective</title>
+        <section>Production Readiness Gaps - Action Item 2</section>
+        <snippet>Epic 2 Features Not Enabled by Default: All Epic 2 code works perfectly, BUT default configuration doesn't activate features. Tiered docs, relevance scoring, impact analysis disabled unless user manually configures. Root Cause: Focused on code implementation, not default user experience.</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/1-8-configuration-and-documentation.md</path>
+        <title>Story 1.8: Configuration and Documentation</title>
+        <section>Configuration Strategy and load_configuration() Pattern</section>
+        <snippet>Configuration system follows priority: CLI Flags (highest) > Config File (.project-index.json) > System Defaults. Mode selection: --mode single/split/auto with auto-detect threshold default 1000 files.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification</title>
+        <section>Detailed Design - Config Preset Templates and Installation</section>
+        <snippet>Three preset templates (small/medium/large) with file count thresholds. Auto-detection logic, preset boundary crossing workflows, and installation integration. First-time preset selection and upgrade prompts with backups.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation</title>
+        <section>Integration Architecture and Configuration</section>
+        <snippet>Hook-based event-driven CLI tool integrating with Claude Code. Installation target: ~/.claude-code-project-index/ with scripts, agents. Configuration in ~/.claude/ with settings.json hooks.</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>core module</kind>
+        <symbol>load_configuration</symbol>
+        <lines>81-150</lines>
+        <reason>Existing configuration loading function to be extended with preset auto-detection and boundary crossing logic</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/project_index.py</path>
+        <kind>core module</kind>
+        <symbol>main</symbol>
+        <lines>2689+</lines>
+        <reason>Entry point where CLI flags (--no-prompt, --upgrade-to) will be parsed and preset logic will be invoked</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/index_utils.py</path>
+        <kind>utility module</kind>
+        <symbol>get_git_files</symbol>
+        <lines>1406-1426</lines>
+        <reason>Used for file counting to determine project size and preset selection. Returns list of tracked/untracked git files.</reason>
+      </artifact>
+      <artifact>
+        <path>install.sh</path>
+        <kind>installation script</kind>
+        <symbol>INSTALL_DIR variable and file copying logic</symbol>
+        <lines>1-100</lines>
+        <reason>Installation script that needs to be extended to create templates/ directory and generate three preset JSON files</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/test_configuration.py</path>
+        <kind>test module</kind>
+        <symbol>TestLoadConfiguration class</symbol>
+        <lines>30-152</lines>
+        <reason>Existing test infrastructure for configuration loading that should be extended to cover preset detection logic</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <ecosystem name="python-stdlib">
+        <package name="json" version="stdlib" usage="JSON parsing for preset templates and config files" />
+        <package name="shutil" version="stdlib" usage="File operations (backup creation with shutil.copy)" />
+        <package name="sys" version="stdlib" usage="CLI argument parsing (sys.argv for --no-prompt, --upgrade-to flags)" />
+        <package name="pathlib.Path" version="stdlib" usage="Cross-platform path handling" />
+        <package name="datetime" version="stdlib" usage="Timestamp generation for _generated metadata field" />
+        <package name="os" version="stdlib" usage="Path expansion (os.path.expanduser for ~/)" />
+      </ecosystem>
+      <ecosystem name="existing-project-modules">
+        <package name="index_utils.get_git_files" usage="File counting for project size detection" />
+        <package name="project_index.load_configuration" usage="Base configuration loading to be extended" />
+      </ecosystem>
+      <ecosystem name="external-python-packages">
+        <package name="mcp" version=">=1.0.0" usage="MCP server (Story 2.10) - already in requirements.txt" />
+        <package name="pydantic" version=">=2.0.0" usage="MCP input validation (Story 2.10) - already in requirements.txt" />
+        <note>Epic 3 Story 3.1 does NOT add new external dependencies. Preset system uses Python stdlib only. requirements.txt already contains MCP dependencies from Epic 2.</note>
+      </ecosystem>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    - Must maintain backward compatibility with existing .project-index.json format (Story 1.8 pattern)
+    - Configuration precedence must remain: CLI flags > Config file > System defaults
+    - Preset files must be valid JSON with no external dependencies
+    - Template directory location: ~/.claude-code-project-index/templates/
+    - Backup files must use .backup suffix to avoid gitignore conflicts
+    - User interaction required for preset upgrades (interactive prompts unless --no-prompt)
+    - File counting must use get_git_files() for git-aware discovery
+    - Preset thresholds: small <100, medium 100-4999, large 5000+
+    - Must work with Python 3.8+ standard library only (no new external dependencies)
+  </constraints>
+  <interfaces>
+    <interface>
+      <name>auto_detect_preset</name>
+      <kind>function</kind>
+      <signature>def auto_detect_preset(file_count: int) -> str</signature>
+      <path>scripts/project_index.py</path>
+      <description>NEW - Maps file count to preset name (small/medium/large)</description>
+    </interface>
+    <interface>
+      <name>load_preset_template</name>
+      <kind>function</kind>
+      <signature>def load_preset_template(preset_name: str) -> Dict[str, any]</signature>
+      <path>scripts/project_index.py</path>
+      <description>NEW - Loads preset JSON from templates/ directory, replaces _generated timestamp</description>
+    </interface>
+    <interface>
+      <name>detect_preset_from_config</name>
+      <kind>function</kind>
+      <signature>def detect_preset_from_config(config: Dict) -> str</signature>
+      <path>scripts/project_index.py</path>
+      <description>NEW - Extracts preset name from config _preset metadata or infers from thresholds</description>
+    </interface>
+    <interface>
+      <name>load_configuration</name>
+      <kind>function</kind>
+      <signature>def load_configuration(config_path: Optional[Path] = None) -> Dict[str, any]</signature>
+      <path>scripts/project_index.py</path>
+      <description>EXISTING (lines 81-150) - To be extended with preset auto-detection and boundary crossing logic</description>
+    </interface>
+    <interface>
+      <name>get_git_files</name>
+      <kind>function</kind>
+      <signature>def get_git_files(root_path: Path) -> Optional[List[Path]]</signature>
+      <path>scripts/index_utils.py</path>
+      <description>EXISTING (line 1406) - Returns git-tracked files for file counting. Used to determine project size.</description>
+    </interface>
+  </interfaces>
+  <tests>
+    <standards>
+Testing framework: Python unittest (standard library). Pattern: TestCase classes with setUp/tearDown for test isolation. Each story gets dedicated test file (e.g., test_smart_presets.py). Test structure: Arrange-Act-Assert pattern. Coverage target: 80% for new code. Integration tests use temporary directories (tempfile.TemporaryDirectory) for file system operations. Mock external dependencies when needed (unittest.mock.patch). Performance tests validate operations complete within acceptable timeframes (e.g., <100ms for config operations). All tests must be runnable via: python3 -m unittest discover scripts/
+    </standards>
+    <locations>
+      <location>scripts/test_smart_presets.py</location>
+      <location>scripts/test_configuration.py (extend existing)</location>
+      <location>scripts/ (pattern: test_*.py)</location>
+    </locations>
+    <ideas>
+      <test ac="1" priority="critical">
+        <description>Verify three preset template files created by install.sh in ~/.claude-code-project-index/templates/</description>
+        <approach>Run install.sh in clean environment, check templates/ directory contains small.json, medium.json, large.json with valid JSON schemas</approach>
+      </test>
+      <test ac="2" priority="critical">
+        <description>First /index run auto-detects project size and creates .project-index.json with correct preset</description>
+        <approach>Create test projects with 50, 500, 5000 files. Run project_index.py, verify .project-index.json created with _preset metadata (small, medium, large respectively)</approach>
+      </test>
+      <test ac="3" priority="high">
+        <description>Config includes _preset and _generated metadata fields for tracking</description>
+        <approach>Generate config with preset, load JSON, verify _preset and _generated fields present with expected values</approach>
+      </test>
+      <test ac="4" priority="critical">
+        <description>Subsequent runs detect preset boundary crossing (small→medium, medium→large)</description>
+        <approach>Create 50-file project, run /index (small preset). Add 100 files, run /index, verify boundary detection triggers. Mock user input for upgrade prompt.</approach>
+      </test>
+      <test ac="5,6" priority="critical">
+        <description>Interactive prompt asks user before upgrading, can accept or decline</description>
+        <approach>Mock user input (y/n responses). Verify backup created on accept, config unchanged on decline. Check .project-index.json.backup file exists with correct content.</approach>
+      </test>
+      <test ac="7,8" priority="high">
+        <description>Command-line flags: --no-prompt skips prompts, --upgrade-to forces preset</description>
+        <approach>Test sys.argv parsing. Run with --no-prompt flag, verify no input() calls. Run with --upgrade-to=large, verify large preset applied regardless of file count.</approach>
+      </test>
+      <test ac="9" priority="medium">
+        <description>Clear messaging explains detected size, current/recommended presets</description>
+        <approach>Capture stdout during preset operations. Verify messages contain file count, preset names, and rationale. Use io.StringIO to capture print output.</approach>
+      </test>
+      <test ac="10" priority="medium">
+        <description>README updated with preset documentation and upgrade behavior</description>
+        <approach>Manual review: Check README.md contains "Configuration Presets" section, documents all three presets, explains auto-detection and upgrade workflow</approach>
+      </test>
+      <test type="unit" priority="high">
+        <description>auto_detect_preset() function unit tests</description>
+        <approach>Test boundary conditions: 99→small, 100→medium, 4999→medium, 5000→large. Test edge cases: 0 files, negative input (should handle gracefully)</approach>
+      </test>
+      <test type="unit" priority="high">
+        <description>load_preset_template() function unit tests</description>
+        <approach>Test loading each preset (small/medium/large). Verify _generated timestamp replaced with current datetime. Test graceful fallback if template missing. Test invalid JSON handling.</approach>
+      </test>
+      <test type="unit" priority="high">
+        <description>detect_preset_from_config() function unit tests</description>
+        <approach>Test config with _preset metadata field (should use metadata). Test config without metadata (should infer from threshold). Test edge cases: missing threshold, invalid preset name.</approach>
+      </test>
+      <test type="integration" priority="critical">
+        <description>End-to-end workflow: install → first run → growth → upgrade</description>
+        <approach>1) Run install.sh, verify templates created. 2) Create 50-file project, run /index, verify small preset. 3) Add 500 files, run /index, accept upgrade prompt, verify medium preset with backup. 4) Verify all files and config intact.</approach>
+      </test>
+      <test type="performance" priority="medium">
+        <description>Preset detection completes in <5 seconds for 10,000 files (NFR-P2)</description>
+        <approach>Create test project with 10,000 files. Time file counting + preset selection. Verify total time under 5 seconds. Test on both git and non-git repositories.</approach>
+      </test>
+    </ideas>
+  </tests>
+</story-context>

@@ -1,0 +1,285 @@
+<story-context id="bmad/bmm/workflows/4-implementation/story-context/template" v="1.0">
+  <metadata>
+    <epicId>3</epicId>
+    <storyId>5</storyId>
+    <title>Multi-Tool MCP Support</title>
+    <status>drafted</status>
+    <generatedAt>2025-11-11</generatedAt>
+    <generator>BMAD Story Context Workflow</generator>
+    <sourceStoryPath>docs/stories/3-5-multi-tool-mcp-support.md</sourceStoryPath>
+  </metadata>
+
+  <story>
+    <asA>developer using Claude Code CLI, Cursor IDE, or Claude Desktop</asA>
+    <iWant>the MCP server to work seamlessly with my preferred tool</iWant>
+    <soThat>I can use project index features in my existing workflow</soThat>
+    <tasks>
+      - Task 1: Implement Tool Auto-Detection (AC: #1-4) - 5 subtasks
+      - Task 2: Implement MCP Configuration Generation (AC: #1-3, #8) - 6 subtasks
+      - Task 3: Implement Manual Configuration Option (AC: #5) - 4 subtasks
+      - Task 4: Implement MCP Validation Command (AC: #6) - 5 subtasks
+      - Task 5: Update Documentation (AC: #1-3, #7) - 5 subtasks
+      - Task 6: Integration Testing (AC: #1-3, #8) - 5 subtasks
+    </tasks>
+  </story>
+
+  <acceptanceCriteria>
+    1. **Claude Code CLI configuration (Priority 1):**
+       - Auto-detect ~/.config/claude-code/mcp.json during install
+       - Generate correct stdio transport configuration
+       - Test MCP server with Claude Code CLI environment
+       - Document Claude Code-specific setup steps (most detailed)
+
+    2. **Cursor IDE configuration (Priority 2):**
+       - Auto-detect Cursor config location during install
+       - Generate Cursor-compatible MCP configuration
+       - Test MCP server with Cursor IDE
+       - Document Cursor-specific setup steps
+
+    3. **Claude Desktop configuration (Priority 3):**
+       - Auto-detect ~/Library/Application Support/Claude/ (macOS) during install
+       - Generate Claude Desktop-compatible configuration
+       - Test MCP server with Claude Desktop
+       - Document Desktop-specific setup steps
+
+    4. install.sh detects all three tools and offers configuration for detected tools
+    5. Manual configuration option for tools not auto-detected
+    6. Validation command to test MCP server connection for each tool
+    7. Documentation explains differences and trade-offs between tools
+    8. All three tools use same MCP server implementation (stdio transport)
+  </acceptanceCriteria>
+
+  <artifacts>
+    <docs>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification</title>
+        <section>Story 3.5 AC (lines 977-999)</section>
+        <snippet>Authoritative acceptance criteria for multi-tool MCP support with priority ordering (Claude Code > Cursor > Claude Desktop), auto-detection requirements, and stdio transport configuration for all three tools.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification</title>
+        <section>Multi-Tool Configuration Layer (lines 76-81)</section>
+        <snippet>Architecture design showing MCP server registration layer for Claude Code CLI, Cursor IDE, and Claude Desktop with single stdio-based MCP server implementation serving all three tools.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification</title>
+        <section>Multi-Tool MCP Configuration Workflow (lines 513-544)</section>
+        <snippet>Detailed workflow showing tool detection phase, user prompt for tool selection, config writing for each tool with preservation of existing MCP servers, and validation command display.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification</title>
+        <section>Tool Integrations (lines 786-833)</section>
+        <snippet>Platform-specific config paths for all three tools across macOS/Linux/Windows, MCP config format examples, and integration details for each tool.</snippet>
+      </doc>
+      <doc>
+        <path>docs/mcp-setup.md</path>
+        <title>MCP Configuration Guide</title>
+        <section>Complete document (637 lines)</section>
+        <snippet>Existing comprehensive MCP setup guide covering Claude Code CLI (priority 1, most detailed), Cursor IDE (priority 2), and Claude Desktop (priority 3) with prerequisites, configuration steps, validation, troubleshooting, and performance expectations.</snippet>
+      </doc>
+      <doc>
+        <path>docs/architecture.md</path>
+        <title>Architecture Documentation</title>
+        <section>MCP Server (line 60), Integration Architecture (lines 252-288)</section>
+        <snippet>Architecture showing project_index_mcp.py provides stdio transport MCP server, hook-based integration system, and slash command integration with Claude Code.</snippet>
+      </doc>
+      <doc>
+        <path>docs/epics.md</path>
+        <title>Epic Breakdown</title>
+        <section>Story 3.5 (lines 526-556)</section>
+        <snippet>User story context describing multi-tool MCP support goal: enable same MCP server to work with Claude Code, Cursor, and Claude Desktop through auto-detection and configuration generation.</snippet>
+      </doc>
+      <doc>
+        <path>docs/PRD.md</path>
+        <title>Product Requirements Document</title>
+        <section>Epic 3 Goal (lines 207-215)</section>
+        <snippet>Multi-tool MCP support as Epic 3 deliverable: transforms features into production-ready tooling with multi-tool support prioritizing Claude Code > Cursor > Claude Desktop.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification</title>
+        <section>NFR-R4: Multi-Tool MCP Resilience (lines 687-693)</section>
+        <snippet>MCP configuration must be non-destructive (preserve existing servers), gracefully handle missing tools (install succeeds even if 0 tools detected), and provide clear error messages.</snippet>
+      </doc>
+      <doc>
+        <path>docs/tech-spec-epic-3.md</path>
+        <title>Epic 3 Technical Specification</title>
+        <section>NFR-O4: MCP Validation Reporting (lines 734-741)</section>
+        <snippet>Validation command must report pass/fail status, measure latency, provide tool-specific troubleshooting guidance, and use appropriate exit codes (0=success, 1=fail, 2=not-configured).</snippet>
+      </doc>
+      <doc>
+        <path>docs/stories/3-4-version-management-system.md</path>
+        <title>Story 3.4: Version Management System</title>
+        <section>Learnings from Previous Story, Implementation Patterns</section>
+        <snippet>Patterns for non-blocking operations (2s timeout), automatic backup before risky operations, validation with auto-rollback, graceful fallback on failures, comprehensive logging, and security-conscious design (no data leaks).</snippet>
+      </doc>
+    </docs>
+    <code>
+      <artifact>
+        <path>install.sh</path>
+        <kind>bash script</kind>
+        <symbol>main installation flow</symbol>
+        <lines>1-400</lines>
+        <reason>Baseline installation script to extend with multi-tool detection logic, MCP configuration writing, and tool selection prompts. Already has upgrade/rollback mechanisms (Story 3.4) to reference for backup patterns.</reason>
+      </artifact>
+      <artifact>
+        <path>project_index_mcp.py</path>
+        <kind>MCP server</kind>
+        <symbol>FastMCP server, tool definitions</symbol>
+        <lines>1-100</lines>
+        <reason>Existing MCP server implementation using stdio transport. Provides 4 tools (load_core, load_module, search_files, get_file_info) that must work identically across all three tools (Claude Code, Cursor, Claude Desktop).</reason>
+      </artifact>
+      <artifact>
+        <path>requirements.txt</path>
+        <kind>dependency manifest</kind>
+        <symbol>mcp>=1.0.0, pydantic>=2.0.0</symbol>
+        <lines>1-52</lines>
+        <reason>MCP server dependencies required for all three tools. Documents that MCP server (project_index_mcp.py) requires external dependencies while core indexing remains stdlib-only.</reason>
+      </artifact>
+      <artifact>
+        <path>scripts/loader.py</path>
+        <kind>module</kind>
+        <symbol>load_detail_module, load_detail_by_path, find_module_for_file</symbol>
+        <lines>20-320</lines>
+        <reason>Lazy-loading utilities used by MCP server. MCP validation command (AC#6) should use these same utilities to avoid code duplication and ensure consistent behavior.</reason>
+      </artifact>
+    </code>
+    <dependencies>
+      <python>
+        <package>mcp</package>
+        <version>>=1.0.0</version>
+        <usage>MCP Python SDK for exposing project index as MCP tools</usage>
+      </python>
+      <python>
+        <package>pydantic</package>
+        <version>>=2.0.0</version>
+        <usage>Input validation for MCP tool parameters</usage>
+      </python>
+      <python>
+        <package>psutil</package>
+        <version>>=5.9.0</version>
+        <usage>Process monitoring (optional, for performance benchmarks)</usage>
+      </python>
+    </dependencies>
+  </artifacts>
+
+  <constraints>
+    1. **Platform-Specific Config Paths:** Must detect and handle config paths for all three platforms (macOS, Linux, Windows):
+       - Claude Code CLI: ~/.config/claude-code/mcp.json (cross-platform)
+       - Cursor IDE: ~/Library/Application Support/Cursor/.../mcp-config.json (macOS), ~/.config/Cursor/.../mcp-config.json (Linux), %APPDATA%\Cursor\...\mcp-config.json (Windows)
+       - Claude Desktop: ~/Library/Application Support/Claude/claude_desktop_config.json (macOS), ~/.config/Claude/claude_desktop_config.json (Linux), %APPDATA%\Claude\claude_desktop_config.json (Windows)
+
+    2. **Non-Destructive Configuration:** Must preserve existing MCP server entries when writing config. Read existing mcp.json, parse JSON, add/update "project-index" entry only, write updated JSON back. Never overwrite other servers.
+
+    3. **Graceful Degradation:** Installation must succeed even if 0 tools detected. Provide clear feedback about detected tools and offer manual configuration option. Don't fail installation if auto-detection finds nothing.
+
+    4. **Stdio Transport Only:** All three tools must use identical MCP server command with stdio transport: {"command": "python3", "args": ["/path/to/project_index_mcp.py"], "env": {}}. No HTTP transport, no SSE transport variations.
+
+    5. **Backward Compatibility:** Don't break existing MCP server installations. If user already has "project-index" server configured, preserve and update rather than overwrite.
+
+    6. **Python 3.8+ Compatibility:** Validation script (scripts/validate_mcp.py) must use stdlib-only where possible. Can use project dependencies (mcp, pydantic) but avoid adding new dependencies.
+
+    7. **Priority Ordering:** Documentation must follow Claude Code (priority 1, most detailed) > Cursor (priority 2, standard detail) > Claude Desktop (priority 3, basic detail) as specified in tech spec and PRD.
+
+    8. **Exit Code Standards:** Validation command must use consistent exit codes: 0=success (MCP connection works), 1=connection failed (tool detected but MCP not working), 2=not configured (tool not detected or config missing).
+  </constraints>
+
+  <interfaces>
+    <interface>
+      <name>detect_claude_code()</name>
+      <kind>bash function</kind>
+      <signature>detect_claude_code() -> exit code 0 (found) | 1 (not found)</signature>
+      <path>install.sh (to be added)</path>
+      <description>Auto-detect Claude Code CLI by checking if ~/.config/claude-code/mcp.json exists or ~/.config/claude-code/ directory exists</description>
+    </interface>
+    <interface>
+      <name>detect_cursor()</name>
+      <kind>bash function</kind>
+      <signature>detect_cursor() -> exit code 0 (found) | 1 (not found)</signature>
+      <path>install.sh (to be added)</path>
+      <description>Auto-detect Cursor IDE by checking platform-specific config paths (macOS: ~/Library/Application Support/Cursor/, Linux: ~/.config/Cursor/, Windows: %APPDATA%\Cursor/)</description>
+    </interface>
+    <interface>
+      <name>detect_claude_desktop()</name>
+      <kind>bash function</kind>
+      <signature>detect_claude_desktop() -> exit code 0 (found) | 1 (not found)</signature>
+      <path>install.sh (to be added)</path>
+      <description>Auto-detect Claude Desktop by checking platform-specific paths (macOS: ~/Library/Application Support/Claude/, Linux: ~/.config/Claude/, Windows: %APPDATA%\Claude/)</description>
+    </interface>
+    <interface>
+      <name>write_mcp_config(tool, config_path)</name>
+      <kind>bash function</kind>
+      <signature>write_mcp_config(tool_name, config_file_path) -> exit code 0 (success) | 1 (fail)</signature>
+      <path>install.sh (to be added)</path>
+      <description>Write MCP server config to tool-specific file. Read existing config, parse JSON, add/update "project-index" entry, write back. Uses jq for JSON manipulation to preserve existing servers.</description>
+    </interface>
+    <interface>
+      <name>validate_mcp.py --tool=&lt;name&gt;</name>
+      <kind>Python CLI script</kind>
+      <signature>python3 scripts/validate_mcp.py --tool=claude-code|cursor|desktop</signature>
+      <path>scripts/validate_mcp.py (to be created)</path>
+      <description>Validation command to test MCP server connection for specific tool. Exit codes: 0=success, 1=fail, 2=not-configured. Measures latency and reports pass/fail with troubleshooting guidance.</description>
+    </interface>
+    <interface>
+      <name>MCP Server Config Format</name>
+      <kind>JSON schema</kind>
+      <signature>{"mcpServers": {"project-index": {"command": "python3", "args": ["..."], "env": {}}}}</signature>
+      <path>All three tools use identical format</path>
+      <description>Standard MCP server configuration with stdio transport. Must use absolute path in args array (e.g., /Users/user/.claude-code-project-index/project_index_mcp.py). Env object can be empty or contain optional environment variables.</description>
+    </interface>
+  </interfaces>
+
+  <tests>
+    <standards>
+      Testing approach follows project pattern of manual validation with comprehensive test scenarios. No unit test files created (project doesn't have test infrastructure). Story 3.4 established pattern of comprehensive manual testing with all edge cases. Validation focuses on:
+      - Edge case testing (0 tools, 1 tool, 2 tools, 3 tools detected)
+      - Platform-specific path handling (macOS, Linux, Windows)
+      - Config preservation (existing MCP servers not overwritten)
+      - Graceful degradation (installation succeeds even if no tools found)
+      - Non-blocking operations (MCP validation doesn't block install)
+      - Clear user feedback (detection results, validation status, troubleshooting)
+    </standards>
+    <locations>
+      No automated test locations. Manual validation via:
+      - Running install.sh on systems with different tool combinations
+      - Testing scripts/validate_mcp.py against each tool
+      - Verifying MCP server responds from each tool
+      - Checking config file preservation (before/after comparison)
+    </locations>
+    <ideas>
+      1. **AC#1: Claude Code CLI Detection** - Test on system with ~/.config/claude-code/mcp.json exists, verify detected correctly, verify config written to correct location, verify existing servers preserved.
+
+      2. **AC#2: Cursor IDE Detection** - Test on macOS (~/Library/Application Support/Cursor/), Linux (~/.config/Cursor/), verify platform-specific path detection works.
+
+      3. **AC#3: Claude Desktop Detection** - Test on macOS (~/Library/Application Support/Claude/), Linux (~/.config/Claude/), verify detection works, verify config written correctly.
+
+      4. **AC#4: Multi-Tool Detection** - Test on system with all 3 tools installed, verify all detected, verify interactive prompt shows all 3, verify user can select subset.
+
+      5. **AC#5: Manual Configuration** - Test --configure-mcp=claude-code flag, test with custom path specified, verify manual config bypasses auto-detection.
+
+      6. **AC#6: Validation Command** - Test python3 scripts/validate_mcp.py --tool=claude-code, verify exit code 0 when working, exit code 1 when connection fails, exit code 2 when not configured, verify latency measurement displayed.
+
+      7. **AC#7: Documentation Quality** - Review docs/mcp-setup.md enhancements, verify tool comparison table added, verify Claude Code has most detailed instructions, verify Cursor has standard detail, verify Claude Desktop has basic detail.
+
+      8. **AC#8: Stdio Transport Consistency** - Verify all three tools use identical MCP server command: python3 /path/to/project_index_mcp.py, verify no HTTP/SSE transport variations.
+
+      9. **Edge Case: Zero Tools Detected** - Test on clean system with no AI tools installed, verify installation succeeds, verify clear message about no tools found, verify manual configuration option offered.
+
+      10. **Edge Case: Existing MCP Config** - Test on system with existing mcp.json containing other servers (e.g., "weather-server"), verify other servers preserved after project-index added.
+
+      11. **Edge Case: Corrupt MCP Config** - Test with invalid JSON in existing mcp.json, verify graceful handling (backup existing, write new valid config, warn user).
+
+      12. **Platform Path Handling** - Test detection logic handles tilde expansion (~), handles $HOME variable, handles %APPDATA% on Windows (if running under WSL/Git Bash).
+
+      13. **Non-Blocking Validation** - Test that validation command failure doesn't block installation, verify installation continues if validation fails, verify user gets clear next steps.
+
+      14. **Config Backup Pattern** - Following Story 3.4 pattern, test that existing mcp.json is backed up before modification (timestamped backup in ~/.claude-code-project-index/backups/mcp-configs/).
+
+      15. **Rollback on Failure** - Test that if config write fails midway (e.g., permission denied), original mcp.json is restored from backup.
+    </ideas>
+  </tests>
+</story-context>
