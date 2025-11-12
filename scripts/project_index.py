@@ -33,8 +33,9 @@ import socket
 from index_utils import (
     IGNORE_DIRS, PARSEABLE_LANGUAGES, CODE_EXTENSIONS, MARKDOWN_EXTENSIONS,
     DIRECTORY_PURPOSES, extract_python_signatures, extract_javascript_signatures,
-    extract_shell_signatures, extract_markdown_structure, infer_file_purpose,
-    infer_directory_purpose, get_language_name, should_index_file, get_git_files
+    extract_shell_signatures, extract_vue_signatures, extract_markdown_structure,
+    infer_file_purpose, infer_directory_purpose, get_language_name,
+    should_index_file, get_git_files
 )
 from doc_classifier import classify_documentation
 from git_metadata import extract_git_metadata
@@ -802,6 +803,8 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
                 extracted = extract_javascript_signatures(content)
             elif file_path.suffix in {'.sh', '.bash'}:
                 extracted = extract_shell_signatures(content)
+            elif file_path.suffix == '.vue':
+                extracted = extract_vue_signatures(content)
             else:
                 extracted = {'functions': {}, 'classes': {}}
 
@@ -1369,6 +1372,8 @@ def build_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[Dict, int
                     extracted = extract_javascript_signatures(content)
                 elif file_path.suffix in {'.sh', '.bash'}:
                     extracted = extract_shell_signatures(content)
+                elif file_path.suffix == '.vue':
+                    extracted = extract_vue_signatures(content)
                 else:
                     extracted = {'functions': {}, 'classes': {}}
 

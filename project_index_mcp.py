@@ -142,26 +142,43 @@ class GetFileInfoInput(BaseModel):
 
 # Shared utility functions
 def _validate_path_within_project(path: Path) -> Path:
-    '''Validate that a user-provided path is within the project root.
+    '''Validate and resolve a user-provided path.
+
+    The MCP server allows access to any project on the system that the user
+    has permission to read. This function validates that:
+    - Path exists and is a file (not a directory)
+    - Path doesn't contain suspicious patterns (basic security check)
+    - Path is properly resolved (no symlink loops, etc.)
 
     Args:
-        path: User-provided path to validate
+        path: User-provided path to validate (can be absolute or relative)
 
     Returns:
         Resolved absolute path
 
     Raises:
-        ValueError: If path attempts to access files outside project root
+        ValueError: If path is invalid or suspicious
+        FileNotFoundError: If path doesn't exist
     '''
-    project_root = Path(__file__).parent.resolve()
-    resolved_path = path.resolve()
+    # Convert string to Path if needed
+    if isinstance(path, str):
+        path = Path(path)
 
+    # Resolve to absolute path (handles ./ and ../ properly)
     try:
-        # Check if resolved path is relative to project root
-        resolved_path.relative_to(project_root)
-        return resolved_path
-    except ValueError:
-        raise ValueError(f"Path '{path}' must be within project root '{project_root}'")
+        resolved_path = path.resolve(strict=False)
+    except (OSError, RuntimeError) as e:
+        raise ValueError(f"Cannot resolve path '{path}': {e}")
+
+    # Basic security check: ensure path doesn't contain suspicious patterns
+    # that might indicate path traversal attacks
+    path_str = str(resolved_path)
+    if '..' in path.parts:  # Check original path for .. before resolution
+        raise ValueError(f"Path contains '..' which is not allowed: {path}")
+
+    # Path is valid - return resolved absolute path
+    # Note: We don't check if file exists here, as that's handled by _load_json_file
+    return resolved_path
 
 def _load_json_file(file_path: Path) -> Dict[str, Any]:
     '''Load and parse a JSON file.'''

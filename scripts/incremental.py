@@ -150,14 +150,20 @@ def identify_affected_modules(
 
     affected_modules = set()
 
-    # Map files to their containing modules using core index modules field
-    modules = core_index.get('modules', {})
-    file_to_module = {}
+    # Use the pre-built file_to_module_map from core index (split format v2.2+)
+    # Falls back to building from modules field for legacy format compatibility
+    file_to_module = core_index.get('file_to_module_map', {})
 
-    for module_name, module_info in modules.items():
-        module_files = module_info.get('files', [])
-        for file_path in module_files:
-            file_to_module[file_path] = module_name
+    # Always load modules dict - needed for dependency analysis later (line 186)
+    modules = core_index.get('modules', {})
+
+    # Legacy format compatibility: build map from modules if not present
+    if not file_to_module:
+        file_to_module = {}
+        for module_name, module_info in modules.items():
+            module_files = module_info.get('files', [])
+            for file_path in module_files:
+                file_to_module[file_path] = module_name
 
     # Add modules containing changed files
     directly_affected = set()
@@ -334,6 +340,7 @@ def regenerate_affected_modules(
         extract_python_signatures,
         extract_javascript_signatures,
         extract_shell_signatures,
+        extract_vue_signatures,
         extract_markdown_structure,
         get_language_name,
         build_call_graph
@@ -395,6 +402,8 @@ def regenerate_affected_modules(
                 extracted = extract_javascript_signatures(content)
             elif language == 'shell':
                 extracted = extract_shell_signatures(content)
+            elif language == 'vue':
+                extracted = extract_vue_signatures(content)
             elif language == 'markdown':
                 extracted = extract_markdown_structure(content)
 

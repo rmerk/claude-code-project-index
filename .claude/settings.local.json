@@ -25,7 +25,9 @@
       "Bash(source:*)",
       "Bash(tee:*)",
       "Bash(time python3:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(time python:*)",
+      "Bash(assureptmdashboard/src/composables/auth.ts)"
     ],
     "deny": [],
     "ask": []
