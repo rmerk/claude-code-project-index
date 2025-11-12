@@ -476,10 +476,68 @@ The tool remembers your last `-i` size per project and targets that amount, but 
 **Full parsing** (extracts functions, classes, methods):
 - Python (.py)
 - JavaScript/TypeScript (.js, .ts, .jsx, .tsx)
+- **Vue Single-File Components (.vue)** - Both Composition API and Options API
 - Shell scripts (.sh, .bash)
 
 **File tracking** (listing only):
 - Go, Rust, Java, C/C++, Ruby, PHP, Swift, Kotlin, and 20+ more
+
+### Vue Options API Support
+
+**NEW in v0.3.1** - Enhanced Vue parsing now extracts methods from Options API components in addition to Composition API support.
+
+The indexer automatically detects and parses both Vue API styles:
+
+**Composition API** (existing support):
+```vue
+<script setup>
+import { ref, computed } from 'vue'
+
+const count = ref(0)
+const doubled = computed(() => count.value * 2)
+function increment() { count.value++ }
+</script>
+```
+
+**Options API** (new support):
+```vue
+<script>
+export default {
+  data() {
+    return { count: 0 }
+  },
+  computed: {
+    doubled() { return this.count * 2 }
+  },
+  methods: {
+    increment() { this.count++ }
+  },
+  created() {
+    console.log('Component created')
+  }
+}
+</script>
+```
+
+**Extracted from Options API components:**
+- ✅ **Methods** (`methods: { ... }`) - Categorized as `category: 'methods'`
+- ✅ **Computed properties** (`computed: { ... }`) - Categorized as `category: 'computed'`
+- ✅ **Lifecycle hooks** (created, mounted, etc.) - Categorized as `category: 'lifecycle'`
+- ✅ **Watchers** (`watch: { ... }`) - Categorized as `category: 'watch'`
+
+**Query examples:**
+```bash
+# Find all Vue methods
+claude "show me all Vue component methods -i"
+
+# Find lifecycle hooks
+claude "which components use created hook? -i"
+
+# Analyze computed properties
+claude "analyze all computed properties -i"
+```
+
+**Performance:** <2ms overhead per Vue file (tested on 246-file Vue project)
 
 ## Installation Details
 

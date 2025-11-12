@@ -1,4 +1,4 @@
-# generated: 2025-11-11
+# generated: 2025-11-12
 # project: claude-code-project-index
 # project_key: claude-code-project-index
 # tracking_system: file-system
@@ -29,7 +29,7 @@
 # - SM typically drafts next story after previous one is 'done' to incorporate learnings
 # - Dev moves story to 'review', SM reviews, then Dev moves to 'done'
 
-generated: 2025-11-11
+generated: 2025-11-12
 project: claude-code-project-index
 project_key: claude-code-project-index
 tracking_system: file-system
@@ -58,10 +58,11 @@ development_status:
   2-8-impact-analysis-tooling: done
   2-9-incremental-index-updates: done
   2-10-mcp-server-implementation: done
+  2-11-vue-options-api-parsing: done
   epic-2-retrospective: completed
 
   epic-3: contexted
-  3-1-installation-integration-with-smart-config-presets: done
+  3-1-smart-config-presets: done
   3-2-performance-validation-on-medium-projects: done
   3-3-comprehensive-documentation-with-claude-code-focus: done
   3-4-version-management-system: done

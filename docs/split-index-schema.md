@@ -333,6 +333,7 @@ interface FunctionDetail {
   signature: string     // Full signature with params and return type
   calls: string[]       // Functions called by this function
   doc: string           // Docstring or comment
+  category?: string     // Optional: Function category for Vue Options API ('methods' | 'computed' | 'lifecycle' | 'watch')
 }
 
 interface ClassDetail {
@@ -371,6 +372,48 @@ interface MethodDetail {
 - **Purpose**: Detailed implementation information per file
 - **Key**: File path (relative to project root)
 - **Value**: Complete function/class definitions with full signatures
+
+#### `category` (Function Metadata Field)
+- **Type**: Optional string
+- **Purpose**: Categorizes Vue Options API methods by their role in component lifecycle
+- **Scope**: Only present for Vue Options API functions (not Composition API or other languages)
+- **Values**:
+  - `'methods'` - Functions defined in `methods: { ... }` block
+  - `'computed'` - Computed properties defined in `computed: { ... }` block
+  - `'lifecycle'` - Vue lifecycle hooks (created, mounted, beforeDestroy, etc.)
+  - `'watch'` - Watchers defined in `watch: { ... }` block
+- **Added**: Epic 2 Extension (Story 2.11 - Vue Options API Method Extraction)
+- **Backward Compatibility**: Optional field, omitted for non-Vue files and Composition API
+
+**Example Usage**:
+```json
+{
+  "files": {
+    "src/components/UserProfile.vue": {
+      "functions": [
+        {
+          "name": "fetchData",
+          "line": 42,
+          "category": "methods",
+          "signature": "() => Promise<void>"
+        },
+        {
+          "name": "fullName",
+          "line": 18,
+          "category": "computed",
+          "signature": "() => string"
+        },
+        {
+          "name": "created",
+          "line": 55,
+          "category": "lifecycle",
+          "signature": "() => void"
+        }
+      ]
+    }
+  }
+}
+```
 
 #### `call_graph_local`
 - **Purpose**: Function call relationships within this module

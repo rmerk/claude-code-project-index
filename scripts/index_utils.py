@@ -20,12 +20,13 @@ IGNORE_DIRS = {
 # Languages we can fully parse (extract functions/classes)
 PARSEABLE_LANGUAGES = {
     '.py': 'python',
-    '.js': 'javascript', 
+    '.js': 'javascript',
     '.ts': 'typescript',
     '.jsx': 'javascript',
     '.tsx': 'typescript',
     '.sh': 'shell',
-    '.bash': 'shell'
+    '.bash': 'shell',
+    '.vue': 'vue'
 }
 
 # All code file extensions we recognize
@@ -1180,6 +1181,304 @@ def extract_shell_signatures(content: str) -> Dict[str, any]:
     if not result['sources']:
         del result['sources']
     
+    return result
+
+
+def extract_vue_signatures(content: str) -> Dict[str, any]:
+    """
+    Extract function and component signatures from Vue Single File Components (SFC).
+
+    Extracts <script> or <script setup> sections and delegates to JavaScript/TypeScript parser.
+    Supports both Options API and Composition API patterns.
+
+    Args:
+        content: Full Vue SFC content including <template>, <script>, and <style> sections
+
+    Returns:
+        Dict with same structure as extract_javascript_signatures(), plus:
+        - vue_api: 'composition' or 'options' (detected API style)
+        - script_lang: 'javascript' or 'typescript' (detected from lang attribute)
+    """
+    result = {
+        'imports': [],
+        'functions': {},
+        'classes': {},
+        'constants': {},
+        'variables': [],
+        'type_aliases': {},
+        'interfaces': {},
+        'enums': {},
+        'call_graph': {},
+        'vue_api': None,
+        'script_lang': 'javascript'  # default
+    }
+
+    # Extract <script> section with regex
+    # Patterns to match:
+    # 1. <script setup> (Composition API with setup sugar)
+    # 2. <script setup lang="ts"> (TypeScript variant)
+    # 3. <script> (Options API or Composition API)
+    # 4. <script lang="ts"> (TypeScript variant)
+
+    script_pattern = r'<script(?:\s+setup)?(?:\s+lang=["\'](\w+)["\'])?\s*>(.*?)</script>'
+
+    match = re.search(script_pattern, content, re.DOTALL | re.IGNORECASE)
+
+    if not match:
+        # No script section found - return empty result
+        return result
+
+    lang_attr, script_content = match.groups()
+
+    # Detect script language from lang attribute
+    if lang_attr and lang_attr.lower() in ('ts', 'typescript'):
+        result['script_lang'] = 'typescript'
+    elif lang_attr and lang_attr.lower() in ('js', 'javascript'):
+        result['script_lang'] = 'javascript'
+
+    # Detect Vue API style
+    if '<script setup' in content.lower():
+        result['vue_api'] = 'composition'
+    elif 'export default' in script_content and ('setup()' in script_content or 'setup (' in script_content):
+        result['vue_api'] = 'composition'
+    elif 'export default' in script_content:
+        result['vue_api'] = 'options'
+
+    # Delegate to JavaScript/TypeScript parser
+    if script_content and script_content.strip():
+        js_result = extract_javascript_signatures(script_content)
+
+        # Extract Options API methods if export default exists
+        # (works for both pure Options API and mixed composition+options)
+        if 'export default' in script_content and result['vue_api'] != 'composition':
+            all_functions = set(js_result.get('functions', {}).keys())
+            options_methods = extract_options_api_methods(script_content, all_functions)
+
+            # Merge Options API methods into functions dict
+            for method_name, method_info in options_methods.items():
+                if method_name not in js_result['functions']:
+                    js_result['functions'][method_name] = method_info
+        elif 'export default' in script_content and result['vue_api'] == 'composition':
+            # Mixed API: has setup() but might also have methods/computed/etc
+            all_functions = set(js_result.get('functions', {}).keys())
+            options_methods = extract_options_api_methods(script_content, all_functions)
+
+            # Merge Options API methods (from methods: {}, computed: {}, etc.)
+            for method_name, method_info in options_methods.items():
+                if method_name not in js_result['functions']:
+                    js_result['functions'][method_name] = method_info
+
+        # Merge results from JS/TS parser
+        result['imports'] = js_result.get('imports', [])
+        result['functions'] = js_result.get('functions', {})
+        result['classes'] = js_result.get('classes', {})
+        result['constants'] = js_result.get('constants', {})
+        result['variables'] = js_result.get('variables', [])
+        result['type_aliases'] = js_result.get('type_aliases', {})
+        result['interfaces'] = js_result.get('interfaces', {})
+        result['enums'] = js_result.get('enums', {})
+        result['call_graph'] = js_result.get('call_graph', {})
+
+    return result
+
+
+def extract_options_api_methods(script_content: str, all_functions: Set[str]) -> Dict[str, Dict]:
+    """
+    Extract methods from Vue Options API export default block.
+
+    Handles:
+    - methods: { ... }
+    - computed: { ... }
+    - watch: { ... }
+    - Lifecycle hooks: created(), mounted(), etc.
+
+    Args:
+        script_content: JavaScript content from <script> section
+        all_functions: Set of all function names for call graph analysis
+
+    Returns:
+        Dict mapping function names to metadata:
+        {
+            'handleClick': {
+                'line': 45,
+                'params': ['event'],
+                'category': 'methods',  # or 'computed', 'lifecycle', 'watch'
+                'calls': ['submitForm', 'validateInput']
+            }
+        }
+    """
+    result = {}
+
+    # Helper function to count braces and extract object content
+    def extract_object_content(content: str, start_pos: int) -> tuple:
+        """Extract content of { ... } block handling nested braces."""
+        brace_count = 1
+        end_pos = start_pos
+
+        for i in range(start_pos, len(content)):
+            if content[i] == '{':
+                brace_count += 1
+            elif content[i] == '}':
+                brace_count -= 1
+                if brace_count == 0:
+                    end_pos = i
+                    break
+
+        return content[start_pos:end_pos], end_pos
+
+    # Helper function to extract individual methods from an object block
+    def extract_methods_from_block(block_content: str, category: str, start_line: int) -> Dict[str, Dict]:
+        """Extract individual methods from methods/computed/watch block."""
+        methods = {}
+
+        # Patterns for different method syntaxes (order matters - most specific first)
+        patterns = [
+            # Async function: methodName: async function(params) {
+            (r'(\w+)\s*:\s*async\s+function\s*\(([^)]*)\)\s*\{', 'async_function'),
+            # Async shorthand: async methodName() {
+            (r'async\s+(\w+)\s*\(([^)]*)\)\s*\{', 'async_shorthand'),
+            # Function syntax: methodName: function(params) {
+            (r'(\w+)\s*:\s*function\s*\(([^)]*)\)\s*\{', 'function'),
+            # Shorthand: methodName() { or methodName(params) {
+            (r'(\w+)\s*\(([^)]*)\)\s*\{', 'shorthand'),
+            # Arrow function: methodName: (params) => {
+            (r'(\w+)\s*:\s*\(([^)]*)\)\s*=>\s*\{', 'arrow'),
+        ]
+
+        for pattern, syntax_type in patterns:
+            for match in re.finditer(pattern, block_content):
+                method_name = match.group(1)
+
+                # Skip if already extracted (prevents duplicates from overlapping patterns)
+                if method_name in methods:
+                    continue
+
+                params_str = match.group(2) if match.lastindex >= 2 else ''
+
+                # Extract parameters
+                params = []
+                if params_str.strip():
+                    params = [p.strip().split(':')[0].strip() for p in params_str.split(',')]
+
+                # Calculate line number
+                line_offset = block_content[:match.start()].count('\n')
+                line_num = start_line + line_offset
+
+                # Extract method body for call graph analysis
+                body_start = match.end()
+                body_content, _ = extract_object_content(block_content, body_start)
+
+                # Extract function calls with error handling
+                try:
+                    calls = extract_function_calls_javascript(body_content, all_functions)
+                except Exception:
+                    # Graceful degradation: if call extraction fails, continue without calls
+                    calls = []
+
+                methods[method_name] = {
+                    'line': line_num,
+                    'params': params,
+                    'category': category,
+                    'calls': calls
+                }
+
+                if 'async' in syntax_type:
+                    methods[method_name]['async'] = True
+
+        return methods
+
+    # Extract export default block
+    export_pattern = r'export\s+default\s*\{'
+    export_match = re.search(export_pattern, script_content)
+
+    if not export_match:
+        return result
+
+    # Extract the full export default { ... } block using brace counting
+    options_start = export_match.end()
+    options_content, options_end = extract_object_content(script_content, options_start)
+
+    # Calculate starting line number for export default block
+    export_line = script_content[:export_match.start()].count('\n') + 1
+
+    # Extract methods object: methods: { ... }
+    methods_pattern = r'methods\s*:\s*\{'
+    methods_match = re.search(methods_pattern, options_content)
+    if methods_match:
+        methods_start = methods_match.end()
+        methods_content, _ = extract_object_content(options_content, methods_start)
+        methods_line = export_line + options_content[:methods_match.start()].count('\n')
+
+        extracted_methods = extract_methods_from_block(methods_content, 'methods', methods_line)
+        result.update(extracted_methods)
+
+    # Extract computed properties: computed: { ... }
+    computed_pattern = r'computed\s*:\s*\{'
+    computed_match = re.search(computed_pattern, options_content)
+    if computed_match:
+        computed_start = computed_match.end()
+        computed_content, _ = extract_object_content(options_content, computed_start)
+        computed_line = export_line + options_content[:computed_match.start()].count('\n')
+
+        extracted_computed = extract_methods_from_block(computed_content, 'computed', computed_line)
+        result.update(extracted_computed)
+
+    # Extract watch object: watch: { ... }
+    watch_pattern = r'watch\s*:\s*\{'
+    watch_match = re.search(watch_pattern, options_content)
+    if watch_match:
+        watch_start = watch_match.end()
+        watch_content, _ = extract_object_content(options_content, watch_start)
+        watch_line = export_line + options_content[:watch_match.start()].count('\n')
+
+        extracted_watchers = extract_methods_from_block(watch_content, 'watch', watch_line)
+        result.update(extracted_watchers)
+
+    # Extract lifecycle hooks at root level (including setup for mixed API)
+    lifecycle_hooks = [
+        'setup',  # Composition API setup function (used in mixed API components)
+        'beforeCreate', 'created',
+        'beforeMount', 'mounted',
+        'beforeUpdate', 'updated',
+        'beforeDestroy', 'destroyed',
+        'activated', 'deactivated',
+        'errorCaptured'
+    ]
+
+    for hook in lifecycle_hooks:
+        # Patterns: hookName() { or hookName: function() {
+        hook_patterns = [
+            (rf'{hook}\s*\(([^)]*)\)\s*\{{', 'shorthand'),
+            (rf'{hook}\s*:\s*function\s*\(([^)]*)\)\s*\{{', 'function'),
+        ]
+
+        for pattern, syntax_type in hook_patterns:
+            match = re.search(pattern, options_content)
+            if match:
+                params_str = match.group(1) if match.lastindex >= 1 else ''
+                params = []
+                if params_str.strip():
+                    params = [p.strip().split(':')[0].strip() for p in params_str.split(',')]
+
+                # Calculate line number
+                line_offset = options_content[:match.start()].count('\n')
+                line_num = export_line + line_offset
+
+                # Extract hook body for call graph
+                body_start = match.end()
+                body_content, _ = extract_object_content(options_content, body_start)
+
+                # Extract function calls
+                calls = extract_function_calls_javascript(body_content, all_functions)
+
+                result[hook] = {
+                    'line': line_num,
+                    'params': params,
+                    'category': 'lifecycle',
+                    'calls': calls
+                }
+                break  # Only match first pattern for this hook
+
     return result
 
 
