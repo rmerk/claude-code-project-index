@@ -23,7 +23,7 @@
       <action>Use {{story_path}} directly</action>
       <action>Read COMPLETE story file and parse sections</action>
       <action>Extract story_key from filename or story metadata</action>
-      <action>Verify Status is "review" - if not, HALT with message: "Story status must be 'review' to proceed"</action>
+      <action>Verify Status is "review" or "ready-for-review" - if not, HALT with message: "Story status must be 'review' or 'ready-for-review' to proceed"</action>
     </check>
 
     <check if="{{story_path}} is NOT provided">
@@ -35,11 +35,11 @@
       <action>Find FIRST story (reading in order from top to bottom) where:
         - Key matches pattern: number-number-name (e.g., "1-2-user-auth")
         - NOT an epic key (epic-X) or retrospective (epic-X-retrospective)
-        - Status value equals "review"
+        - Status value equals "review" OR "ready-for-review"
       </action>
 
-      <check if="no story with status 'review' found">
-        <output>📋 No stories with status "review" found
+      <check if="no story with status 'review' or 'ready-for-review' found">
+        <output>📋 No stories with status "review" or "ready-for-review" found
 
 **What would you like to do?**
 1. Run `dev-story` to implement and mark a story ready for review
@@ -51,17 +51,18 @@
         <check if="option 3 selected">
           <ask>What code would you like me to review?
 
-Provide:
-- File path(s) or directory to review
-- What to review for:
-  • General quality and standards
-  • Requirements compliance
-  • Security concerns
-  • Performance issues
-  • Architecture alignment
-  • Something else (specify)
+          Provide:
+          - File path(s) or directory to review
+          - What to review for:
+            • General quality and standards
+            • Requirements compliance
+            • Security concerns
+            • Performance issues
+            • Architecture alignment
+            • Something else (specify)
 
-Your input:</ask>
+            Your input:?
+          </ask>
 
           <action>Parse user input to extract:
             - {{review_files}}: file paths or directories to review
@@ -88,6 +89,11 @@ Your input:</ask>
     <action if="story cannot be read">HALT with message: "Unable to read story file"</action>
   </step>
 
+  <step n="1.5" goal="Discover and load project documents">
+    <invoke-protocol name="discover_inputs" />
+    <note>After discovery, these content variables are available: {architecture_content}, {ux_design_content}, {epics_content} (loads only epic for this story if sharded), {document_project_content}</note>
+  </step>
+
   <step n="2" goal="Resolve story context file and specification inputs">
     <action>Locate story context file: Under Dev Agent Record → Context Reference, read referenced path(s). If missing, search {{output_folder}} for files matching pattern "story-{{epic_num}}.{{story_num}}*.context.xml" and use the most recent.</action>
     <action if="no story context file found">Continue but record a WARNING in review notes: "No story context file found"</action>
@@ -96,6 +102,7 @@ Your input:</ask>
     <action if="no tech spec found">Continue but record a WARNING in review notes: "No Tech Spec found for epic {{epic_num}}"</action>
 
     <action>Load architecture/standards docs: For each file name in {{arch_docs_file_names}} within {{arch_docs_search_dirs}}, read if exists. Collect testing, coding standards, security, and architectural patterns.</action>
+    <note>Architecture and brownfield docs were pre-loaded in Step 1.5 as {architecture_content} and {document_project_content}</note>
   </step>
 
   <step n="3" goal="Detect tech stack and establish best-practice reference set">
@@ -334,11 +341,11 @@ Review was saved to story file, but sprint-status.yaml may be out of sync.
       <action if="user confirms or no ask needed">
         Append under the story's "Tasks / Subtasks" a new subsection titled "Review Follow-ups (AI)", adding each item as an unchecked checkbox in imperative form, prefixed with "[AI-Review]" and severity. Example: "- [ ] [AI-Review][High] Add input validation on server route /api/x (AC #2)".
       </action>
-      <action if="{{persist_action_items}} == true and 'backlog_file' in {{persist_targets}}">
+      <action>
         If {{backlog_file}} does not exist, copy {installed_path}/backlog_template.md to {{backlog_file}} location.
         Append a row per action item with Date={{date}}, Story={{epic_num}}.{{story_num}}, Epic={{epic_num}}, Type, Severity, Owner (or "TBD"), Status="Open", Notes with short context and file refs.
       </action>
-      <action if="{{persist_action_items}} == true and ('epic_followups' in {{persist_targets}} or {{update_epic_followups}} == true)">
+      <action>
         If an epic Tech Spec was found: open it and create (if missing) a section titled "{{epic_followups_section_title}}". Append a bullet list of action items scoped to this epic with references back to Story {{epic_num}}.{{story_num}}.
       </action>
       <action>Save modified files.</action>
