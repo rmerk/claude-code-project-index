@@ -659,6 +659,8 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
     git_cache = {}  # Cache for git metadata
 
     # Core index structure (v2.2-submodules with multi-level organization)
+    # Note: File details are stored in detail modules (PROJECT_INDEX.d/), not in core index
+    # This keeps core index small for embedding in CLAUDE.md while enabling lazy-loading
     core_index = {
         'version': '2.2-submodules',
         'at': datetime.now().isoformat(),
@@ -674,7 +676,7 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
             'git_files_tracked': 0,  # Files with git metadata extracted
             'git_files_fallback': 0  # Files using filesystem mtime fallback
         },
-        'f': {},  # Files with lightweight signatures
+        # 'f' section removed in v2.2 - file details are in PROJECT_INDEX.d/ modules
         'g': [],  # Global call graph (cross-module edges only)
         'd_critical': {},  # Critical documentation only (v2.1-tiered)
         'modules': {},  # Module references
@@ -812,53 +814,22 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
             if not extracted.get('functions') and not extracted.get('classes'):
                 continue
 
-            # Build lightweight file entry
-            file_entry = {
-                'lang': language
-            }
-
-            # Add git metadata
+            # Extract git metadata for detail modules
             git_meta = extract_git_metadata(file_path, root, git_cache)
             if git_meta.get('commit'):
-                file_entry['git'] = git_meta
                 core_index['stats']['git_files_tracked'] += 1
             else:
                 # No commit means fallback to mtime was used
                 if git_meta.get('date'):  # Has mtime fallback data
                     core_index['stats']['git_files_fallback'] += 1
 
-            # Convert to lightweight signatures (name:line format)
-            if extracted.get('functions'):
-                lightweight_funcs = []
-                for func_name, func_data in extracted['functions'].items():
-                    lightweight_funcs.append(extract_lightweight_signature(func_data, func_name))
-                file_entry['funcs'] = lightweight_funcs
-
-            if extracted.get('classes'):
-                lightweight_classes = {}
-                for class_name, class_data in extracted['classes'].items():
-                    if isinstance(class_data, dict):
-                        line = class_data.get('line', 0)
-                        methods = []
-                        for method_name, method_data in class_data.get('methods', {}).items():
-                            methods.append(extract_lightweight_signature(method_data, method_name))
-                        lightweight_classes[class_name] = {
-                            'line': line,
-                            'methods': methods
-                        }
-                if lightweight_classes:
-                    file_entry['classes'] = lightweight_classes
-
-            # Add imports if present
-            if extracted.get('imports'):
-                file_entry['imports'] = extracted['imports']
-
-            # Store file entry
-            core_index['f'][str(rel_path)] = file_entry
-
             # Track for module organization
             parsed_files.append(file_path)
-            file_functions_map[str(rel_path)] = extracted
+            # Store extracted data along with git metadata for detail modules
+            file_functions_map[str(rel_path)] = {
+                **extracted,
+                'git': git_meta if git_meta.get('commit') or git_meta.get('date') else None
+            }
 
             # Update stats
             lang_key = PARSEABLE_LANGUAGES[file_path.suffix]
@@ -1117,6 +1088,10 @@ def generate_detail_modules(
                 'classes': [],
                 'imports': extracted.get('imports', [])
             }
+
+            # Add git metadata if available
+            if extracted.get('git'):
+                file_detail['git'] = extracted['git']
 
             # Add functions with full signatures
             if extracted.get('functions'):

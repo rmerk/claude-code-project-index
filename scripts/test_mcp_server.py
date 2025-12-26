@@ -203,7 +203,7 @@ class TestPathTraversalValidation(unittest.TestCase):
         traversal_path = Path("../../../etc/passwd")
         with self.assertRaises(ValueError) as ctx:
             _validate_path_within_project(traversal_path)
-        self.assertIn("must be within project root", str(ctx.exception))
+        self.assertIn("'..' which is not allowed", str(ctx.exception))
 
 
 @unittest.skipUnless(MCP_MODULE_AVAILABLE, f"MCP module not available: {MCP_IMPORT_ERROR if not MCP_MODULE_AVAILABLE else ''}")
