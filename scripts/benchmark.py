@@ -283,7 +283,7 @@ def measure_memory_usage(project_path: Path) -> Optional[float]:
 
         process.wait()
 
-    except Exception as e:
+    except (psutil.Error, OSError, subprocess.SubprocessError) as e:
         print(f"ERROR: {e}")
         return None
 
@@ -560,7 +560,7 @@ def main():
             try:
                 metrics = run_performance_benchmark(project, temp_path)
                 all_metrics.append(metrics)
-            except Exception as e:
+            except (subprocess.CalledProcessError, OSError, ValueError, KeyError) as e:
                 print(f"\n❌ Benchmark failed for {project['name']}: {e}")
                 continue
 

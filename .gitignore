@@ -43,4 +43,5 @@ CLAUDE.md
 PROJECT_INDEX.json.backup-*   # Backup files from migration
 PROJECT_INDEX.legacy.json      # Legacy format copies
 .project-index.json           # Personal configuration (each developer may differ)
+.project-index-cache/         # Signature cache directory (generated)
 .venv-mcp/

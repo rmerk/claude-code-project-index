@@ -39,6 +39,9 @@ from index_utils import (
 )
 from doc_classifier import classify_documentation
 from git_metadata import extract_git_metadata
+from signature_cache import (
+    load_cache, save_cache, get_cached_signature, set_cached_signature
+)
 
 # Limits to keep it fast and simple
 MAX_FILES = 10000
@@ -625,7 +628,7 @@ def generate_tree_structure(root_path: Path, max_depth: int = MAX_TREE_DEPTH) ->
                     file_count = sum(1 for f in item.rglob('*') if f.is_file() and f.suffix in CODE_EXTENSIONS)
                     if file_count > 0:
                         name += f" ({file_count} files)"
-                except:
+                except (OSError, PermissionError):
                     pass
 
             tree_lines.append(prefix + current_prefix + name)
@@ -657,6 +660,12 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
 
     root = Path(root_dir)
     git_cache = {}  # Cache for git metadata
+
+    # Load signature cache for performance (skip if --no-cache flag)
+    use_cache = '--no-cache' not in sys.argv
+    sig_cache = load_cache(root) if use_cache else {"version": "1.0", "signatures": {}}
+    cache_hits = 0
+    cache_misses = 0
 
     # Core index structure (v2.2-submodules with multi-level organization)
     # Note: File details are stored in detail modules (PROJECT_INDEX.d/), not in core index
@@ -796,19 +805,31 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
             continue
 
         try:
-            content = file_path.read_text(encoding='utf-8', errors='ignore')
+            # Check signature cache first (Story: Persistent Signature Cache)
+            cached = get_cached_signature(file_path, sig_cache) if use_cache else None
 
-            # Extract signatures based on language
-            if file_path.suffix == '.py':
-                extracted = extract_python_signatures(content)
-            elif file_path.suffix in {'.js', '.ts', '.jsx', '.tsx'}:
-                extracted = extract_javascript_signatures(content)
-            elif file_path.suffix in {'.sh', '.bash'}:
-                extracted = extract_shell_signatures(content)
-            elif file_path.suffix == '.vue':
-                extracted = extract_vue_signatures(content)
+            if cached:
+                extracted = cached
+                cache_hits += 1
             else:
-                extracted = {'functions': {}, 'classes': {}}
+                content = file_path.read_text(encoding='utf-8', errors='ignore')
+
+                # Extract signatures based on language
+                if file_path.suffix == '.py':
+                    extracted = extract_python_signatures(content)
+                elif file_path.suffix in {'.js', '.ts', '.jsx', '.tsx'}:
+                    extracted = extract_javascript_signatures(content)
+                elif file_path.suffix in {'.sh', '.bash'}:
+                    extracted = extract_shell_signatures(content)
+                elif file_path.suffix == '.vue':
+                    extracted = extract_vue_signatures(content)
+                else:
+                    extracted = {'functions': {}, 'classes': {}}
+
+                # Cache the extracted signature
+                if use_cache and (extracted.get('functions') or extracted.get('classes')):
+                    set_cached_signature(file_path, extracted, sig_cache)
+                cache_misses += 1
 
             # Skip if no functions/classes found
             if not extracted.get('functions') and not extracted.get('classes'):
@@ -1016,6 +1037,13 @@ def generate_split_index(root_dir: str, config: Optional[Dict] = None) -> Tuple[
     # Add detail file list to core index stats for reference
     if detail_files:
         core_index['stats']['detail_modules'] = len(detail_files)
+
+    # Save signature cache
+    if use_cache:
+        save_cache(root, sig_cache)
+        if cache_hits + cache_misses > 0:
+            hit_rate = cache_hits / (cache_hits + cache_misses) * 100
+            print(f"📦 Signature cache: {cache_hits} hits, {cache_misses} misses ({hit_rate:.1f}% hit rate)")
 
     return core_index, skipped_count
 

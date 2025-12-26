@@ -1,6 +1,6 @@
 {
   "version": "2.2-submodules",
-  "at": "2025-12-26T10:10:39.869277",
+  "at": "2025-12-26T14:50:32.014237",
   "root": ".",
   "tree": [
     ".",
@@ -78,17 +78,17 @@
     "\u2502   \u251c\u2500\u2500 retrospectives/",
     "\u2502   \u251c\u2500\u2500 sprint-artifacts/",
     "\u2502   \u2514\u2500\u2500 stories/",
-    "\u251c\u2500\u2500 scripts/ (33 files)",
+    "\u251c\u2500\u2500 scripts/ (34 files)",
     "\u251c\u2500\u2500 tests/ (1 files)",
     "\u251c\u2500\u2500 README.md",
     "\u2514\u2500\u2500 requirements.txt"
   ],
   "stats": {
-    "total_files": 34,
-    "total_directories": 103,
+    "total_files": 35,
+    "total_directories": 104,
     "fully_parsed": {
-      "shell": 2,
-      "python": 32
+      "python": 33,
+      "shell": 2
     },
     "listed_only": {
       "json": 7
@@ -100,7 +100,7 @@
       "archive": 1
     },
     "git_files_tracked": 34,
-    "git_files_fallback": 0,
+    "git_files_fallback": 1,
     "detail_modules": 6
   },
   "g": [],
@@ -167,20 +167,12 @@
     }
   },
   "modules": {
-    "root": {
-      "file_count": 2,
-      "function_count": 15,
-      "detail_path": "PROJECT_INDEX.d/root.json",
-      "files": [
-        "install.sh",
-        "project_index_mcp.py"
-      ]
-    },
     "scripts": {
-      "file_count": 32,
-      "function_count": 611,
+      "file_count": 33,
+      "function_count": 619,
       "detail_path": "PROJECT_INDEX.d/scripts.json",
       "files": [
+        "scripts/signature_cache.py",
         "scripts/benchmark.py",
         "scripts/doc_classifier.py",
         "scripts/find_python.sh",
@@ -215,6 +207,15 @@
         "scripts/validate_mcp.py"
       ]
     },
+    "root": {
+      "file_count": 2,
+      "function_count": 15,
+      "detail_path": "PROJECT_INDEX.d/root.json",
+      "files": [
+        "install.sh",
+        "project_index_mcp.py"
+      ]
+    },
     ".claude-code-ericbuess": {
       "file_count": 0,
       "function_count": 0,
@@ -241,6 +242,7 @@
     }
   },
   "dir_purposes": {
+    "scripts": "Build and utility scripts",
     "bmad/bmm/docs": "Project documentation",
     "bmad/bmm/testarch/knowledge": "Test files and test utilities",
     "bmad/bmm/workflows/1-analysis/research": "API routes and endpoints",
@@ -250,12 +252,10 @@
     "bmad/bmm/workflows/testarch/test-review": "Test files and test utilities",
     "bmad/docs": "Project documentation",
     "docs": "Project documentation",
-    "docs/retrospectives": "Test specifications",
-    "scripts": "Build and utility scripts"
+    "docs/retrospectives": "Test specifications"
   },
   "file_to_module_map": {
-    "install.sh": "root",
-    "project_index_mcp.py": "root",
+    "scripts/signature_cache.py": "scripts",
     "scripts/benchmark.py": "scripts",
     "scripts/doc_classifier.py": "scripts",
     "scripts/find_python.sh": "scripts",
@@ -287,9 +287,11 @@
     "scripts/test_sub_module_splitting.py": "scripts",
     "scripts/test_tiered_storage.py": "scripts",
     "scripts/test_vue_options_api.py": "scripts",
-    "scripts/validate_mcp.py": "scripts"
+    "scripts/validate_mcp.py": "scripts",
+    "install.sh": "root",
+    "project_index_mcp.py": "root"
   },
   "module_hashes": {
-    "scripts": "sha256:bee80a558ba5038fb6721ff7648df4899c36670f2b70f8251607ffcc00d55fff"
+    "scripts": "sha256:409685fe620485036f30e8efc13fc8be1b8d6c344deb3ffaeddf7c30f54432e6"
   }
 }

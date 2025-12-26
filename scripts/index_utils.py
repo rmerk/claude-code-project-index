@@ -45,6 +45,9 @@ CODE_EXTENSIONS = {
 # Markdown files to analyze
 MARKDOWN_EXTENSIONS = {'.md', '.markdown', '.rst'}
 
+# Maximum file size to parse (skip large files like minified bundles)
+MAX_FILE_SIZE = 500 * 1024  # 500KB
+
 # Common directory purposes
 DIRECTORY_PURPOSES = {
     'auth': 'Authentication and authorization logic',
@@ -1486,7 +1489,7 @@ def extract_markdown_structure(file_path: Path) -> Dict[str, List[str]]:
     """Extract headers and architectural hints from markdown files."""
     try:
         content = file_path.read_text(encoding='utf-8', errors='ignore')
-    except:
+    except (OSError, IOError):
         return {'sections': [], 'architecture_hints': []}
     
     # Extract headers (up to level 3)
@@ -1609,7 +1612,7 @@ def parse_gitignore(gitignore_path: Path) -> List[str]:
                 if not line or line.startswith('#'):
                     continue
                 patterns.append(line)
-    except:
+    except (OSError, IOError):
         pass
     
     return patterns
@@ -1683,22 +1686,36 @@ def matches_gitignore_pattern(path: Path, patterns: Set[str], root_path: Path) -
 
 
 def should_index_file(path: Path, root_path: Path = None) -> bool:
-    """Check if we should index this file."""
+    """Check if we should index this file.
+
+    Skips files that:
+    - Are not code or markdown files
+    - Are in ignored directories
+    - Match gitignore patterns
+    - Exceed MAX_FILE_SIZE (likely generated/minified files)
+    """
     # Must be a code or markdown file
     if not (path.suffix in CODE_EXTENSIONS or path.suffix in MARKDOWN_EXTENSIONS):
         return False
-    
+
     # Skip if in hardcoded ignored directory (for safety)
     for part in path.parts:
         if part in IGNORE_DIRS:
             return False
-    
+
     # If root_path provided, check gitignore patterns
     if root_path:
         patterns = load_gitignore_patterns(root_path)
         if matches_gitignore_pattern(path, patterns, root_path):
             return False
-    
+
+    # Skip large files (likely generated/minified bundles)
+    try:
+        if path.exists() and path.stat().st_size > MAX_FILE_SIZE:
+            return False
+    except OSError:
+        pass  # File may not be accessible, proceed anyway
+
     return True
 
 

@@ -1,8 +1,37 @@
 {
   "module_id": "scripts",
   "version": "2.1-enhanced",
-  "modified": "2025-12-26T10:10:38.973262",
+  "modified": "2025-12-26T14:50:31.088435",
   "f": {
+    "scripts/signature_cache.py": {
+      "lang": "python",
+      "funcs": [
+        "get_cache_key",
+        "get_cache_path",
+        "load_cache",
+        "save_cache",
+        "get_cached_signature",
+        "set_cached_signature",
+        "clear_cache",
+        "get_cache_stats"
+      ],
+      "imports": [
+        "json",
+        "hashlib",
+        "logging",
+        "pathlib",
+        "typing"
+      ],
+      "git": {
+        "commit": null,
+        "author": null,
+        "date": "2025-12-26T16:26:54.338058+00:00",
+        "message": null,
+        "pr": null,
+        "lines_changed": null,
+        "recency_days": 0
+      }
+    },
     "scripts/benchmark.py": {
       "lang": "python",
       "funcs": [
@@ -38,7 +67,7 @@
         "message": "Enhance project index and documentation for version management and performance validation",
         "pr": null,
         "lines_changed": 591,
-        "recency_days": 44
+        "recency_days": 45
       }
     },
     "scripts/doc_classifier.py": {
@@ -57,7 +86,7 @@
         "message": "Implement tiered documentation classification system",
         "pr": null,
         "lines_changed": 99,
-        "recency_days": 52
+        "recency_days": 53
       }
     },
     "scripts/find_python.sh": {
@@ -242,7 +271,7 @@
         "message": "Complete Story 2.11: Vue Options API parsing - Review follow-up resolution",
         "pr": null,
         "lines_changed": 303,
-        "recency_days": 43
+        "recency_days": 44
       }
     },
     "scripts/loader.py": {
@@ -268,7 +297,7 @@
         "message": "Enhance project index and documentation for version management and performance validation",
         "pr": null,
         "lines_changed": 4,
-        "recency_days": 44
+        "recency_days": 45
       }
     },
     "scripts/mcp_detector.py": {
@@ -351,6 +380,7 @@
         "index_utils",
         "doc_classifier",
         "git_metadata",
+        "signature_cache",
         "index_utils",
         "logging",
         "logging",
@@ -378,13 +408,13 @@
         "incremental"
       ],
       "git": {
-        "commit": "06f69a496605067e2a3fe71c1cde9d7aefcbbd32",
+        "commit": "d6db8a50e46ca7d325e3bcadf659233156412549",
         "author": "4576425+rmerk@users.noreply.github.com",
-        "date": "2025-11-12T14:59:06-06:00",
-        "message": "Enhance path validation in project_index_mcp.py and improve Vue Options API parsing",
+        "date": "2025-12-26T10:13:06-06:00",
+        "message": "Update project index and documentation for version 2.2-submodules",
         "pr": null,
-        "lines_changed": 9,
-        "recency_days": 43
+        "lines_changed": 51,
+        "recency_days": 0
       }
     },
     "scripts/relevance.py": {
@@ -476,7 +506,7 @@
         "message": "Enhance project index and documentation for version management and performance validation",
         "pr": null,
         "lines_changed": 49,
-        "recency_days": 44
+        "recency_days": 45
       }
     },
     "scripts/test_doc_classifier.py": {
@@ -500,7 +530,7 @@
         "message": "Implement tiered documentation classification system",
         "pr": null,
         "lines_changed": 270,
-        "recency_days": 52
+        "recency_days": 53
       }
     },
     "scripts/test_git_metadata.py": {
@@ -610,7 +640,7 @@
         "message": "Enhance project index and documentation for version management and performance validation",
         "pr": null,
         "lines_changed": 16,
-        "recency_days": 44
+        "recency_days": 45
       }
     },
     "scripts/test_large_module_detection.py": {
@@ -666,7 +696,7 @@
         "message": "Enhance project index and documentation for version management and performance validation",
         "pr": null,
         "lines_changed": 6,
-        "recency_days": 44
+        "recency_days": 45
       }
     },
     "scripts/test_manual_large_module.py": {
@@ -746,13 +776,13 @@
         "inspect"
       ],
       "git": {
-        "commit": "f1a643493729fc4cc0fffcc02bbdd55e080f1ec3",
+        "commit": "d6db8a50e46ca7d325e3bcadf659233156412549",
         "author": "4576425+rmerk@users.noreply.github.com",
-        "date": "2025-11-11T12:59:59-06:00",
-        "message": "Enhance project index and documentation for version management and performance validation",
+        "date": "2025-12-26T10:13:06-06:00",
+        "message": "Update project index and documentation for version 2.2-submodules",
         "pr": null,
-        "lines_changed": 217,
-        "recency_days": 44
+        "lines_changed": 2,
+        "recency_days": 0
       }
     },
     "scripts/test_migration.py": {
@@ -780,7 +810,7 @@
         "message": "Enhance project index and documentation for version management and performance validation",
         "pr": null,
         "lines_changed": 4,
-        "recency_days": 44
+        "recency_days": 45
       }
     },
     "scripts/test_relevance.py": {
@@ -806,7 +836,7 @@
         "message": "Enhance project index and documentation for version management and performance validation",
         "pr": null,
         "lines_changed": 11,
-        "recency_days": 44
+        "recency_days": 45
       }
     },
     "scripts/test_smart_presets.py": {
@@ -834,7 +864,7 @@
         "message": "Enhance project index and documentation for version management and performance validation",
         "pr": null,
         "lines_changed": 412,
-        "recency_days": 44
+        "recency_days": 45
       }
     },
     "scripts/test_sub_module_splitting.py": {
@@ -912,7 +942,7 @@
         "message": "Complete Story 2.11: Vue Options API parsing - Review follow-up resolution",
         "pr": null,
         "lines_changed": 545,
-        "recency_days": 43
+        "recency_days": 44
       }
     },
     "scripts/validate_mcp.py": {
@@ -945,7 +975,7 @@
         "message": "Enhance project index and documentation for version management and performance validation",
         "pr": null,
         "lines_changed": 356,
-        "recency_days": 44
+        "recency_days": 45
       }
     }
   },

@@ -1,0 +1,21 @@
+{
+  "project_name": "asure.ptm.portal.web.ui.new",
+  "project_type": "Vue/TypeScript",
+  "file_count": 490,
+  "generation_time": null,
+  "validation_time": 0.00030422210693359375,
+  "hash_integrity_passed": true,
+  "file_count_accuracy": 100.0,
+  "total_modules": 36,
+  "empty_modules": 1,
+  "largest_module_name": "assureptmdashboard-tests",
+  "largest_module_file_count": 94,
+  "mcp_load_core_latency": 0,
+  "mcp_load_module_latency": 0,
+  "mcp_search_files_latency": 0,
+  "mcp_get_file_info_latency": 0,
+  "vue_options_api_accuracy": null,
+  "vue_composition_api_accuracy": 100.0,
+  "git_metadata_coverage": 100.0,
+  "timestamp": "2025-12-26T14:44:05.580594"
+}

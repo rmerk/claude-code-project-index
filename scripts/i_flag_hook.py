@@ -47,17 +47,17 @@ def get_last_interactive_size():
     try:
         project_root = find_project_root()
         index_path = project_root / 'PROJECT_INDEX.json'
-        
+
         if index_path.exists():
             with open(index_path, 'r') as f:
                 index = json.load(f)
                 meta = index.get('_meta', {})
                 last_size = meta.get('last_interactive_size_k')
-                
+
                 if last_size:
                     print(f"📝 Using remembered size: {last_size}k", file=sys.stderr)
                     return last_size
-    except:
+    except (OSError, json.JSONDecodeError, KeyError):
         pass
     
     # Fall back to default
@@ -130,7 +130,7 @@ def calculate_files_hash(project_root):
                 try:
                     mtime = str(full_path.stat().st_mtime)
                     hasher.update(f"{file_path}:{mtime}".encode())
-                except:
+                except (OSError, PermissionError):
                     pass
         
         return hasher.hexdigest()[:16]
@@ -288,7 +288,7 @@ def copy_to_clipboard(prompt, index_path):
                                     print(f"🌉 VM Bridge network daemon detected at {mac_ip}", file=sys.stderr)
                                     vm_bridge_available = True
                                     break
-                            except:
+                            except (ConnectionError, TimeoutError, OSError):
                                 continue
                         
                         if vm_bridge_available:
@@ -431,7 +431,7 @@ Focus on providing actionable file locations and insights."""
                             result = subprocess.run(['tmux', 'display-message', '-p', '#{client_tty}'],
                                                   capture_output=True, text=True, check=True)
                             tty_device = result.stdout.strip()
-                        except:
+                        except (FileNotFoundError, subprocess.CalledProcessError, OSError):
                             tty_device = "/dev/tty"
                     else:
                         tty_device = "/dev/tty"
@@ -472,19 +472,19 @@ Focus on providing actionable file locations and insights."""
                     proc.communicate(clipboard_content.encode('utf-8'))
                     if proc.returncode == 0:
                         print(f"✅ Loaded into tmux buffer", file=sys.stderr)
-                        
+
                         # Try to trigger automatic Mac clipboard sync
                         # This runs a command on the tmux client (Mac) side
                         sync_cmd = f"ssh {os.environ.get('USER', 'user')}@10.211.55.4 'cat ~/Projects/claude-code-project-index/.clipboard_content.txt' | pbcopy"
                         tmux_run = f"tmux run-shell '{sync_cmd}'"
-                        
+
                         try:
-                            subprocess.run(['tmux', 'run-shell', sync_cmd], 
+                            subprocess.run(['tmux', 'run-shell', sync_cmd],
                                          capture_output=True, timeout=2)
                             print(f"🚀 Attempting automatic clipboard sync to Mac...", file=sys.stderr)
-                        except:
+                        except (FileNotFoundError, subprocess.TimeoutExpired, OSError):
                             pass
-                except:
+                except (FileNotFoundError, OSError):
                     pass
                 
                 print(f"", file=sys.stderr)
@@ -502,7 +502,7 @@ Focus on providing actionable file locations and insights."""
                 proc.communicate(clipboard_content.encode('utf-8'))
                 if proc.returncode == 0:
                     print(f"✅ Loaded into tmux buffer (use prefix + ] to paste)", file=sys.stderr)
-            except:
+            except (FileNotFoundError, OSError):
                 pass
             
             print(f"📁 Full content saved to {fallback_path}", file=sys.stderr)
@@ -527,7 +527,7 @@ Focus on providing actionable file locations and insights."""
                                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
                         time.sleep(0.5)
                     env['DISPLAY'] = ':99'
-                
+
                 # Copy to clipboard using xclip
                 proc = subprocess.Popen(['xclip', '-selection', 'clipboard'],
                                       stdin=subprocess.PIPE, env=env,
@@ -538,7 +538,7 @@ Focus on providing actionable file locations and insights."""
                     print(f"✅ Copied to clipboard via xclip: {len(clipboard_content)} chars", file=sys.stderr)
                     print(f"📋 Ready to paste into Gemini, Claude.ai, ChatGPT, or other AI", file=sys.stderr)
                     return ('clipboard', len(clipboard_content))
-        except:
+        except (FileNotFoundError, OSError):
             pass
         
         # Fallback to pyperclip if xclip didn't work

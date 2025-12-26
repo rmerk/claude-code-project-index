@@ -70,6 +70,17 @@ def load_detail_module(module_name: str, index_dir: Optional[Path] = None) -> Di
     # Construct path to detail module file
     module_path = index_dir / f"{module_name}.json"
 
+    # Security: Prevent path traversal attacks
+    try:
+        resolved_path = module_path.resolve()
+        resolved_index_dir = index_dir.resolve()
+        if not str(resolved_path).startswith(str(resolved_index_dir)):
+            raise ValueError(
+                f"Invalid module path: path traversal detected for '{module_name}'"
+            )
+    except (OSError, RuntimeError) as e:
+        raise ValueError(f"Invalid module path: {e}")
+
     # Check if file exists
     if not module_path.exists():
         raise FileNotFoundError(

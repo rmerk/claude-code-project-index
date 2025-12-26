@@ -118,7 +118,7 @@ def detect_changed_files(
         raise subprocess.CalledProcessError(
             1, cmd, stderr="Git command timed out after 10 seconds"
         )
-    except Exception as e:
+    except (subprocess.CalledProcessError, OSError, ValueError) as e:
         # Re-raise as CalledProcessError for consistent error handling
         raise subprocess.CalledProcessError(1, ['git'], stderr=str(e))
 
@@ -263,7 +263,7 @@ def compute_module_hash(module_path: Path) -> str:
 
     except FileNotFoundError:
         return "sha256:missing"
-    except Exception as e:
+    except (OSError, IOError) as e:
         return f"sha256:error:{str(e)}"
 
 
@@ -529,7 +529,7 @@ def incremental_update(
         try:
             module_data = load_detail_module(module_name, module_dir)
             detail_modules[module_name] = module_data
-        except Exception as e:
+        except (FileNotFoundError, json.JSONDecodeError, ValueError) as e:
             if verbose:
                 print(f"Warning: Failed to load module {module_name}: {e}")
 

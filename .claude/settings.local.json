@@ -28,7 +28,13 @@
       "Bash(chmod:*)",
       "Bash(time python:*)",
       "Bash(assureptmdashboard/src/composables/auth.ts)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "mcp__project-index__project_index_load_module",
+      "Bash(wc:*)",
+      "Bash(head:*)",
+      "Bash(xargs -I {} sh -c 'echo \"\"\"\"=== {} ===\"\"\"\" && head -5 \"\"\"\"{}\"\"\"\"')",
+      "Bash(done)",
+      "Bash(git rev-parse:*)"
     ],
     "deny": [],
     "ask": []
